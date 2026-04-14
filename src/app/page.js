@@ -8,7 +8,7 @@ export default function Home() {
     <div className={styles.page}>
       <main className={styles.main}>
         <h1>Bản đồ vệ tinh tương tác</h1>
-        <div style={{ height: '600px', width: '100%' }}>
+        <div style={{ height: '100vh', width: '100vw' }}>
           <MapWrapper />
         </div>
       </main>
