@@ -15,9 +15,13 @@ export default function MapWrapper() {
     setRectangleCoords(coordinates);
   };
 
+  const handleCaptureImage = () => {
+    // This will be handled by the Map component
+  };
+
   return (
     <div style={{ height: '100%', position: 'relative' }}>
-      <Map onRectangleDrawn={handleRectangleDrawn} />
+      <Map onRectangleDrawn={handleRectangleDrawn} onCaptureImage={handleCaptureImage} rectangleCoords={rectangleCoords} />
       {rectangleCoords && (
         <div style={{
           position: 'absolute',
