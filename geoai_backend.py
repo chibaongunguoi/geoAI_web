@@ -203,39 +203,101 @@ def download_and_analyze_real_data(bbox_tuple, bbox_hash):
         logger.info("📥 Starting building data download from Overture Maps...")
         logger.info(f"📄 Target file: {buildings_file}")
         
+        buildings_gdf = None
         if not os.path.exists(buildings_file):
             try:
                 logger.info(f"🌐 Calling download_overture_buildings() for buildings...")
-                buildings_file = download_overture_buildings(
+                result = download_overture_buildings(
                     bbox=bbox_tuple,
                     output=buildings_file,
                     overture_type='building'
                 )
-                logger.info(f"✅ Buildings downloaded successfully: {buildings_file}")
+                logger.info(f"📊 Result type: {type(result).__name__}")
+                
+                # Handle different return types
+                if result is None:
+                    logger.warning("⚠️ download_overture_buildings() returned None")
+                    buildings_gdf = None
+                elif isinstance(result, str):
+                    # Return value is file path
+                    if os.path.exists(result):
+                        logger.info(f"✅ Buildings downloaded to: {result}")
+                        buildings_file = result
+                        buildings_gdf = gpd.read_file(result)
+                    else:
+                        logger.warning(f"⚠️ File path returned but file doesn't exist: {result}")
+                        buildings_gdf = None
+                elif isinstance(result, gpd.GeoDataFrame):
+                    # Return value is GeoDataFrame - save it
+                    logger.info(f"🔄 Result is GeoDataFrame with {len(result)} features - saving to {buildings_file}")
+                    result.to_file(buildings_file, driver='GeoJSON')
+                    logger.info(f"✅ Buildings GeoDataFrame saved to: {buildings_file}")
+                    buildings_gdf = result
+                else:
+                    logger.warning(f"⚠️ Unknown result type from download_overture_buildings: {type(result)}")
+                    buildings_gdf = None
+                    
             except Exception as e:
                 logger.error(f"❌ Could not download buildings: {type(e).__name__}: {str(e)}")
-                buildings_file = None
+                buildings_gdf = None
         else:
             logger.info(f"⏭️ Buildings file already exists: {buildings_file}")
+            try:
+                buildings_gdf = gpd.read_file(buildings_file)
+                logger.info(f"✅ Loaded existing buildings file: {len(buildings_gdf)} features")
+            except Exception as e:
+                logger.error(f"❌ Could not read existing buildings file: {str(e)}")
+                buildings_gdf = None
         
         # Download infrastructure data
         logger.info("📥 Starting infrastructure data download from Overture Maps...")
         logger.info(f"📄 Target file: {infrastructure_file}")
         
+        infrastructure_gdf = None
         if not os.path.exists(infrastructure_file):
             try:
                 logger.info(f"🌐 Calling download_overture_buildings() for infrastructure...")
-                infrastructure_file = download_overture_buildings(
+                result = download_overture_buildings(
                     bbox=bbox_tuple,
                     output=infrastructure_file,
                     overture_type='infrastructure'
                 )
-                logger.info(f"✅ Infrastructure downloaded successfully: {infrastructure_file}")
+                logger.info(f"📊 Result type: {type(result).__name__}")
+                
+                # Handle different return types
+                if result is None:
+                    logger.warning("⚠️ download_overture_buildings() returned None")
+                    infrastructure_gdf = None
+                elif isinstance(result, str):
+                    # Return value is file path
+                    if os.path.exists(result):
+                        logger.info(f"✅ Infrastructure downloaded to: {result}")
+                        infrastructure_file = result
+                        infrastructure_gdf = gpd.read_file(result)
+                    else:
+                        logger.warning(f"⚠️ File path returned but file doesn't exist: {result}")
+                        infrastructure_gdf = None
+                elif isinstance(result, gpd.GeoDataFrame):
+                    # Return value is GeoDataFrame - save it
+                    logger.info(f"🔄 Result is GeoDataFrame with {len(result)} features - saving to {infrastructure_file}")
+                    result.to_file(infrastructure_file, driver='GeoJSON')
+                    logger.info(f"✅ Infrastructure GeoDataFrame saved to: {infrastructure_file}")
+                    infrastructure_gdf = result
+                else:
+                    logger.warning(f"⚠️ Unknown result type from download_overture_buildings: {type(result)}")
+                    infrastructure_gdf = None
+                    
             except Exception as e:
                 logger.error(f"❌ Could not download infrastructure: {type(e).__name__}: {str(e)}")
-                infrastructure_file = None
+                infrastructure_gdf = None
         else:
             logger.info(f"⏭️ Infrastructure file already exists: {infrastructure_file}")
+            try:
+                infrastructure_gdf = gpd.read_file(infrastructure_file)
+                logger.info(f"✅ Loaded existing infrastructure file: {len(infrastructure_gdf)} features")
+            except Exception as e:
+                logger.error(f"❌ Could not read existing infrastructure file: {str(e)}")
+                infrastructure_gdf = None
         
         # Extract statistics from downloaded data
         logger.info("📊 Starting analysis of downloaded data...")
@@ -248,18 +310,16 @@ def download_and_analyze_real_data(bbox_tuple, bbox_hash):
         }
         
         # Process buildings data
-        if buildings_file and os.path.exists(buildings_file):
+        logger.info("📖 Processing buildings data...")
+        if buildings_gdf is not None and not buildings_gdf.empty:
             try:
-                logger.info(f"📖 Reading buildings GeoJSON from {buildings_file}...")
-                stats = extract_building_stats(buildings_file)
-                logger.info(f"📊 extract_building_stats() returned: {stats}")
+                logger.info(f"📖 Processing buildings GeoDataFrame with {len(buildings_gdf)} features...")
                 
-                gdf = gpd.read_file(buildings_file)
-                building_count = len(gdf)
+                building_count = len(buildings_gdf)
                 logger.info(f"🏗️ Buildings loaded: {building_count} features")
                 
                 if building_count > 0:
-                    total_area = gdf.geometry.area.sum()
+                    total_area = buildings_gdf.geometry.area.sum()
                     avg_area = total_area / building_count
                     
                     analysis['buildings'] = {
@@ -270,21 +330,21 @@ def download_and_analyze_real_data(bbox_tuple, bbox_hash):
                     
                     logger.info(f"✅ Buildings: count={building_count}, avg_area={avg_area:.2f}, total={total_area:.2f}")
                 else:
-                    logger.warning(f"⚠️ No buildings found in GeoJSON")
+                    logger.warning(f"⚠️ No buildings found in GeoDataFrame")
                 
             except Exception as e:
                 logger.error(f"❌ Error processing buildings: {type(e).__name__}: {str(e)}", exc_info=True)
         else:
-            logger.warning(f"⚠️ Buildings file not available: {buildings_file}")
+            logger.warning(f"⚠️ Buildings GeoDataFrame not available")
         
         # Process infrastructure data
-        if infrastructure_file and os.path.exists(infrastructure_file):
+        logger.info("📖 Processing infrastructure data...")
+        if infrastructure_gdf is not None and not infrastructure_gdf.empty:
             try:
-                logger.info(f"📖 Reading infrastructure GeoJSON from {infrastructure_file}...")
-                gdf = gpd.read_file(infrastructure_file)
+                logger.info(f"📖 Processing infrastructure GeoDataFrame with {len(infrastructure_gdf)} features...")
                 
                 # Count different infrastructure types
-                infra_count = len(gdf)
+                infra_count = len(infrastructure_gdf)
                 logger.info(f"⚡ Infrastructure loaded: {infra_count} features")
                 
                 # Try to differentiate between roads and utilities based on properties
@@ -301,7 +361,7 @@ def download_and_analyze_real_data(bbox_tuple, bbox_hash):
             except Exception as e:
                 logger.error(f"❌ Error processing infrastructure: {type(e).__name__}: {str(e)}", exc_info=True)
         else:
-            logger.warning(f"⚠️ Infrastructure file not available: {infrastructure_file}")
+            logger.warning(f"⚠️ Infrastructure GeoDataFrame not available")
         
         # Estimate land use based on building density
         building_count = analysis['buildings']['count']
@@ -463,21 +523,27 @@ def download_geoai_data():
         try:
             logger.info(f"Downloading buildings for bbox: {bbox_tuple}")
             if not os.path.exists(buildings_file):
-                buildings_file = download_overture_buildings(
+                result = download_overture_buildings(
                     bbox=bbox_tuple,
                     output=buildings_file,
                     overture_type='building'
                 )
+                # Handle GeoDataFrame return
+                if isinstance(result, gpd.GeoDataFrame):
+                    result.to_file(buildings_file, driver='GeoJSON')
                 logger.info(f"✓ Buildings downloaded: {buildings_file}")
             
             # Download infrastructure data
             logger.info(f"Downloading infrastructure for bbox: {bbox_tuple}")
             if not os.path.exists(infrastructure_file):
-                infrastructure_file = download_overture_buildings(
+                result = download_overture_buildings(
                     bbox=bbox_tuple,
                     output=infrastructure_file,
                     overture_type='infrastructure'
                 )
+                # Handle GeoDataFrame return
+                if isinstance(result, gpd.GeoDataFrame):
+                    result.to_file(infrastructure_file, driver='GeoJSON')
                 logger.info(f"✓ Infrastructure downloaded: {infrastructure_file}")
             
         except Exception as e:
