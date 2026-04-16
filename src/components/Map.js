@@ -8,7 +8,7 @@ import { useEffect, useState, useCallback } from 'react';
 import html2canvas from 'html2canvas';
 
 // Component to handle map initialization and drawing
-function MapComponent({ onRectangleDrawn, rectangleCoords }) {
+function MapComponent({ onRectangleDrawn, rectangleCoords, onAnalyzeImage }) {
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
   const [captureControl, setCaptureControl] = useState(null);
@@ -46,16 +46,27 @@ function MapComponent({ onRectangleDrawn, rectangleCoords }) {
         backgroundColor: null,
       });
 
-      // Create download link
-      const link = document.createElement('a');
-      link.download = `map_capture_${Date.now()}.png`;
-      link.href = canvas.toDataURL();
-      link.click();
+      // Convert canvas to blob
+      canvas.toBlob(async (blob) => {
+        if (blob && onAnalyzeImage) {
+          // Create bbox array for the API
+          const bbox = [
+            currentCoords.southWest[1], // min lng
+            currentCoords.southWest[0], // min lat
+            currentCoords.northEast[1], // max lng
+            currentCoords.northEast[0]  // max lat
+          ];
+
+          // Call the analyze function
+          await onAnalyzeImage(blob, bbox);
+        }
+      }, 'image/png');
+
     } catch (error) {
       console.error('Error capturing image:', error);
       alert('Có lỗi khi cắt hình ảnh. Vui lòng thử lại.');
     }
-  }, [currentCoords, map]);
+  }, [currentCoords, map, onAnalyzeImage]);
 
   useEffect(() => {
     // Set initial view to a location (e.g., Vietnam)
@@ -160,7 +171,7 @@ function MapComponent({ onRectangleDrawn, rectangleCoords }) {
       }
       map.removeLayer(drawnItems);
     };
-  }, [map, drawnItems, onRectangleDrawn]);
+  }, [map, drawnItems, onRectangleDrawn, onAnalyzeImage]);
 
   // Update capture control click handler when captureImage changes
   useEffect(() => {
@@ -187,7 +198,7 @@ function MapComponent({ onRectangleDrawn, rectangleCoords }) {
   return null;
 }
 
-export default function Map({ onRectangleDrawn, rectangleCoords }) {
+export default function Map({ onRectangleDrawn, rectangleCoords, onAnalyzeImage }) {
   return (
     <MapContainer
       center={[14.0583, 108.2772]} // Center on Vietnam
@@ -201,7 +212,7 @@ export default function Map({ onRectangleDrawn, rectangleCoords }) {
         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
       />
-      <MapComponent onRectangleDrawn={onRectangleDrawn} rectangleCoords={rectangleCoords} />
+      <MapComponent onRectangleDrawn={onRectangleDrawn} rectangleCoords={rectangleCoords} onAnalyzeImage={onAnalyzeImage} />
     </MapContainer>
   );
 }

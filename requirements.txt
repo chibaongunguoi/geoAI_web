@@ -1,0 +1,21 @@
+# Main package - includes all necessary dependencies:
+# - geopandas, pandas, matplotlib
+# - leafmap, overturemaps
+# - rasterio, rioxarray
+# - torch, torchgeo
+# - and more...
+geoai-py
+
+# Web server and API
+flask==2.3.2
+flask-cors==4.0.0
+
+# Image processing
+pillow==10.0.0
+numpy==1.24.3
+
+# HTTP client
+requests==2.31.0
+
+# Environment variables
+python-dotenv==1.0.0
