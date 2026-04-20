@@ -11,11 +11,23 @@ from geoai.download import (
     extract_building_stats,
 )
 import geopandas as gpd
+import pandas as pd
 import os
+import shutil
+import tempfile
 from datetime import datetime
 import logging
 import time
 import hashlib
+from pathlib import Path
+
+from shapely.geometry import box
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 app = Flask(__name__)
 CORS(app)
@@ -28,9 +40,408 @@ logger = logging.getLogger(__name__)
 analysis_cache = {}
 bbox_cache = {}  # Cache downloaded data for same bbox
 geoai_downloads_dir = "geoai_data"
+DEFAULT_BBOX = (-117.6029, 47.6500, -117.5936, 47.6563)
+DANANG_BBOX = (107.82, 15.88, 108.35, 16.20)
+DANANG_BBOX_ENV = "GEOAI_DANANG_BBOX"
+DANANG_DATA_DIR = Path(geoai_downloads_dir) / "danang"
+DANANG_GPKG = DANANG_DATA_DIR / "overture_danang.gpkg"
+DANANG_META = DANANG_DATA_DIR / "overture_danang.meta.json"
+OBJECT_BOX_LIMIT = 500
+DEFAULT_SCAN_TYPES = ("building", "infrastructure", "green")
+GREEN_LAYER = "green"
+GPKG_LAYERS = ("buildings", "infrastructure", GREEN_LAYER)
 
 # Create downloads directory if it doesn't exist
 os.makedirs(geoai_downloads_dir, exist_ok=True)
+
+
+def bbox_hash_for(bbox_tuple):
+    return hashlib.md5(str(bbox_tuple).encode()).hexdigest()[:8]
+
+
+def analysis_cache_key(bbox_tuple, scan_types):
+    cache_value = {
+        "bbox": list(bbox_tuple),
+        "scanTypes": sorted(scan_types),
+    }
+    return hashlib.md5(json.dumps(cache_value, sort_keys=True).encode()).hexdigest()[:8]
+
+
+def normalize_bbox(values):
+    bbox = tuple(float(value) for value in values)
+    if len(bbox) != 4:
+        raise ValueError("bbox must contain exactly 4 numbers")
+    return bbox
+
+
+def parse_bbox(raw_value, default_bbox):
+    if not raw_value:
+        return default_bbox
+
+    try:
+        parsed = json.loads(raw_value)
+    except json.JSONDecodeError:
+        parsed = [part.strip() for part in raw_value.split(",") if part.strip()]
+
+    return normalize_bbox(parsed)
+
+
+def bbox_intersects(left_bbox, right_bbox):
+    left_min_x, left_min_y, left_max_x, left_max_y = left_bbox
+    right_min_x, right_min_y, right_max_x, right_max_y = right_bbox
+
+    return not (
+        left_max_x < right_min_x
+        or left_min_x > right_max_x
+        or left_max_y < right_min_y
+        or left_min_y > right_max_y
+    )
+
+
+def bbox_within(left_bbox, right_bbox):
+    left_min_x, left_min_y, left_max_x, left_max_y = left_bbox
+    right_min_x, right_min_y, right_max_x, right_max_y = right_bbox
+
+    return (
+        left_min_x >= right_min_x
+        and left_min_y >= right_min_y
+        and left_max_x <= right_max_x
+        and left_max_y <= right_max_y
+    )
+
+
+def is_bbox_inside_danang(bbox_tuple):
+    danang_bbox = parse_bbox(os.getenv(DANANG_BBOX_ENV), DANANG_BBOX)
+    return bbox_within(bbox_tuple, danang_bbox)
+
+
+def dataframe_digest(gdf):
+    if gdf is None or gdf.empty:
+        return "empty"
+
+    digest = hashlib.sha256()
+    digest.update(str(len(gdf)).encode())
+
+    if "id" in gdf.columns:
+        rows = gdf[["id", "geometry"]].copy()
+        rows["id"] = rows["id"].astype(str)
+        rows["geometry_wkb"] = rows.geometry.to_wkb(hex=True)
+        rows = rows[["id", "geometry_wkb"]].sort_values(["id", "geometry_wkb"])
+    else:
+        rows = gdf[["geometry"]].copy()
+        rows["geometry_wkb"] = rows.geometry.to_wkb(hex=True)
+        rows = rows[["geometry_wkb"]].sort_values("geometry_wkb")
+
+    for row in rows.itertuples(index=False):
+        digest.update("|".join(str(value) for value in row).encode())
+
+    return digest.hexdigest()
+
+
+def gpkg_digest(gpkg_path):
+    digests = {}
+    for layer in GPKG_LAYERS:
+        try:
+            digests[layer] = dataframe_digest(gpd.read_file(gpkg_path, layer=layer))
+        except Exception as e:
+            logger.warning(f"Could not hash {layer} layer in {gpkg_path}: {str(e)}")
+            digests[layer] = "unreadable"
+
+    combined = hashlib.sha256()
+    for layer in sorted(digests):
+        combined.update(layer.encode())
+        combined.update(digests[layer].encode())
+
+    return combined.hexdigest()
+
+
+def write_danang_gpkg(gpkg_path, bbox_tuple):
+    logger.info(f"Downloading latest Overture data for Da Nang bbox: {bbox_tuple}")
+
+    buildings_gdf = download_overture_buildings(
+        bbox=bbox_tuple,
+        output=str(gpkg_path),
+        overture_type="building",
+        layer="buildings",
+        driver="GPKG",
+    )
+    if isinstance(buildings_gdf, gpd.GeoDataFrame):
+        logger.info(f"Downloaded {len(buildings_gdf)} Da Nang building features")
+
+    infrastructure_gdf = download_overture_buildings(
+        bbox=bbox_tuple,
+        output=str(gpkg_path),
+        overture_type="infrastructure",
+        layer="infrastructure",
+        driver="GPKG",
+        mode="a",
+    )
+    if isinstance(infrastructure_gdf, gpd.GeoDataFrame):
+        logger.info(f"Downloaded {len(infrastructure_gdf)} Da Nang infrastructure features")
+
+    try:
+        green_gdf = download_overture_buildings(
+            bbox=bbox_tuple,
+            output=str(gpkg_path),
+            overture_type="land_cover",
+            layer=GREEN_LAYER,
+            driver="GPKG",
+            mode="a",
+        )
+        if isinstance(green_gdf, gpd.GeoDataFrame):
+            logger.info(f"Downloaded {len(green_gdf)} Da Nang green features")
+    except Exception as e:
+        logger.warning(f"Could not download Da Nang green features: {str(e)}")
+
+
+def read_json_file(path):
+    if not path.exists():
+        return {}
+
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            return json.load(file)
+    except Exception as e:
+        logger.warning(f"Could not read metadata file {path}: {str(e)}")
+        return {}
+
+
+def write_json_file(path, payload):
+    with path.open("w", encoding="utf-8") as file:
+        json.dump(payload, file, ensure_ascii=True, indent=2)
+
+
+def refresh_danang_gpkg():
+    danang_bbox = parse_bbox(os.getenv(DANANG_BBOX_ENV), DANANG_BBOX)
+    DANANG_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory(dir=DANANG_DATA_DIR) as temp_dir:
+        temp_gpkg = Path(temp_dir) / "overture_danang_latest.gpkg"
+        write_danang_gpkg(temp_gpkg, danang_bbox)
+        latest_digest = gpkg_digest(temp_gpkg)
+        current_meta = read_json_file(DANANG_META)
+
+        if (
+            DANANG_GPKG.exists()
+            and current_meta.get("digest") == latest_digest
+            and current_meta.get("bbox") == list(danang_bbox)
+        ):
+            logger.info("Da Nang GeoPackage is already up to date")
+            return
+
+        if DANANG_GPKG.exists():
+            DANANG_GPKG.unlink()
+
+        shutil.move(str(temp_gpkg), str(DANANG_GPKG))
+        write_json_file(DANANG_META, {
+            "bbox": list(danang_bbox),
+            "digest": latest_digest,
+            "updatedAt": datetime.now().isoformat(),
+        })
+        logger.info(f"Da Nang GeoPackage updated: {DANANG_GPKG}")
+
+
+def load_danang_gpkg_data(bbox_tuple):
+    if not DANANG_GPKG.exists():
+        return None
+
+    danang_bbox = parse_bbox(os.getenv(DANANG_BBOX_ENV), DANANG_BBOX)
+    if not bbox_intersects(bbox_tuple, danang_bbox):
+        return None
+
+    query_bounds = box(*bbox_tuple)
+    logger.info(f"Reading local Da Nang GeoPackage for bbox: {bbox_tuple}")
+
+    buildings_gdf = gpd.read_file(DANANG_GPKG, layer="buildings", bbox=bbox_tuple)
+    infrastructure_gdf = gpd.read_file(DANANG_GPKG, layer="infrastructure", bbox=bbox_tuple)
+    try:
+        green_gdf = gpd.read_file(DANANG_GPKG, layer=GREEN_LAYER, bbox=bbox_tuple)
+    except Exception as e:
+        logger.warning(f"Could not read Da Nang green layer: {str(e)}")
+        green_gdf = gpd.GeoDataFrame(geometry=[], crs="EPSG:4326")
+
+    if not buildings_gdf.empty:
+        buildings_gdf = buildings_gdf[buildings_gdf.geometry.intersects(query_bounds)]
+
+    if not infrastructure_gdf.empty:
+        infrastructure_gdf = infrastructure_gdf[
+            infrastructure_gdf.geometry.intersects(query_bounds)
+        ]
+
+    if not green_gdf.empty:
+        green_gdf = green_gdf[green_gdf.geometry.intersects(query_bounds)]
+
+    return buildings_gdf, infrastructure_gdf, green_gdf
+
+
+def geometry_area_m2(gdf):
+    if gdf is None or gdf.empty:
+        return 0
+
+    try:
+        projected = gdf.to_crs(gdf.estimate_utm_crs())
+        return projected.geometry.area.sum()
+    except Exception:
+        return gdf.geometry.area.sum()
+
+
+def object_boxes_from_gdf(gdf, object_type="building", limit=OBJECT_BOX_LIMIT):
+    if gdf is None or gdf.empty:
+        return []
+
+    objects = []
+    for index, row in gdf.head(limit).iterrows():
+        if row.geometry is None or row.geometry.is_empty:
+            continue
+
+        min_lng, min_lat, max_lng, max_lat = row.geometry.bounds
+        objects.append({
+            "id": str(row.get("id", index)),
+            "type": object_type,
+            "bbox": [
+                float(min_lng),
+                float(min_lat),
+                float(max_lng),
+                float(max_lat),
+            ],
+        })
+
+    return objects
+
+
+def parse_scan_types(raw_value):
+    if not raw_value:
+        return set(DEFAULT_SCAN_TYPES)
+
+    try:
+        parsed = json.loads(raw_value)
+    except json.JSONDecodeError:
+        parsed = [part.strip() for part in raw_value.split(",") if part.strip()]
+
+    if parsed == "all":
+        return set(DEFAULT_SCAN_TYPES)
+
+    if isinstance(parsed, str):
+        parsed = [parsed]
+
+    normalized = set()
+    for item in parsed:
+        if item == "all":
+            return set(DEFAULT_SCAN_TYPES)
+        if item in DEFAULT_SCAN_TYPES:
+            normalized.add(item)
+
+    return normalized or set(DEFAULT_SCAN_TYPES)
+
+
+def row_text(row):
+    values = []
+    for key in ("subtype", "class", "names", "categories", "sources", "height", "level"):
+        if key in row and row.get(key) is not None:
+            values.append(str(row.get(key)).lower())
+    return " ".join(values)
+
+
+def split_industrial_buildings(buildings_gdf):
+    if buildings_gdf is None or buildings_gdf.empty:
+        empty = gpd.GeoDataFrame(geometry=[], crs=getattr(buildings_gdf, "crs", "EPSG:4326"))
+        return empty, empty
+
+    industrial_terms = (
+        "factory",
+        "industrial",
+        "warehouse",
+        "manufactur",
+        "plant",
+        "workshop",
+        "works",
+        "hangar",
+    )
+    mask = buildings_gdf.apply(
+        lambda row: any(term in row_text(row) for term in industrial_terms),
+        axis=1,
+    )
+    return buildings_gdf[~mask], buildings_gdf[mask]
+
+
+def analyze_geodataframes(buildings_gdf, infrastructure_gdf, green_gdf, bbox_tuple, scan_types=None):
+    scan_types = scan_types or set(DEFAULT_SCAN_TYPES)
+    regular_buildings_gdf, industrial_buildings_gdf = split_industrial_buildings(buildings_gdf)
+    infrastructure_parts = [gdf for gdf in (infrastructure_gdf, industrial_buildings_gdf) if gdf is not None and not gdf.empty]
+    combined_infrastructure_gdf = (
+        gpd.GeoDataFrame(
+            pd.concat(infrastructure_parts, ignore_index=True),
+            crs=infrastructure_parts[0].crs,
+        )
+        if infrastructure_parts
+        else gpd.GeoDataFrame(geometry=[], crs="EPSG:4326")
+    )
+
+    analysis = {
+        'buildings': {'count': 0, 'averageArea': 0, 'totalArea': 0},
+        'landUse': {'residential': 0, 'commercial': 0, 'industrial': 0, 'greenSpace': 0},
+        'infrastructure': {'count': 0, 'roads': 0, 'utilities': 0},
+        'green': {'count': 0, 'totalArea': 0},
+        'vegetationIndex': 0,
+        'buildingDensity': 0,
+        'objects': []
+    }
+
+    if "building" in scan_types and regular_buildings_gdf is not None and not regular_buildings_gdf.empty:
+        building_count = len(regular_buildings_gdf)
+        total_area = geometry_area_m2(regular_buildings_gdf)
+        avg_area = total_area / building_count if building_count else 0
+
+        analysis['buildings'] = {
+            'count': int(building_count),
+            'averageArea': int(avg_area),
+            'totalArea': int(total_area)
+        }
+        analysis['objects'].extend(object_boxes_from_gdf(regular_buildings_gdf, "building"))
+
+    if "infrastructure" in scan_types and combined_infrastructure_gdf is not None and not combined_infrastructure_gdf.empty:
+        infra_count = len(combined_infrastructure_gdf)
+        analysis['infrastructure'] = {
+            'count': int(infra_count),
+            'roads': int(infra_count * 0.6),
+            'utilities': int(infra_count * 0.4)
+        }
+        analysis['objects'].extend(object_boxes_from_gdf(combined_infrastructure_gdf, "infrastructure"))
+
+    if "green" in scan_types and green_gdf is not None and not green_gdf.empty:
+        green_count = len(green_gdf)
+        green_area = geometry_area_m2(green_gdf)
+        analysis['green'] = {
+            'count': int(green_count),
+            'totalArea': int(green_area),
+        }
+        analysis['objects'].extend(object_boxes_from_gdf(green_gdf, "green"))
+
+    bbox_area = (
+        (bbox_tuple[2] - bbox_tuple[0])
+        * (bbox_tuple[3] - bbox_tuple[1])
+        * 111000
+        * 111000
+    )
+
+    if bbox_area > 0:
+        building_density = analysis['buildings']['totalArea'] / bbox_area
+        building_density = min(building_density, 0.5)
+        analysis['buildingDensity'] = round(building_density, 2)
+
+        analysis['landUse'] = {
+            'residential': int(40 * building_density + 20),
+            'commercial': int(30 * building_density + 10),
+            'industrial': int(15 * building_density + 5),
+            'greenSpace': int(100 - (40 * building_density + 20) - (30 * building_density + 10) - (15 * building_density + 5))
+        }
+
+    total_land_use = sum(analysis['landUse'].values())
+    if total_land_use > 0:
+        for key in analysis['landUse']:
+            analysis['landUse'][key] = int(analysis['landUse'][key] * 100 / total_land_use)
+
+    return analysis
 
 
 @app.route('/health', methods=['GET'])
@@ -60,6 +471,7 @@ def analyze_image():
         
         image_file = request.files['image']
         bbox_str = request.form.get('bbox', '[]')
+        scan_types = parse_scan_types(request.form.get('scanTypes'))
         
         logger.info(f"📸 Image received: {image_file.filename}")
         logger.info(f"📍 Bbox string: {bbox_str}")
@@ -72,6 +484,19 @@ def analyze_image():
             logger.warning(f"⚠️ Could not parse bbox: {e}")
             bbox = None
         
+        if not bbox or len(bbox) != 4:
+            return jsonify({
+                'success': False,
+                'error': 'Vui lòng chọn vùng quét trong địa phận Đà Nẵng'
+            }), 400
+
+        bbox_tuple = normalize_bbox(bbox)
+        if not is_bbox_inside_danang(bbox_tuple):
+            return jsonify({
+                'success': False,
+                'error': 'Vùng quét nằm ngoài địa phận Đà Nẵng'
+            }), 400
+
         logger.info(f"Processing image: {image_file.filename}, bbox: {bbox}")
         
         # Read image
@@ -81,7 +506,7 @@ def analyze_image():
         
         # Process with GeoAI analysis
         logger.info("🤖 Starting GeoAI analysis...")
-        results = process_geoai_analysis(img_array, bbox)
+        results = process_geoai_analysis(img_array, bbox, scan_types)
         
         logger.info(f"✅ Analysis complete")
         logger.info(f"📊 Data source: {results.get('dataSource', 'Unknown')}")
@@ -103,7 +528,7 @@ def analyze_image():
         }), 500
 
 
-def process_geoai_analysis(image_array, bbox):
+def process_geoai_analysis(image_array, bbox, scan_types=None):
     """
     Process GeoAI analysis on satellite image using real GeoAI model
     
@@ -113,6 +538,7 @@ def process_geoai_analysis(image_array, bbox):
     logger.info("🔄 process_geoai_analysis() started")
     try:
         start_time = time.time()
+        scan_types = scan_types or set(DEFAULT_SCAN_TYPES)
         
         # Image properties
         height, width = image_array.shape[:2]
@@ -120,19 +546,18 @@ def process_geoai_analysis(image_array, bbox):
         
         # Convert bbox format if needed: [minLng, minLat, maxLng, maxLat]
         if bbox and len(bbox) == 4:
-            bbox_tuple = tuple(bbox)  # (minLng, minLat, maxLng, maxLat)
+            bbox_tuple = normalize_bbox(bbox)  # (minLng, minLat, maxLng, maxLat)
             logger.info(f"✅ Valid bbox: {bbox_tuple}")
         else:
             logger.warning(f"⚠️ Invalid bbox format: {bbox}, using default")
-            # Default bbox for testing (Spokane area)
-            bbox_tuple = (-117.6029, 47.6500, -117.5936, 47.6563)
+            bbox_tuple = DEFAULT_BBOX
             bbox = list(bbox_tuple)
             logger.info(f"📍 Using default bbox: {bbox_tuple}")
         
         logger.info(f"🌐 Downloading GeoAI data for bbox: {bbox_tuple}")
         
         # Create bbox hash for caching
-        bbox_hash = hashlib.md5(str(bbox_tuple).encode()).hexdigest()[:8]
+        bbox_hash = analysis_cache_key(bbox_tuple, scan_types)
         logger.info(f"🔐 Bbox hash: {bbox_hash}")
         
         # Check cache first
@@ -143,7 +568,12 @@ def process_geoai_analysis(image_array, bbox):
             logger.info(f"💾 CACHE MISS! Need to download fresh data for {bbox_hash}")
             # Download real building data
             logger.info("📥 Calling download_and_analyze_real_data()...")
-            analysis = download_and_analyze_real_data(bbox_tuple, bbox_hash)
+            danang_data = load_danang_gpkg_data(bbox_tuple)
+            if danang_data is not None:
+                logger.info("Using local Da Nang GeoPackage for analysis")
+                analysis = analyze_geodataframes(*danang_data, bbox_tuple, scan_types)
+            else:
+                analysis = download_and_analyze_real_data(bbox_tuple, bbox_hash, scan_types)
             # Cache the results
             bbox_cache[bbox_hash] = analysis
             logger.info(f"💾 Cached results for {bbox_hash}")
@@ -161,6 +591,7 @@ def process_geoai_analysis(image_array, bbox):
                 'height': height
             },
             'analysis': analysis,
+            'scanTypes': sorted(scan_types),
             'confidence': 0.92,  # Higher confidence for real data
             'processingTime': f'{processing_time:.2f}s',
             'dataSource': 'GeoAI Real Model (Overture Maps)'
@@ -175,7 +606,7 @@ def process_geoai_analysis(image_array, bbox):
         return get_fallback_analysis(image_array, bbox)
 
 
-def download_and_analyze_real_data(bbox_tuple, bbox_hash):
+def download_and_analyze_real_data(bbox_tuple, bbox_hash, scan_types=None):
     """
     Download real building and infrastructure data using GeoAI model
     
@@ -191,6 +622,7 @@ def download_and_analyze_real_data(bbox_tuple, bbox_hash):
     logger.info("=" * 60)
     
     try:
+        scan_types = scan_types or set(DEFAULT_SCAN_TYPES)
         # Create directory for this bbox
         bbox_dir = os.path.join(geoai_downloads_dir, f"bbox_{bbox_hash}")
         os.makedirs(bbox_dir, exist_ok=True)
@@ -301,91 +733,8 @@ def download_and_analyze_real_data(bbox_tuple, bbox_hash):
         
         # Extract statistics from downloaded data
         logger.info("📊 Starting analysis of downloaded data...")
-        analysis = {
-            'buildings': {'count': 0, 'averageArea': 0, 'totalArea': 0},
-            'landUse': {'residential': 0, 'commercial': 0, 'industrial': 0, 'greenSpace': 0},
-            'infrastructure': {'roads': 0, 'utilities': 0},
-            'vegetationIndex': 0,
-            'buildingDensity': 0
-        }
-        
-        # Process buildings data
-        logger.info("📖 Processing buildings data...")
-        if buildings_gdf is not None and not buildings_gdf.empty:
-            try:
-                logger.info(f"📖 Processing buildings GeoDataFrame with {len(buildings_gdf)} features...")
-                
-                building_count = len(buildings_gdf)
-                logger.info(f"🏗️ Buildings loaded: {building_count} features")
-                
-                if building_count > 0:
-                    total_area = buildings_gdf.geometry.area.sum()
-                    avg_area = total_area / building_count
-                    
-                    analysis['buildings'] = {
-                        'count': int(building_count),
-                        'averageArea': int(avg_area),
-                        'totalArea': int(total_area)
-                    }
-                    
-                    logger.info(f"✅ Buildings: count={building_count}, avg_area={avg_area:.2f}, total={total_area:.2f}")
-                else:
-                    logger.warning(f"⚠️ No buildings found in GeoDataFrame")
-                
-            except Exception as e:
-                logger.error(f"❌ Error processing buildings: {type(e).__name__}: {str(e)}", exc_info=True)
-        else:
-            logger.warning(f"⚠️ Buildings GeoDataFrame not available")
-        
-        # Process infrastructure data
-        logger.info("📖 Processing infrastructure data...")
-        if infrastructure_gdf is not None and not infrastructure_gdf.empty:
-            try:
-                logger.info(f"📖 Processing infrastructure GeoDataFrame with {len(infrastructure_gdf)} features...")
-                
-                # Count different infrastructure types
-                infra_count = len(infrastructure_gdf)
-                logger.info(f"⚡ Infrastructure loaded: {infra_count} features")
-                
-                # Try to differentiate between roads and utilities based on properties
-                roads_count = infra_count * 0.6  # Approximate 60% as roads
-                utilities_count = infra_count * 0.4  # 40% as utilities
-                
-                analysis['infrastructure'] = {
-                    'roads': int(roads_count),
-                    'utilities': int(utilities_count)
-                }
-                
-                logger.info(f"✅ Infrastructure: roads={roads_count:.0f}, utilities={utilities_count:.0f}")
-                
-            except Exception as e:
-                logger.error(f"❌ Error processing infrastructure: {type(e).__name__}: {str(e)}", exc_info=True)
-        else:
-            logger.warning(f"⚠️ Infrastructure GeoDataFrame not available")
-        
-        # Estimate land use based on building density
-        building_count = analysis['buildings']['count']
-        bbox_area = (bbox_tuple[2] - bbox_tuple[0]) * (bbox_tuple[3] - bbox_tuple[1]) * 111000 * 111000  # Approximate area in m²
-        
-        if bbox_area > 0:
-            building_density = analysis['buildings']['totalArea'] / bbox_area
-            building_density = min(building_density, 0.5)  # Cap at 50%
-            
-            analysis['buildingDensity'] = round(building_density, 2)
-            
-            # Estimate land use percentages
-            analysis['landUse'] = {
-                'residential': int(40 * building_density + 20),
-                'commercial': int(30 * building_density + 10),
-                'industrial': int(15 * building_density + 5),
-                'greenSpace': int(100 - (40 * building_density + 20) - (30 * building_density + 10) - (15 * building_density + 5))
-            }
-        
-        # Normalize land use to sum to 100
-        total_land_use = sum(analysis['landUse'].values())
-        if total_land_use > 0:
-            for key in analysis['landUse']:
-                analysis['landUse'][key] = int(analysis['landUse'][key] * 100 / total_land_use)
+        green_gdf = gpd.GeoDataFrame(geometry=[], crs="EPSG:4326")
+        analysis = analyze_geodataframes(buildings_gdf, infrastructure_gdf, green_gdf, bbox_tuple, scan_types)
         
         logger.info(f"=" * 60)
         logger.info(f"✅ GeoAI REAL DATA ANALYSIS COMPLETE")
@@ -509,8 +858,8 @@ def download_geoai_data():
         logger.info(f"Downloading GeoAI data for bbox: {bbox}")
         
         # Convert bbox format: [minLng, minLat, maxLng, maxLat]
-        bbox_tuple = tuple(bbox)
-        bbox_hash = hashlib.md5(str(bbox_tuple).encode()).hexdigest()[:8]
+        bbox_tuple = normalize_bbox(bbox)
+        bbox_hash = bbox_hash_for(bbox_tuple)
         
         # Create output directory
         output_dir = os.path.join(geoai_downloads_dir, f"bbox_{bbox_hash}")
@@ -627,5 +976,6 @@ def extract_stats():
 
 
 if __name__ == '__main__':
+    refresh_danang_gpkg()
     logger.info("Starting GeoAI Backend Server")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)

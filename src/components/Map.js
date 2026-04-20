@@ -1,209 +1,224 @@
 'use client';
 
+import L from 'leaflet';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet-draw';
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import html2canvas from 'html2canvas';
 
-// Component to handle map initialization and drawing
-function MapComponent({ onRectangleDrawn, rectangleCoords, onAnalyzeImage }) {
+const DANANG_CENTER = [16.0544, 108.2022];
+const DANANG_BOUNDS = [
+  [15.88, 107.82],
+  [16.2, 108.35],
+];
+const OBJECT_COLORS = {
+  building: '#ef4444',
+  infrastructure: '#f59e0b',
+  green: '#22c55e',
+};
+
+function boundsToCoordinates(bounds) {
+  return {
+    northEast: [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
+    southWest: [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
+    northWest: [bounds.getNorthWest().lat, bounds.getNorthWest().lng],
+    southEast: [bounds.getSouthEast().lat, bounds.getSouthEast().lng],
+  };
+}
+
+function isInsideDaNang(bounds) {
+  const allowed = L.latLngBounds(DANANG_BOUNDS);
+  return allowed.contains(bounds.getSouthWest()) && allowed.contains(bounds.getNorthEast());
+}
+
+function objectColor(type) {
+  return OBJECT_COLORS[type] || OBJECT_COLORS.building;
+}
+
+function MapComponent({
+  onRectangleDrawn,
+  onAnalyzeImage,
+  analysisObjects,
+  selectRequestId,
+  captureRequestId,
+  clearRequestId,
+}) {
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
-  const [captureControl, setCaptureControl] = useState(null);
+  const [objectBoxes] = useState(new L.FeatureGroup());
   const [currentCoords, setCurrentCoords] = useState(null);
 
-  // Update currentCoords when rectangleCoords changes
-  useEffect(() => {
-    setCurrentCoords(rectangleCoords);
-  }, [rectangleCoords]);
+  const clearMapState = useCallback(() => {
+    drawnItems.clearLayers();
+    objectBoxes.clearLayers();
+    setCurrentCoords(null);
+    onRectangleDrawn(null);
+  }, [drawnItems, objectBoxes, onRectangleDrawn]);
 
-  const captureImage = useCallback(async () => {
-    if (!currentCoords) return;
+  const captureImageForCoords = useCallback(async (coords) => {
+    if (!coords) return;
 
     try {
-      // Get the map container element
       const mapElement = map.getContainer();
-
-      // Calculate pixel bounds of the rectangle
-      const ne = map.latLngToContainerPoint([currentCoords.northEast[0], currentCoords.northEast[1]]);
-      const sw = map.latLngToContainerPoint([currentCoords.southWest[0], currentCoords.southWest[1]]);
+      const ne = map.latLngToContainerPoint([coords.northEast[0], coords.northEast[1]]);
+      const sw = map.latLngToContainerPoint([coords.southWest[0], coords.southWest[1]]);
 
       const width = Math.abs(ne.x - sw.x);
       const height = Math.abs(ne.y - sw.y);
       const left = Math.min(ne.x, sw.x);
       const top = Math.min(ne.y, sw.y);
 
-      // Use html2canvas to capture the map with clipping
       const canvas = await html2canvas(mapElement, {
         x: left,
         y: top,
-        width: width,
-        height: height,
+        width,
+        height,
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
       });
 
-      // Convert canvas to blob
       canvas.toBlob(async (blob) => {
-        if (blob && onAnalyzeImage) {
-          // Create bbox array for the API
-          const bbox = [
-            currentCoords.southWest[1], // min lng
-            currentCoords.southWest[0], // min lat
-            currentCoords.northEast[1], // max lng
-            currentCoords.northEast[0]  // max lat
-          ];
+        if (!blob) return;
 
-          // Call the analyze function
-          await onAnalyzeImage(blob, bbox);
-        }
+        const bbox = [
+          coords.southWest[1],
+          coords.southWest[0],
+          coords.northEast[1],
+          coords.northEast[0],
+        ];
+
+        await onAnalyzeImage(blob, bbox);
       }, 'image/png');
-
     } catch (error) {
       console.error('Error capturing image:', error);
       alert('Có lỗi khi cắt hình ảnh. Vui lòng thử lại.');
     }
-  }, [currentCoords, map, onAnalyzeImage]);
+  }, [map, onAnalyzeImage]);
 
   useEffect(() => {
-    // Set initial view to a location (e.g., Vietnam)
-    map.setView([14.0583, 108.2772], 6);
-
-    // Add drawn items layer to map
+    map.setMaxBounds(DANANG_BOUNDS);
+    map.fitBounds(DANANG_BOUNDS);
     map.addLayer(drawnItems);
+    map.addLayer(objectBoxes);
+    setTimeout(() => map.invalidateSize(), 0);
 
-    // Initialize draw control
-    const drawControl = new L.Control.Draw({
-      draw: {
-        polyline: false,
-        polygon: false,
-        circle: false,
-        marker: false,
-        circlemarker: false,
-        rectangle: true, // Only allow rectangle drawing
-      },
-      edit: {
-        featureGroup: drawnItems,
-        remove: true,
-        edit: true,
-      },
-    });
-
-    map.addControl(drawControl);
-
-    // Create custom capture control
-    const captureCtrl = L.Control.extend({
-      options: {
-        position: 'topleft'
-      },
-
-      onAdd: function(map) {
-        const container = L.DomUtil.create('div', 'leaflet-control leaflet-control-custom');
-        container.style.backgroundColor = 'white';
-        container.style.padding = '5px';
-        container.style.border = '2px solid rgba(0,0,0,0.2)';
-        container.style.borderRadius = '4px';
-        container.style.cursor = 'pointer';
-        container.style.display = 'none'; // Hidden by default
-        container.innerHTML = '📷 Cắt ảnh';
-
-        // Store reference to container for later updates
-        this._container = container;
-
-        return container;
-      }
-    });
-
-    const newCaptureControl = new captureCtrl();
-    map.addControl(newCaptureControl);
-    setCaptureControl(newCaptureControl);
-
-    // Handle rectangle creation
-    map.on(L.Draw.Event.CREATED, (event) => {
+    const handleCreated = (event) => {
       const layer = event.layer;
+      const bounds = layer.getBounds();
 
-      // Clear all existing layers before adding new one
+      if (!isInsideDaNang(bounds)) {
+        alert('Vui lòng chọn vùng nằm trong địa phận Đà Nẵng.');
+        return;
+      }
+
       drawnItems.clearLayers();
+      objectBoxes.clearLayers();
       drawnItems.addLayer(layer);
 
-      if (event.layerType === 'rectangle') {
-        const bounds = layer.getBounds();
-        const coordinates = {
-          northEast: [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
-          southWest: [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
-          northWest: [bounds.getNorthWest().lat, bounds.getNorthWest().lng],
-          southEast: [bounds.getSouthEast().lat, bounds.getSouthEast().lng],
-        };
+      const coordinates = boundsToCoordinates(bounds);
+      setCurrentCoords(coordinates);
+      onRectangleDrawn(coordinates);
+      setTimeout(() => captureImageForCoords(coordinates), 0);
+    };
 
-        onRectangleDrawn(coordinates);
-      }
-    });
-
-    // Handle rectangle editing
-    map.on(L.Draw.Event.EDITED, (event) => {
-      event.layers.eachLayer((layer) => {
-        if (layer instanceof L.Rectangle) {
-          const bounds = layer.getBounds();
-          const coordinates = {
-            northEast: [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
-            southWest: [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
-            northWest: [bounds.getNorthWest().lat, bounds.getNorthWest().lng],
-            southEast: [bounds.getSouthEast().lat, bounds.getSouthEast().lng],
-          };
-
-          onRectangleDrawn(coordinates);
-        }
-      });
-    });
-
-    // Handle rectangle deletion
-    map.on(L.Draw.Event.DELETED, () => {
-      onRectangleDrawn(null);
-    });
+    map.on(L.Draw.Event.CREATED, handleCreated);
 
     return () => {
-      map.removeControl(drawControl);
-      if (newCaptureControl) {
-        map.removeControl(newCaptureControl);
-      }
+      map.off(L.Draw.Event.CREATED, handleCreated);
       map.removeLayer(drawnItems);
+      map.removeLayer(objectBoxes);
     };
-  }, [map, drawnItems, onRectangleDrawn, onAnalyzeImage]);
+  }, [map, drawnItems, objectBoxes, onRectangleDrawn, captureImageForCoords]);
 
-  // Update capture control click handler when captureImage changes
   useEffect(() => {
-    if (captureControl) {
-      const container = captureControl.getContainer();
-      if (container) {
-        container.onclick = captureImage;
-      }
-    }
-  }, [captureControl, captureImage]);
+    const handleResize = () => map.invalidateSize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [map]);
 
-  // Show/hide capture control based on rectangle existence
   useEffect(() => {
-    if (captureControl) {
-      const container = captureControl.getContainer();
-      if (currentCoords) {
-        container.style.display = 'block';
-      } else {
-        container.style.display = 'none';
-      }
+    if (selectRequestId <= 0) return;
+
+    drawnItems.clearLayers();
+    objectBoxes.clearLayers();
+    setCurrentCoords(null);
+    onRectangleDrawn(null);
+
+    const rectangleDrawer = new L.Draw.Rectangle(map, {
+      shapeOptions: {
+        color: '#2563eb',
+        weight: 2,
+        fillOpacity: 0.08,
+      },
+    });
+
+    rectangleDrawer.enable();
+
+    return () => {
+      rectangleDrawer.disable();
+    };
+  }, [selectRequestId, map, drawnItems, objectBoxes, onRectangleDrawn]);
+
+  useEffect(() => {
+    if (clearRequestId > 0) {
+      clearMapState();
     }
-  }, [currentCoords, captureControl]);
+  }, [clearRequestId, clearMapState]);
+
+  useEffect(() => {
+    objectBoxes.clearLayers();
+
+    analysisObjects.forEach((object) => {
+      if (!object.bbox || object.bbox.length !== 4) return;
+
+      const [minLng, minLat, maxLng, maxLat] = object.bbox;
+      const rectangle = L.rectangle(
+        [
+          [minLat, minLng],
+          [maxLat, maxLng],
+        ],
+        {
+          color: objectColor(object.type),
+          weight: 2,
+          opacity: 1,
+          fill: false,
+          interactive: false,
+        }
+      );
+
+      objectBoxes.addLayer(rectangle);
+    });
+  }, [analysisObjects, objectBoxes]);
+
+  useEffect(() => {
+    if (captureRequestId > 0) {
+      captureImageForCoords(currentCoords);
+    }
+  }, [captureRequestId, captureImageForCoords, currentCoords]);
 
   return null;
 }
 
-export default function Map({ onRectangleDrawn, rectangleCoords, onAnalyzeImage }) {
+export default function Map({
+  onRectangleDrawn,
+  onAnalyzeImage,
+  analysisObjects,
+  selectRequestId,
+  captureRequestId,
+  clearRequestId,
+}) {
   return (
     <MapContainer
-      center={[14.0583, 108.2772]} // Center on Vietnam
-      zoom={6}
-      style={{ height: '100%', width: '100%' }}
+      center={DANANG_CENTER}
+      zoom={12}
+      minZoom={11}
+      maxZoom={19}
+      maxBounds={DANANG_BOUNDS}
+      maxBoundsViscosity={1}
+      className="geoai-map"
       zoomControl={true}
       scrollWheelZoom={true}
       dragging={true}
@@ -211,8 +226,17 @@ export default function Map({ onRectangleDrawn, rectangleCoords, onAnalyzeImage 
       <TileLayer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        maxZoom={19}
+        maxNativeZoom={18}
       />
-      <MapComponent onRectangleDrawn={onRectangleDrawn} rectangleCoords={rectangleCoords} onAnalyzeImage={onAnalyzeImage} />
+      <MapComponent
+        onRectangleDrawn={onRectangleDrawn}
+        onAnalyzeImage={onAnalyzeImage}
+        analysisObjects={analysisObjects || []}
+        selectRequestId={selectRequestId || 0}
+        captureRequestId={captureRequestId || 0}
+        clearRequestId={clearRequestId || 0}
+      />
     </MapContainer>
   );
 }

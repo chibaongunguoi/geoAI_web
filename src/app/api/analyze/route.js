@@ -8,6 +8,7 @@ export async function POST(request) {
     const formData = await request.formData();
     const image = formData.get('image');
     const bbox = formData.get('bbox');
+    const scanTypes = formData.get('scanTypes');
 
     if (!image) {
       return NextResponse.json(
@@ -24,6 +25,9 @@ export async function POST(request) {
     const pythonFormData = new FormData();
     pythonFormData.append('image', new Blob([buffer], { type: 'image/png' }), 'captured_image.png');
     pythonFormData.append('bbox', bbox);
+    if (scanTypes) {
+      pythonFormData.append('scanTypes', scanTypes);
+    }
 
     console.log(`Forwarding request to GeoAI backend at ${GEOAI_BACKEND_URL}/analyze`);
 
@@ -32,7 +36,7 @@ export async function POST(request) {
       const response = await fetch(`${GEOAI_BACKEND_URL}/analyze`, {
         method: 'POST',
         body: pythonFormData,
-        timeout: 30000, // 30 seconds timeout
+        signal: request.signal,
       });
 
       if (!response.ok) {

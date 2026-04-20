@@ -20,6 +20,10 @@
 # production
 /build
 
+# generated GeoAI map/cache data
+/geoai_data/
+*.gpkg
+
 # misc
 .DS_Store
 *.pem
