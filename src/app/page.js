@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import MapWrapper from '../components/MapWrapper';
-import styles from './page.module.css';
+import MapWrapper from "../components/MapWrapper";
+import styles from "./page.module.css";
 
 export default function Home() {
   return (

@@ -5,11 +5,13 @@ Interactive web application for analyzing satellite images using GeoAI model.
 ## 🚀 Quick Start
 
 ### Windows (Easiest)
+
 ```bash
 start_geoai.bat
 ```
 
 ### Linux/Mac
+
 ```bash
 chmod +x start_geoai.sh
 ./start_geoai.sh
@@ -48,6 +50,7 @@ chmod +x start_geoai.sh
 **No more random data!** The application now uses **real building data** from **Overture Maps**.
 
 When you draw a rectangle:
+
 1. ✅ Reads preloaded Da Nang GeoPackage when the selected area is inside Da Nang
 2. ✅ Uses the selected scan mode: all, buildings, infrastructure/factory-like objects, or green areas
 3. ✅ Extracts matching data and calculates statistics
@@ -196,26 +199,28 @@ Scans inside that bbox read from the local GeoPackage instead of downloading Ove
 
 ## 📂 Files to Know
 
-| File | Purpose |
-|------|---------|
-| **GEOAI_MODEL.md** | 🤖 Real GeoAI model integration guide ⭐ **READ THIS FIRST** |
-| `start_geoai.bat` | ✅ Start all (Windows) |
-| `start_geoai.sh` | ✅ Start all (Linux/Mac) |
-| `start_frontend_only.bat` | Start only web frontend |
-| `STARTUP_GUIDE.md` | Detailed startup instructions |
-| `geoai_backend.py` | Python Flask backend with real GeoAI model |
-| `src/app/page.js` | Home page |
-| `src/app/api/analyze/route.js` | API Gateway |
-| `src/components/Map.js` | Leaflet map |
+| File                           | Purpose                                                      |
+| ------------------------------ | ------------------------------------------------------------ |
+| **GEOAI_MODEL.md**             | 🤖 Real GeoAI model integration guide ⭐ **READ THIS FIRST** |
+| `start_geoai.bat`              | ✅ Start all (Windows)                                       |
+| `start_geoai.sh`               | ✅ Start all (Linux/Mac)                                     |
+| `start_frontend_only.bat`      | Start only web frontend                                      |
+| `STARTUP_GUIDE.md`             | Detailed startup instructions                                |
+| `geoai_backend.py`             | Python Flask backend with real GeoAI model                   |
+| `src/app/page.js`              | Home page                                                    |
+| `src/app/api/analyze/route.js` | API Gateway                                                  |
+| `src/components/Map.js`        | Leaflet map                                                  |
 
 ---
 
 ## 🐛 Troubleshooting
 
 **"Command not found" error?**
+
 - Use **Command Prompt (cmd)** or **PowerShell** on Windows, not bash
 
 **"Port already in use"?**
+
 ```bash
 # Windows
 taskkill /F /PID <PID>

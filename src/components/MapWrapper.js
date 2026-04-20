@@ -1,32 +1,32 @@
-'use client';
+"use client";
 
-import dynamic from 'next/dynamic';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import axios from 'axios';
-import styles from './MapWrapper.module.css';
+import dynamic from "next/dynamic";
+import { useCallback, useMemo, useRef, useState } from "react";
+import axios from "axios";
+import styles from "./MapWrapper.module.css";
 
-const Map = dynamic(() => import('./Map'), {
+const Map = dynamic(() => import("./Map"), {
   ssr: false,
   loading: () => <p className={styles.loading}>Đang tải bản đồ...</p>,
 });
 
 const SCAN_OPTIONS = [
-  { value: 'all', label: 'Quét tất cả' },
-  { value: 'building', label: 'Building' },
-  { value: 'infrastructure', label: 'Nhà xưởng / infra' },
-  { value: 'green', label: 'Cây xanh' },
+  { value: "all", label: "Quét tất cả" },
+  { value: "building", label: "Building" },
+  { value: "infrastructure", label: "Nhà xưởng / infra" },
+  { value: "green", label: "Cây xanh" },
 ];
 
 const SCAN_TYPES = {
-  all: ['building', 'infrastructure', 'green'],
-  building: ['building'],
-  infrastructure: ['infrastructure'],
-  green: ['green'],
+  all: ["building", "infrastructure", "green"],
+  building: ["building"],
+  infrastructure: ["infrastructure"],
+  green: ["green"],
 };
 
 export default function MapWrapper() {
   const abortControllerRef = useRef(null);
-  const [scanMode, setScanMode] = useState('all');
+  const [scanMode, setScanMode] = useState("all");
   const [rectangleCoords, setRectangleCoords] = useState(null);
   const [analysisResults, setAnalysisResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -34,7 +34,10 @@ export default function MapWrapper() {
   const [captureRequestId, setCaptureRequestId] = useState(0);
   const [clearRequestId, setClearRequestId] = useState(0);
 
-  const selectedScanTypes = useMemo(() => SCAN_TYPES[scanMode] || SCAN_TYPES.all, [scanMode]);
+  const selectedScanTypes = useMemo(
+    () => SCAN_TYPES[scanMode] || SCAN_TYPES.all,
+    [scanMode],
+  );
 
   const clearWorkspace = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -61,48 +64,51 @@ export default function MapWrapper() {
     setCaptureRequestId((requestId) => requestId + 1);
   };
 
-  const analyzeImage = useCallback(async (imageBlob, bbox) => {
-    abortControllerRef.current?.abort();
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
+  const analyzeImage = useCallback(
+    async (imageBlob, bbox) => {
+      abortControllerRef.current?.abort();
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
 
-    setIsAnalyzing(true);
-    setAnalysisResults(null);
+      setIsAnalyzing(true);
+      setAnalysisResults(null);
 
-    try {
-      const formData = new FormData();
-      formData.append('image', imageBlob, 'captured_image.png');
-      formData.append('bbox', JSON.stringify(bbox));
-      formData.append('scanTypes', JSON.stringify(selectedScanTypes));
+      try {
+        const formData = new FormData();
+        formData.append("image", imageBlob, "captured_image.png");
+        formData.append("bbox", JSON.stringify(bbox));
+        formData.append("scanTypes", JSON.stringify(selectedScanTypes));
 
-      const response = await axios.post('/api/analyze', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        signal: abortController.signal,
-      });
+        const response = await axios.post("/api/analyze", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          signal: abortController.signal,
+        });
 
-      if (response.data.success) {
-        setAnalysisResults(response.data.results);
-        return;
+        if (response.data.success) {
+          setAnalysisResults(response.data.results);
+          return;
+        }
+
+        throw new Error(response.data.error || "Lỗi phân tích");
+      } catch (error) {
+        if (axios.isCancel(error) || error.name === "CanceledError") {
+          return;
+        }
+
+        console.error("Error analyzing image:", error);
+        const errorMsg = error.response?.data?.error || error.message;
+        alert(`Lỗi khi phân tích hình ảnh:\n${errorMsg}`);
+      } finally {
+        if (abortControllerRef.current === abortController) {
+          abortControllerRef.current = null;
+        }
+        setIsAnalyzing(false);
       }
-
-      throw new Error(response.data.error || 'Lỗi phân tích');
-    } catch (error) {
-      if (axios.isCancel(error) || error.name === 'CanceledError') {
-        return;
-      }
-
-      console.error('Error analyzing image:', error);
-      const errorMsg = error.response?.data?.error || error.message;
-      alert(`Lỗi khi phân tích hình ảnh:\n${errorMsg}`);
-    } finally {
-      if (abortControllerRef.current === abortController) {
-        abortControllerRef.current = null;
-      }
-      setIsAnalyzing(false);
-    }
-  }, [selectedScanTypes]);
+    },
+    [selectedScanTypes],
+  );
 
   return (
     <div className={styles.mapWorkspace}>
@@ -110,16 +116,25 @@ export default function MapWrapper() {
         <div className={styles.brandBlock}>
           <p className={styles.panelLabel}>GeoAI Đà Nẵng</p>
           <h1>Quét vùng vệ tinh</h1>
-          <p>Chọn loại dữ liệu, vẽ khung trong Đà Nẵng, hệ thống sẽ xử lý ngay.</p>
+          <p>
+            Chọn loại dữ liệu, vẽ khung trong Đà Nẵng, hệ thống sẽ xử lý ngay.
+          </p>
         </div>
 
-        <section className={styles.sidebarSection} aria-label="Loại dữ liệu cần quét">
+        <section
+          className={styles.sidebarSection}
+          aria-label="Loại dữ liệu cần quét"
+        >
           <h2>Loại quét</h2>
           <div className={styles.scanModeGrid}>
             {SCAN_OPTIONS.map((option) => (
               <button
                 key={option.value}
-                className={scanMode === option.value ? styles.scanModeActive : styles.scanMode}
+                className={
+                  scanMode === option.value
+                    ? styles.scanModeActive
+                    : styles.scanMode
+                }
                 type="button"
                 disabled={isAnalyzing}
                 onClick={() => setScanMode(option.value)}
@@ -145,7 +160,7 @@ export default function MapWrapper() {
             disabled={!rectangleCoords || isAnalyzing}
             onClick={requestCapture}
           >
-            {isAnalyzing ? 'Đang quét...' : 'Quét lại vùng này'}
+            {isAnalyzing ? "Đang quét..." : "Quét lại vùng này"}
           </button>
           <button
             className={styles.dangerAction}
@@ -161,11 +176,20 @@ export default function MapWrapper() {
         </div>
 
         {rectangleCoords && (
-          <section className={styles.sidebarSection} aria-label="Tọa độ vùng đã chọn">
+          <section
+            className={styles.sidebarSection}
+            aria-label="Tọa độ vùng đã chọn"
+          >
             <h2>Vùng đã chọn</h2>
             <div className={styles.coordinateList}>
-              <span>NE {rectangleCoords.northEast[0].toFixed(5)}, {rectangleCoords.northEast[1].toFixed(5)}</span>
-              <span>SW {rectangleCoords.southWest[0].toFixed(5)}, {rectangleCoords.southWest[1].toFixed(5)}</span>
+              <span>
+                NE {rectangleCoords.northEast[0].toFixed(5)},{" "}
+                {rectangleCoords.northEast[1].toFixed(5)}
+              </span>
+              <span>
+                SW {rectangleCoords.southWest[0].toFixed(5)},{" "}
+                {rectangleCoords.southWest[1].toFixed(5)}
+              </span>
             </div>
           </section>
         )}
@@ -180,9 +204,15 @@ export default function MapWrapper() {
           <section className={styles.results} aria-label="Kết quả GeoAI">
             <h2>Kết quả</h2>
             <div className={styles.legend}>
-              <span><i className={styles.redKey} /> Building</span>
-              <span><i className={styles.orangeKey} /> Infra</span>
-              <span><i className={styles.greenKey} /> Cây xanh</span>
+              <span>
+                <i className={styles.redKey} /> Building
+              </span>
+              <span>
+                <i className={styles.orangeKey} /> Infra
+              </span>
+              <span>
+                <i className={styles.greenKey} /> Cây xanh
+              </span>
             </div>
             <div className={styles.resultGrid}>
               <div className={styles.metric}>
@@ -191,7 +221,9 @@ export default function MapWrapper() {
               </div>
               <div className={styles.metric}>
                 <span>Infra</span>
-                <strong>{analysisResults.analysis.infrastructure.count || 0}</strong>
+                <strong>
+                  {analysisResults.analysis.infrastructure.count || 0}
+                </strong>
               </div>
               <div className={styles.metric}>
                 <span>Cây xanh</span>
@@ -202,7 +234,9 @@ export default function MapWrapper() {
                 <strong>{analysisResults.analysis.objects?.length || 0}</strong>
               </div>
             </div>
-            <p className={styles.meta}>Thời gian xử lý: {analysisResults.processingTime}</p>
+            <p className={styles.meta}>
+              Thời gian xử lý: {analysisResults.processingTime}
+            </p>
           </section>
         )}
       </aside>

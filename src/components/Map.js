@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import L from 'leaflet';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-draw/dist/leaflet.draw.css';
-import 'leaflet-draw';
-import { useCallback, useEffect, useState } from 'react';
-import html2canvas from 'html2canvas';
+import L from "leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet-draw/dist/leaflet.draw.css";
+import "leaflet-draw";
+import { useCallback, useEffect, useState } from "react";
+import html2canvas from "html2canvas";
 
 const DANANG_CENTER = [16.0544, 108.2022];
 const DANANG_BOUNDS = [
@@ -14,9 +14,9 @@ const DANANG_BOUNDS = [
   [16.2, 108.35],
 ];
 const OBJECT_COLORS = {
-  building: '#ef4444',
-  infrastructure: '#f59e0b',
-  green: '#22c55e',
+  building: "#ef4444",
+  infrastructure: "#f59e0b",
+  green: "#22c55e",
 };
 
 function boundsToCoordinates(bounds) {
@@ -30,7 +30,10 @@ function boundsToCoordinates(bounds) {
 
 function isInsideDaNang(bounds) {
   const allowed = L.latLngBounds(DANANG_BOUNDS);
-  return allowed.contains(bounds.getSouthWest()) && allowed.contains(bounds.getNorthEast());
+  return (
+    allowed.contains(bounds.getSouthWest()) &&
+    allowed.contains(bounds.getNorthEast())
+  );
 }
 
 function objectColor(type) {
@@ -57,46 +60,55 @@ function MapComponent({
     onRectangleDrawn(null);
   }, [drawnItems, objectBoxes, onRectangleDrawn]);
 
-  const captureImageForCoords = useCallback(async (coords) => {
-    if (!coords) return;
+  const captureImageForCoords = useCallback(
+    async (coords) => {
+      if (!coords) return;
 
-    try {
-      const mapElement = map.getContainer();
-      const ne = map.latLngToContainerPoint([coords.northEast[0], coords.northEast[1]]);
-      const sw = map.latLngToContainerPoint([coords.southWest[0], coords.southWest[1]]);
-
-      const width = Math.abs(ne.x - sw.x);
-      const height = Math.abs(ne.y - sw.y);
-      const left = Math.min(ne.x, sw.x);
-      const top = Math.min(ne.y, sw.y);
-
-      const canvas = await html2canvas(mapElement, {
-        x: left,
-        y: top,
-        width,
-        height,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: null,
-      });
-
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-
-        const bbox = [
-          coords.southWest[1],
-          coords.southWest[0],
-          coords.northEast[1],
+      try {
+        const mapElement = map.getContainer();
+        const ne = map.latLngToContainerPoint([
           coords.northEast[0],
-        ];
+          coords.northEast[1],
+        ]);
+        const sw = map.latLngToContainerPoint([
+          coords.southWest[0],
+          coords.southWest[1],
+        ]);
 
-        await onAnalyzeImage(blob, bbox);
-      }, 'image/png');
-    } catch (error) {
-      console.error('Error capturing image:', error);
-      alert('Có lỗi khi cắt hình ảnh. Vui lòng thử lại.');
-    }
-  }, [map, onAnalyzeImage]);
+        const width = Math.abs(ne.x - sw.x);
+        const height = Math.abs(ne.y - sw.y);
+        const left = Math.min(ne.x, sw.x);
+        const top = Math.min(ne.y, sw.y);
+
+        const canvas = await html2canvas(mapElement, {
+          x: left,
+          y: top,
+          width,
+          height,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: null,
+        });
+
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+
+          const bbox = [
+            coords.southWest[1],
+            coords.southWest[0],
+            coords.northEast[1],
+            coords.northEast[0],
+          ];
+
+          await onAnalyzeImage(blob, bbox);
+        }, "image/png");
+      } catch (error) {
+        console.error("Error capturing image:", error);
+        alert("Có lỗi khi cắt hình ảnh. Vui lòng thử lại.");
+      }
+    },
+    [map, onAnalyzeImage],
+  );
 
   useEffect(() => {
     map.setMaxBounds(DANANG_BOUNDS);
@@ -110,7 +122,7 @@ function MapComponent({
       const bounds = layer.getBounds();
 
       if (!isInsideDaNang(bounds)) {
-        alert('Vui lòng chọn vùng nằm trong địa phận Đà Nẵng.');
+        alert("Vui lòng chọn vùng nằm trong địa phận Đà Nẵng.");
         return;
       }
 
@@ -135,8 +147,8 @@ function MapComponent({
 
   useEffect(() => {
     const handleResize = () => map.invalidateSize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [map]);
 
   useEffect(() => {
@@ -149,7 +161,7 @@ function MapComponent({
 
     const rectangleDrawer = new L.Draw.Rectangle(map, {
       shapeOptions: {
-        color: '#2563eb',
+        color: "#2563eb",
         weight: 2,
         fillOpacity: 0.08,
       },
@@ -186,7 +198,7 @@ function MapComponent({
           opacity: 1,
           fill: false,
           interactive: false,
-        }
+        },
       );
 
       objectBoxes.addLayer(rectangle);
@@ -225,7 +237,7 @@ export default function Map({
     >
       <TileLayer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-        attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
         maxZoom={19}
         maxNativeZoom={18}
       />
