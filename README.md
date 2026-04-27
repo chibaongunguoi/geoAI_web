@@ -2,6 +2,34 @@
 
 Interactive web application for analyzing satellite images using GeoAI model.
 
+## RBAC workspace update
+
+The repository now uses npm workspaces:
+
+- `apps/web` - Next.js 16 + React 19 frontend and BFF routes.
+- `apps/api` - NestJS RBAC/auth API backed by Prisma + PostgreSQL.
+- `geoai_backend.py` - existing Flask GeoAI inference service.
+
+Useful commands from the repository root:
+
+```bash
+npm run dev:web
+npm run dev:api
+npm run test
+npm run build
+npm run prisma:migrate
+npm run prisma:seed
+```
+
+The first RBAC seed creates `USER`, `MANAGER`, and `ADMIN` roles, the backlog permission catalog, and an admin account:
+
+```text
+admin@geoai.local
+Admin123!
+```
+
+Set `NEST_API_URL=http://localhost:4000` for the web BFF when the API is not on the default port. Rotate the Neon password before real deployment because local development credentials may have been exposed during setup.
+
 ## 🚀 Quick Start
 
 ### Windows (Easiest)
