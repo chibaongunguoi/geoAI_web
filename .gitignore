@@ -24,6 +24,12 @@
 /geoai_data/
 *.gpkg
 
+# python
+__pycache__/
+*.py[cod]
+/.venv/
+/.venv310/
+
 # misc
 .DS_Store
 *.pem

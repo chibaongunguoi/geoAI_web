@@ -58,30 +58,55 @@
   gap: 10px;
 }
 
-.scanModeGrid {
-  display: grid;
-  grid-template-columns: 1fr;
+.modeBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.scanMode,
-.scanModeActive {
-  min-height: 40px;
+.modeBadge,
+.mapModeBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.modeBadge[data-mode="geoai"],
+.mapModeBadge[data-mode="geoai"] {
+  border-color: rgba(37, 99, 235, 0.28);
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.modeBadge[data-mode="overture"],
+.mapModeBadge[data-mode="overture"] {
+  border-color: rgba(5, 150, 105, 0.3);
+  background: rgba(5, 150, 105, 0.12);
+  color: #047857;
+}
+
+.selectInput {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 0 10px;
+  font-size: 14px;
   font-weight: 800;
 }
 
-.scanMode {
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-}
-
-.scanModeActive {
-  border: 1px solid var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-strong);
+.selectInput:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .primaryAction,
@@ -195,9 +220,7 @@
   gap: 7px;
 }
 
-.redKey,
-.orangeKey,
-.greenKey {
+.redKey {
   display: inline-block;
   width: 12px;
   height: 12px;
@@ -206,14 +229,6 @@
 
 .redKey {
   background: #ef4444;
-}
-
-.orangeKey {
-  background: #f59e0b;
-}
-
-.greenKey {
-  background: #22c55e;
 }
 
 .metric {
@@ -243,6 +258,14 @@
   min-height: 0;
   height: 100%;
   background: #dbe3ef;
+}
+
+.mapModeBadge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 700;
+  backdrop-filter: blur(8px);
 }
 
 .loading {

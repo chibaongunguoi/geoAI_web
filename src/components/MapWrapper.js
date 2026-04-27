@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import axios from "axios";
 import styles from "./MapWrapper.module.css";
 
@@ -10,34 +10,41 @@ const Map = dynamic(() => import("./Map"), {
   loading: () => <p className={styles.loading}>Đang tải bản đồ...</p>,
 });
 
-const SCAN_OPTIONS = [
-  { value: "all", label: "Quét tất cả" },
-  { value: "building", label: "Building" },
-  { value: "infrastructure", label: "Nhà xưởng / infra" },
-  { value: "green", label: "Cây xanh" },
+const ADMIN_OPTIONS = [
+  { value: "all_da_nang", label: "Toàn Đà Nẵng" },
+  { value: "hai_chau", label: "Hải Châu" },
+  { value: "thanh_khe", label: "Thanh Khê" },
+  { value: "son_tra", label: "Sơn Trà" },
+  { value: "ngu_hanh_son", label: "Ngũ Hành Sơn" },
+  { value: "lien_chieu", label: "Liên Chiểu" },
+  { value: "cam_le", label: "Cẩm Lệ" },
+  { value: "hoa_vang", label: "Hòa Vang" },
 ];
 
-const SCAN_TYPES = {
-  all: ["building", "infrastructure", "green"],
-  building: ["building"],
-  infrastructure: ["infrastructure"],
-  green: ["green"],
-};
+const SCAN_MODE_OPTIONS = [
+  {
+    value: "geoai",
+    label: "GeoAI + GeoTIFF",
+    description:
+      "Nhận diện khi bạn quét, dùng GeoTIFF backend cắt theo vùng đã chọn.",
+  },
+  {
+    value: "overture",
+    label: "Overture Maps",
+    description: "Dùng building footprint vector đã cache sẵn.",
+  },
+];
 
 export default function MapWrapper() {
   const abortControllerRef = useRef(null);
-  const [scanMode, setScanMode] = useState("all");
+  const [adminArea, setAdminArea] = useState("all_da_nang");
+  const [scanMode, setScanMode] = useState("geoai");
   const [rectangleCoords, setRectangleCoords] = useState(null);
   const [analysisResults, setAnalysisResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectRequestId, setSelectRequestId] = useState(0);
   const [captureRequestId, setCaptureRequestId] = useState(0);
   const [clearRequestId, setClearRequestId] = useState(0);
-
-  const selectedScanTypes = useMemo(
-    () => SCAN_TYPES[scanMode] || SCAN_TYPES.all,
-    [scanMode],
-  );
 
   const clearWorkspace = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -77,7 +84,9 @@ export default function MapWrapper() {
         const formData = new FormData();
         formData.append("image", imageBlob, "captured_image.png");
         formData.append("bbox", JSON.stringify(bbox));
-        formData.append("scanTypes", JSON.stringify(selectedScanTypes));
+        formData.append("scanTypes", JSON.stringify(["building"]));
+        formData.append("adminArea", adminArea);
+        formData.append("scanMode", scanMode);
 
         const response = await axios.post("/api/analyze", formData, {
           headers: {
@@ -107,7 +116,11 @@ export default function MapWrapper() {
         setIsAnalyzing(false);
       }
     },
-    [selectedScanTypes],
+    [adminArea, scanMode],
+  );
+
+  const selectedScanMode = SCAN_MODE_OPTIONS.find(
+    (option) => option.value === scanMode,
   );
 
   return (
@@ -117,32 +130,53 @@ export default function MapWrapper() {
           <p className={styles.panelLabel}>GeoAI Đà Nẵng</p>
           <h1>Quét vùng vệ tinh</h1>
           <p>
-            Chọn loại dữ liệu, vẽ khung trong Đà Nẵng, hệ thống sẽ xử lý ngay.
+            Chọn kiểu quét để demo, vẽ khung trong Đà Nẵng, hệ thống sẽ xử lý
+            ngay. Chỉ phần nằm trong khu vực đã chọn được tính.
           </p>
         </div>
 
-        <section
-          className={styles.sidebarSection}
-          aria-label="Loại dữ liệu cần quét"
-        >
-          <h2>Loại quét</h2>
-          <div className={styles.scanModeGrid}>
-            {SCAN_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                className={
-                  scanMode === option.value
-                    ? styles.scanModeActive
-                    : styles.scanMode
-                }
-                type="button"
-                disabled={isAnalyzing}
-                onClick={() => setScanMode(option.value)}
-              >
+        <section className={styles.sidebarSection} aria-label="Khu vực quét">
+          <h2>Khu vực</h2>
+          <select
+            className={styles.selectInput}
+            value={adminArea}
+            disabled={isAnalyzing}
+            onChange={(event) => {
+              setAdminArea(event.target.value);
+              setAnalysisResults(null);
+            }}
+          >
+            {ADMIN_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
                 {option.label}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
+
+          <p className={styles.actionHint}>
+            Khu vực này giới hạn phần được tính trong kết quả.
+          </p>
+        </section>
+
+        <section className={styles.sidebarSection} aria-label="Chế độ quét">
+          <h2>Kiểu quét</h2>
+          <select
+            className={styles.selectInput}
+            value={scanMode}
+            disabled={isAnalyzing}
+            onChange={(event) => {
+              setScanMode(event.target.value);
+              setAnalysisResults(null);
+            }}
+          >
+            {SCAN_MODE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          <p className={styles.actionHint}>{selectedScanMode?.description}</p>
         </section>
 
         <div className={styles.actionGroup}>
@@ -171,14 +205,15 @@ export default function MapWrapper() {
             Hủy
           </button>
           <p className={styles.actionHint}>
-            Sau khi vẽ khung, hệ thống tự cắt ảnh và gửi vùng quét tới server.
+            Sau khi vẽ khung, chỉ phần nằm trong khu vực đã chọn được tính. Vùng
+            hợp lệ tối đa 25 hecta.
           </p>
         </div>
 
         {rectangleCoords && (
           <section
             className={styles.sidebarSection}
-            aria-label="Tọa độ vùng đã chọn"
+            aria-label="Tọa độ đã chọn"
           >
             <h2>Vùng đã chọn</h2>
             <div className={styles.coordinateList}>
@@ -201,39 +236,27 @@ export default function MapWrapper() {
         )}
 
         {analysisResults && (
-          <section className={styles.results} aria-label="Kết quả GeoAI">
+          <section className={styles.results} aria-label="Kết quả quét">
             <h2>Kết quả</h2>
-            <div className={styles.legend}>
-              <span>
-                <i className={styles.redKey} /> Building
-              </span>
-              <span>
-                <i className={styles.orangeKey} /> Infra
-              </span>
-              <span>
-                <i className={styles.greenKey} /> Cây xanh
-              </span>
-            </div>
             <div className={styles.resultGrid}>
               <div className={styles.metric}>
-                <span>Building</span>
+                <span>Nhà</span>
                 <strong>{analysisResults.analysis.buildings.count}</strong>
               </div>
               <div className={styles.metric}>
-                <span>Infra</span>
-                <strong>
-                  {analysisResults.analysis.infrastructure.count || 0}
-                </strong>
-              </div>
-              <div className={styles.metric}>
-                <span>Cây xanh</span>
-                <strong>{analysisResults.analysis.green?.count || 0}</strong>
-              </div>
-              <div className={styles.metric}>
-                <span>Object vẽ</span>
+                <span>Vùng nhận diện</span>
                 <strong>{analysisResults.analysis.objects?.length || 0}</strong>
               </div>
             </div>
+            <p className={styles.meta}>
+              Phần hợp lệ: {analysisResults.validAreaHectares || 0} ha
+            </p>
+            <p className={styles.meta}>
+              Nguồn quét: {analysisResults.dataSource}
+            </p>
+            {analysisResults.modelName && (
+              <p className={styles.meta}>Model: {analysisResults.modelName}</p>
+            )}
             <p className={styles.meta}>
               Thời gian xử lý: {analysisResults.processingTime}
             </p>
@@ -242,6 +265,9 @@ export default function MapWrapper() {
       </aside>
 
       <div className={styles.mapCanvas}>
+        <div className={styles.mapModeBadge} data-mode={scanMode}>
+          {selectedScanMode?.label}
+        </div>
         <Map
           onRectangleDrawn={handleRectangleDrawn}
           onAnalyzeImage={analyzeImage}
@@ -249,6 +275,7 @@ export default function MapWrapper() {
           selectRequestId={selectRequestId}
           captureRequestId={captureRequestId}
           clearRequestId={clearRequestId}
+          selectedAdminArea={adminArea}
         />
       </div>
     </div>

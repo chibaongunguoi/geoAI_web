@@ -9,6 +9,7 @@ geoai-py
 # Geospatial geometry operations used directly by the backend
 pandas>=2.0.0
 shapely>=2.0.0
+rasterio>=1.3.0
 
 # Web server and API
 flask==2.3.2

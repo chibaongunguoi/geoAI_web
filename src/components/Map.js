@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import html2canvas from "html2canvas";
 
 const DANANG_CENTER = [16.0544, 108.2022];
@@ -13,11 +13,38 @@ const DANANG_BOUNDS = [
   [15.88, 107.82],
   [16.2, 108.35],
 ];
+const MAP_VIEW_BOUNDS = [
+  [15.74, 107.62],
+  [16.36, 108.55],
+];
 const OBJECT_COLORS = {
   building: "#ef4444",
-  infrastructure: "#f59e0b",
-  green: "#22c55e",
 };
+const ADMIN_ALIASES = {
+  hai_chau: "haichau",
+  thanh_khe: "thanhkhe",
+  son_tra: "sontra",
+  ngu_hanh_son: "nguhanhson",
+  lien_chieu: "lienchieu",
+  cam_le: "camle",
+  hoa_vang: "hoavang",
+};
+const DISTRICT_LABELS = {
+  all_da_nang: "Toàn Đà Nẵng",
+  camle: "Cẩm Lệ",
+  haichau: "Hải Châu",
+  hoavang: "Hòa Vang",
+  lienchieu: "Liên Chiểu",
+  nguhanhson: "Ngũ Hành Sơn",
+  sontra: "Sơn Trà",
+  thanhkhe: "Thanh Khê",
+};
+const WORLD_RING = [
+  [-89, -179],
+  [-89, 179],
+  [89, 179],
+  [89, -179],
+];
 
 function boundsToCoordinates(bounds) {
   return {
@@ -28,22 +55,58 @@ function boundsToCoordinates(bounds) {
   };
 }
 
-function isInsideDaNang(bounds) {
-  const allowed = L.latLngBounds(DANANG_BOUNDS);
-  return (
-    allowed.contains(bounds.getSouthWest()) &&
-    allowed.contains(bounds.getNorthEast())
-  );
-}
-
 function objectColor(type) {
   return OBJECT_COLORS[type] || OBJECT_COLORS.building;
+}
+
+function normalizedAdminArea(adminArea) {
+  return ADMIN_ALIASES[adminArea] || adminArea || "all_da_nang";
+}
+
+function districtDisplayName(feature) {
+  const adminId = feature?.properties?.admin_id;
+  return DISTRICT_LABELS[adminId] || feature?.properties?.name || "";
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[char];
+  });
+}
+
+function polygonExteriorRings(geometry) {
+  if (!geometry) return [];
+
+  if (geometry.type === "Polygon") {
+    return [geometry.coordinates[0].map(([lng, lat]) => [lat, lng])];
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates.map((polygon) =>
+      polygon[0].map(([lng, lat]) => [lat, lng]),
+    );
+  }
+
+  return [];
+}
+
+function featureCenter(feature) {
+  const bounds = L.geoJSON(feature).getBounds();
+  return bounds.isValid() ? bounds.getCenter() : null;
 }
 
 function MapComponent({
   onRectangleDrawn,
   onAnalyzeImage,
   analysisObjects,
+  selectedAdminArea,
   selectRequestId,
   captureRequestId,
   clearRequestId,
@@ -51,7 +114,11 @@ function MapComponent({
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
   const [objectBoxes] = useState(new L.FeatureGroup());
+  const [boundaryLayer] = useState(new L.FeatureGroup());
+  const [maskLayer] = useState(new L.FeatureGroup());
   const [currentCoords, setCurrentCoords] = useState(null);
+  const [adminBoundaries, setAdminBoundaries] = useState(null);
+  const rightDragState = useRef(null);
 
   const clearMapState = useCallback(() => {
     drawnItems.clearLayers();
@@ -111,20 +178,17 @@ function MapComponent({
   );
 
   useEffect(() => {
-    map.setMaxBounds(DANANG_BOUNDS);
+    map.setMaxBounds(MAP_VIEW_BOUNDS);
     map.fitBounds(DANANG_BOUNDS);
     map.addLayer(drawnItems);
     map.addLayer(objectBoxes);
+    map.addLayer(maskLayer);
+    map.addLayer(boundaryLayer);
     setTimeout(() => map.invalidateSize(), 0);
 
     const handleCreated = (event) => {
       const layer = event.layer;
       const bounds = layer.getBounds();
-
-      if (!isInsideDaNang(bounds)) {
-        alert("Vui lòng chọn vùng nằm trong địa phận Đà Nẵng.");
-        return;
-      }
 
       drawnItems.clearLayers();
       objectBoxes.clearLayers();
@@ -142,13 +206,191 @@ function MapComponent({
       map.off(L.Draw.Event.CREATED, handleCreated);
       map.removeLayer(drawnItems);
       map.removeLayer(objectBoxes);
+      map.removeLayer(maskLayer);
+      map.removeLayer(boundaryLayer);
     };
-  }, [map, drawnItems, objectBoxes, onRectangleDrawn, captureImageForCoords]);
+  }, [
+    map,
+    drawnItems,
+    objectBoxes,
+    maskLayer,
+    boundaryLayer,
+    onRectangleDrawn,
+    captureImageForCoords,
+  ]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch("/api/admin-boundaries")
+      .then((response) => response.json())
+      .then((data) => {
+        if (isMounted && data.success) {
+          setAdminBoundaries(data.districts);
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading admin boundaries:", error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!adminBoundaries?.features?.length) return;
+
+    boundaryLayer.clearLayers();
+    maskLayer.clearLayers();
+
+    const selectedId = normalizedAdminArea(selectedAdminArea);
+    const isAllDaNang = selectedId === "all_da_nang" || selectedId === "all";
+    const selectedFeatures = isAllDaNang
+      ? adminBoundaries.features
+      : adminBoundaries.features.filter(
+          (feature) => feature.properties?.admin_id === selectedId,
+        );
+
+    if (selectedFeatures.length === 0) return;
+
+    const selectedCollection = {
+      type: "FeatureCollection",
+      features: selectedFeatures,
+    };
+
+    if (!isAllDaNang) {
+      const holes = selectedFeatures.flatMap((feature) =>
+        polygonExteriorRings(feature.geometry),
+      );
+      if (holes.length > 0) {
+        L.polygon([WORLD_RING, ...holes], {
+          stroke: false,
+          fillColor: "#07110f",
+          fillOpacity: 0.42,
+          interactive: false,
+        }).addTo(maskLayer);
+      }
+    }
+
+    L.geoJSON(selectedCollection, {
+      style: {
+        color: "#ffffff",
+        weight: 5,
+        opacity: isAllDaNang ? 0.4 : 0.95,
+        fillOpacity: 0,
+        interactive: false,
+      },
+    }).addTo(boundaryLayer);
+
+    L.geoJSON(selectedCollection, {
+      style: {
+        color: "#ef4444",
+        weight: isAllDaNang ? 1.5 : 2.5,
+        opacity: 1,
+        dashArray: isAllDaNang ? "4 6" : "2 4",
+        fillOpacity: 0,
+        interactive: false,
+      },
+    }).addTo(boundaryLayer);
+
+    selectedFeatures.forEach((feature) => {
+      const center = featureCenter(feature);
+      if (center) {
+        L.marker(center, {
+          interactive: false,
+          icon: L.divIcon({
+            className: "district-label",
+            html: `<span>${escapeHtml(districtDisplayName(feature))}</span>`,
+            iconSize: [150, 28],
+            iconAnchor: [75, 14],
+          }),
+        }).addTo(boundaryLayer);
+      }
+    });
+
+    const bounds = L.geoJSON(selectedCollection).getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds.pad(isAllDaNang ? 0.08 : 0.22), {
+        animate: true,
+        padding: isAllDaNang ? [16, 16] : [32, 32],
+        maxZoom: isAllDaNang ? 12 : 15,
+      });
+    }
+  }, [adminBoundaries, selectedAdminArea, boundaryLayer, maskLayer, map]);
 
   useEffect(() => {
     const handleResize = () => map.invalidateSize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, [map]);
+
+  useEffect(() => {
+    const container = map.getContainer();
+
+    const stopRightMouseEvent = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation?.();
+    };
+
+    const handleContextMenu = (event) => {
+      stopRightMouseEvent(event);
+    };
+
+    const handleMouseDown = (event) => {
+      if (event.button !== 2) return;
+
+      stopRightMouseEvent(event);
+      rightDragState.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+      container.classList.add("leaflet-dragging");
+    };
+
+    const handleMouseMove = (event) => {
+      const previous = rightDragState.current;
+      if (!previous) return;
+
+      stopRightMouseEvent(event);
+
+      const dx = event.clientX - previous.x;
+      const dy = event.clientY - previous.y;
+      if (dx !== 0 || dy !== 0) {
+        map.panBy([-dx, -dy], { animate: false });
+        rightDragState.current = {
+          x: event.clientX,
+          y: event.clientY,
+        };
+      }
+    };
+
+    const stopRightDrag = (event) => {
+      if (!rightDragState.current) return;
+
+      if (event) {
+        stopRightMouseEvent(event);
+      }
+      rightDragState.current = null;
+      container.classList.remove("leaflet-dragging");
+    };
+
+    container.addEventListener("contextmenu", handleContextMenu, true);
+    container.addEventListener("mousedown", handleMouseDown, true);
+    window.addEventListener("mousemove", handleMouseMove, true);
+    window.addEventListener("mouseup", stopRightDrag, true);
+    window.addEventListener("blur", stopRightDrag);
+
+    return () => {
+      container.removeEventListener("contextmenu", handleContextMenu, true);
+      container.removeEventListener("mousedown", handleMouseDown, true);
+      window.removeEventListener("mousemove", handleMouseMove, true);
+      window.removeEventListener("mouseup", stopRightDrag, true);
+      window.removeEventListener("blur", stopRightDrag);
+      rightDragState.current = null;
+      container.classList.remove("leaflet-dragging");
+    };
   }, [map]);
 
   useEffect(() => {
@@ -184,6 +426,30 @@ function MapComponent({
     objectBoxes.clearLayers();
 
     analysisObjects.forEach((object) => {
+      if (object.geometry) {
+        const footprint = L.geoJSON(
+          {
+            type: "Feature",
+            properties: {},
+            geometry: object.geometry,
+          },
+          {
+            style: {
+              color: objectColor(object.type),
+              weight: object.geometrySource === "geoai_mask" ? 2 : 2.4,
+              opacity: 1,
+              fill: true,
+              fillColor: objectColor(object.type),
+              fillOpacity: 0.08,
+              interactive: false,
+            },
+          },
+        );
+
+        objectBoxes.addLayer(footprint);
+        return;
+      }
+
       if (!object.bbox || object.bbox.length !== 4) return;
 
       const [minLng, minLat, maxLng, maxLat] = object.bbox;
@@ -218,6 +484,7 @@ export default function Map({
   onRectangleDrawn,
   onAnalyzeImage,
   analysisObjects,
+  selectedAdminArea,
   selectRequestId,
   captureRequestId,
   clearRequestId,
@@ -228,8 +495,8 @@ export default function Map({
       zoom={12}
       minZoom={11}
       maxZoom={19}
-      maxBounds={DANANG_BOUNDS}
-      maxBoundsViscosity={1}
+      maxBounds={MAP_VIEW_BOUNDS}
+      maxBoundsViscosity={0.35}
       className="geoai-map"
       zoomControl={true}
       scrollWheelZoom={true}
@@ -245,6 +512,7 @@ export default function Map({
         onRectangleDrawn={onRectangleDrawn}
         onAnalyzeImage={onAnalyzeImage}
         analysisObjects={analysisObjects || []}
+        selectedAdminArea={selectedAdminArea || "all_da_nang"}
         selectRequestId={selectRequestId || 0}
         captureRequestId={captureRequestId || 0}
         clearRequestId={clearRequestId || 0}

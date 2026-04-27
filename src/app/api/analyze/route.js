@@ -10,6 +10,8 @@ export async function POST(request) {
     const image = formData.get("image");
     const bbox = formData.get("bbox");
     const scanTypes = formData.get("scanTypes");
+    const adminArea = formData.get("adminArea");
+    const scanMode = formData.get("scanMode");
 
     if (!image) {
       return NextResponse.json(
@@ -32,6 +34,12 @@ export async function POST(request) {
     pythonFormData.append("bbox", bbox);
     if (scanTypes) {
       pythonFormData.append("scanTypes", scanTypes);
+    }
+    if (adminArea) {
+      pythonFormData.append("adminArea", adminArea);
+    }
+    if (scanMode) {
+      pythonFormData.append("scanMode", scanMode);
     }
 
     console.log(
