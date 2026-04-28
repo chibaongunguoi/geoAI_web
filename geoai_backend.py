@@ -4,13 +4,6 @@ from PIL import Image
 import numpy as np
 import io
 import json
-import leafmap
-from geoai.download import (
-    download_naip,
-    download_overture_buildings,
-    extract_building_stats,
-)
-import geopandas as gpd
 import os
 from datetime import datetime
 import logging
@@ -186,6 +179,15 @@ def download_and_analyze_real_data(bbox_tuple, bbox_hash):
     Returns:
         Dictionary with real analysis results
     """
+    # Import geoai modules here to avoid startup delays
+    import leafmap
+    from geoai.download import (
+        download_naip,
+        download_overture_buildings,
+        extract_building_stats,
+    )
+    import geopandas as gpd
+    
     logger.info("=" * 60)
     logger.info(f"🔄 download_and_analyze_real_data({bbox_hash}) started")
     logger.info("=" * 60)
