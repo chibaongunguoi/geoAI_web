@@ -7,9 +7,12 @@ import {
   moveLayer,
   readStoredLayerState,
   reorderLayer,
+  selectLayerVisibility,
   setLayerOpacity,
   setLayerGroupVisibility,
   toggleLayerVisibility,
+  validateGeoJsonPayload,
+  validateLayerConfig,
   visibleLayerIds
 } from "./layers";
 
@@ -19,6 +22,7 @@ describe("data layers", () => {
 
     expect(state.order).toEqual(DATA_LAYERS.map((layer) => layer.id));
     expect(state.visible["admin-boundaries"]).toBe(true);
+    expect(state.visible["sample-assets"]).toBe(false);
     expect(state.opacity["sample-assets"]).toBe(0.85);
   });
 
@@ -28,25 +32,101 @@ describe("data layers", () => {
     expect(filtered.map((layer) => layer.id)).toEqual(["sample-assets"]);
   });
 
-  it("toggles visibility and returns visible layer ids in display order", () => {
+  it("validates external layer source configs", () => {
+    expect(
+      validateLayerConfig({
+        id: "districts",
+        sourceKind: "geojson",
+        url: "/data/districts.geojson"
+      }).valid
+    ).toBe(true);
+    expect(
+      validateLayerConfig({
+        id: "wms-buildings",
+        sourceKind: "wms",
+        url: "https://example.test/wms",
+        wmsOptions: { layers: "buildings" }
+      }).valid
+    ).toBe(true);
+    expect(
+      validateLayerConfig({
+        id: "wmts-roads",
+        sourceKind: "wmts",
+        url: "https://example.test/tiles/{z}/{x}/{y}.png"
+      }).valid
+    ).toBe(true);
+  });
+
+  it("rejects incomplete external layer source configs", () => {
+    expect(validateLayerConfig({ id: "bad-geojson", sourceKind: "geojson" })).toEqual({
+      valid: false,
+      message: "GeoJSON layers require a URL."
+    });
+    expect(
+      validateLayerConfig({
+        id: "bad-wms",
+        sourceKind: "wms",
+        url: "https://example.test/wms"
+      })
+    ).toEqual({
+      valid: false,
+      message: "WMS layers require a URL and wmsOptions.layers."
+    });
+    expect(
+      validateLayerConfig({
+        id: "bad-wmts",
+        sourceKind: "wmts",
+        url: "https://example.test/tiles"
+      })
+    ).toEqual({
+      valid: false,
+      message: "WMTS layers require a URL template with {z}, {x}, and {y}."
+    });
+  });
+
+  it("validates GeoJSON payload shape", () => {
+    expect(validateGeoJsonPayload({ type: "FeatureCollection", features: [] }).valid).toBe(true);
+    expect(validateGeoJsonPayload({ type: "Feature", geometry: null, properties: {} }).valid).toBe(true);
+    expect(validateGeoJsonPayload({ type: "GeometryCollection", geometries: [] })).toEqual({
+      valid: false,
+      message: "GeoJSON response must be a Feature or FeatureCollection."
+    });
+  });
+
+  it("selects one visible layer at a time", () => {
+    const state = selectLayerVisibility(
+      createDefaultLayerState(DATA_LAYERS),
+      "sample-assets"
+    );
+
+    expect(state.visible["admin-boundaries"]).toBe(false);
+    expect(state.visible["sample-assets"]).toBe(true);
+    expect(visibleLayerIds(state)).toEqual(["sample-assets"]);
+  });
+
+  it("keeps the old toggle helper as exclusive layer selection", () => {
     const state = toggleLayerVisibility(
       createDefaultLayerState(DATA_LAYERS),
       "sample-assets"
     );
 
-    expect(state.visible["sample-assets"]).toBe(false);
-    expect(visibleLayerIds(state)).not.toContain("sample-assets");
+    expect(state.visible["admin-boundaries"]).toBe(false);
+    expect(state.visible["sample-assets"]).toBe(true);
+    expect(visibleLayerIds(state)).toEqual(["sample-assets"]);
   });
 
-  it("toggles all layers in a group", () => {
+  it("selects only the first layer in a group", () => {
+    const assetGroup = DATA_LAYERS.find((layer) => layer.id === "sample-assets").group;
     const state = setLayerGroupVisibility(
       createDefaultLayerState(DATA_LAYERS),
       DATA_LAYERS,
-      "Tham chiếu",
-      false
+      assetGroup,
+      true
     );
 
     expect(state.visible["admin-boundaries"]).toBe(false);
+    expect(state.visible["sample-assets"]).toBe(true);
+    expect(visibleLayerIds(state)).toEqual(["sample-assets"]);
   });
 
   it("clamps opacity between 0.1 and 1", () => {
@@ -96,7 +176,29 @@ describe("data layers", () => {
     expect(storage.getItem).toHaveBeenCalledWith(DEFAULT_LAYER_STORAGE_KEY);
     expect(state.visible.unknown).toBeUndefined();
     expect(state.visible["sample-assets"]).toBe(false);
+    expect(state.visible["admin-boundaries"]).toBe(true);
     expect(state.opacity["sample-assets"]).toBe(0.4);
-    expect(state.order).toEqual(["sample-assets", "admin-boundaries", "analysis-results"]);
+    expect(state.order).toEqual([
+      "sample-assets",
+      "admin-boundaries",
+      "analysis-results",
+      "demo-wms-states",
+      "osm-template-overlay"
+    ]);
+  });
+
+  it("normalizes stored state with multiple visible layers to one visible layer", () => {
+    const storage = {
+      getItem: jest.fn().mockReturnValue(
+        JSON.stringify({
+          visible: { "admin-boundaries": true, "sample-assets": true },
+          order: ["sample-assets", "admin-boundaries"]
+        })
+      )
+    };
+
+    const state = readStoredLayerState(storage);
+
+    expect(visibleLayerIds(state)).toEqual(["sample-assets"]);
   });
 });

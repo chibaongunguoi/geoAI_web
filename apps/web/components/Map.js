@@ -7,7 +7,12 @@ import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
 import { useCallback, useEffect, useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { DATA_LAYERS, layerIsVisibleAtZoom } from "@/features/map/layers";
+import {
+  DATA_LAYERS,
+  layerIsVisibleAtZoom,
+  validateGeoJsonPayload,
+  validateLayerConfig,
+} from "@/features/map/layers";
 
 const DANANG_CENTER = [16.0544, 108.2022];
 const DANANG_BOUNDS = [
@@ -103,6 +108,33 @@ function featureCenter(feature) {
   return bounds.isValid() ? bounds.getCenter() : null;
 }
 
+function cacheBustedUrl(url, refreshId) {
+  if (!refreshId) return url;
+
+  return `${url}${url.includes("?") ? "&" : "?"}_refresh=${refreshId}`;
+}
+
+function geoJsonPointLayer(feature, latlng, opacity) {
+  return L.circleMarker(latlng, {
+    radius: 7,
+    color: "#ffffff",
+    weight: 2,
+    opacity,
+    fillColor: feature?.properties?.color || "#f59e0b",
+    fillOpacity: 0.9 * opacity,
+  });
+}
+
+function geoJsonPopup(feature) {
+  const properties = feature?.properties || {};
+  const title = properties.name || properties.title || properties.code || "Feature";
+  const details = [properties.code, properties.status, properties.type].filter(Boolean);
+
+  return `<strong>${escapeHtml(title)}</strong>${details
+    .map((item) => `<br>${escapeHtml(item)}`)
+    .join("")}`;
+}
+
 function MapComponent({
   onRectangleDrawn,
   onAnalyzeImage,
@@ -116,6 +148,7 @@ function MapComponent({
   selectRequestId,
   captureRequestId,
   clearRequestId,
+  layerRefreshRequests,
   onLayerStatusChange,
 }) {
   const map = useMap();
@@ -123,11 +156,10 @@ function MapComponent({
   const [objectBoxes] = useState(new L.FeatureGroup());
   const [boundaryLayer] = useState(new L.FeatureGroup());
   const [maskLayer] = useState(new L.FeatureGroup());
-  const [assetLayer] = useState(new L.FeatureGroup());
   const [currentCoords, setCurrentCoords] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(() => map.getZoom());
   const [adminBoundaries, setAdminBoundaries] = useState(null);
-  const [assetFeatures, setAssetFeatures] = useState(null);
+  const externalLayersRef = useRef(new globalThis.Map());
   const lastBoundaryViewKeyRef = useRef(null);
   const rightDragState = useRef(null);
 
@@ -212,7 +244,6 @@ function MapComponent({
     map.fitBounds(DANANG_BOUNDS);
     map.addLayer(drawnItems);
     map.addLayer(objectBoxes);
-    map.addLayer(assetLayer);
     map.addLayer(maskLayer);
     map.addLayer(boundaryLayer);
     setTimeout(() => map.invalidateSize(), 0);
@@ -237,15 +268,15 @@ function MapComponent({
       map.off(L.Draw.Event.CREATED, handleCreated);
       map.removeLayer(drawnItems);
       map.removeLayer(objectBoxes);
-      map.removeLayer(assetLayer);
       map.removeLayer(maskLayer);
       map.removeLayer(boundaryLayer);
+      externalLayersRef.current.forEach((layer) => map.removeLayer(layer));
+      externalLayersRef.current.clear();
     };
   }, [
     map,
     drawnItems,
     objectBoxes,
-    assetLayer,
     maskLayer,
     boundaryLayer,
     onRectangleDrawn,
@@ -254,44 +285,20 @@ function MapComponent({
 
   useEffect(() => {
     let isMounted = true;
-    onLayerStatusChange?.("admin-boundaries", "Đang tải");
+    onLayerStatusChange?.("admin-boundaries", { state: "loading", message: "Đang tải" });
 
     fetch("/api/admin-boundaries")
       .then((response) => response.json())
       .then((data) => {
         if (isMounted && data.success) {
           setAdminBoundaries(data.districts);
-          onLayerStatusChange?.("admin-boundaries", "Sẵn sàng");
+          onLayerStatusChange?.("admin-boundaries", { state: "ready", message: "Sẵn sàng" });
         }
       })
       .catch((error) => {
         console.error("Error loading admin boundaries:", error);
         if (isMounted) {
-          onLayerStatusChange?.("admin-boundaries", "Lỗi tải");
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [onLayerStatusChange]);
-
-  useEffect(() => {
-    let isMounted = true;
-    onLayerStatusChange?.("sample-assets", "Đang tải");
-
-    fetch("/data/sample-assets.geojson")
-      .then((response) => response.json())
-      .then((data) => {
-        if (isMounted) {
-          setAssetFeatures(data);
-          onLayerStatusChange?.("sample-assets", "Sẵn sàng");
-        }
-      })
-      .catch((error) => {
-        console.error("Error loading sample assets:", error);
-        if (isMounted) {
-          onLayerStatusChange?.("sample-assets", "Lỗi tải");
+          onLayerStatusChange?.("admin-boundaries", { state: "error", message: "Lỗi tải" });
         }
       });
 
@@ -413,29 +420,133 @@ function MapComponent({
   ]);
 
   useEffect(() => {
-    assetLayer.clearLayers();
+    const externalLayers = DATA_LAYERS.filter(
+      (layer) => !layer.renderer && ["geojson", "wms", "wmts"].includes(layer.sourceKind),
+    );
+    const abortControllers = [];
 
-    if (!isLayerActive("sample-assets")) return;
-    if (!assetFeatures?.features?.length) return;
+    const removeLayer = (layerId) => {
+      const existingLayer = externalLayersRef.current.get(layerId);
+      if (existingLayer) {
+        map.removeLayer(existingLayer);
+        externalLayersRef.current.delete(layerId);
+      }
+    };
 
-    const layerOpacity = layerOpacities["sample-assets"] ?? 1;
+    const setStatus = (layerId, state, message) => {
+      onLayerStatusChange?.(layerId, { state, message });
+    };
 
-    L.geoJSON(assetFeatures, {
-      pointToLayer: (feature, latlng) =>
-        L.circleMarker(latlng, {
-          radius: 7,
-          color: "#ffffff",
-          weight: 2,
-          opacity: layerOpacity,
-          fillColor: "#f59e0b",
-          fillOpacity: 0.9 * layerOpacity,
-        }).bindPopup(
-          `<strong>${escapeHtml(feature.properties?.name || "Asset")}</strong><br>` +
-            `${escapeHtml(feature.properties?.code || "")}<br>` +
-            `${escapeHtml(feature.properties?.status || "")}`,
-        ),
-    }).addTo(assetLayer);
-  }, [assetFeatures, assetLayer, layerOpacities, isLayerActive]);
+    externalLayers.forEach((layer) => {
+      const refreshId = layerRefreshRequests?.[layer.id] || 0;
+      const opacity = layerOpacities[layer.id] ?? 1;
+
+      if (!isLayerActive(layer.id)) {
+        removeLayer(layer.id);
+        return;
+      }
+
+      const validation = validateLayerConfig(layer);
+      if (!validation.valid) {
+        removeLayer(layer.id);
+        setStatus(layer.id, "error", validation.message);
+        return;
+      }
+
+      if (layer.sourceKind === "geojson") {
+        const controller = new AbortController();
+        abortControllers.push(controller);
+        removeLayer(layer.id);
+        setStatus(layer.id, "loading", "Đang tải");
+
+        fetch(cacheBustedUrl(layer.url, refreshId), {
+          cache: "no-store",
+          signal: controller.signal,
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            const payload = data?.success && data.districts ? data.districts : data;
+            const geoJsonValidation = validateGeoJsonPayload(payload);
+            if (!geoJsonValidation.valid) {
+              throw new Error(geoJsonValidation.message);
+            }
+
+            const geoJsonLayer = L.geoJSON(payload, {
+              pointToLayer: (feature, latlng) => geoJsonPointLayer(feature, latlng, opacity),
+              style: {
+                color: "#f59e0b",
+                weight: 2,
+                opacity,
+                fillOpacity: 0.18 * opacity,
+              },
+              onEachFeature: (feature, leafletLayer) => {
+                leafletLayer.bindPopup(geoJsonPopup(feature));
+              },
+            }).addTo(map);
+
+            externalLayersRef.current.set(layer.id, geoJsonLayer);
+            setStatus(layer.id, "ready", "Sẵn sàng");
+          })
+          .catch((error) => {
+            if (error.name === "AbortError") return;
+            removeLayer(layer.id);
+            setStatus(layer.id, "error", error.message || "Lỗi tải");
+          });
+
+        return;
+      }
+
+      removeLayer(layer.id);
+
+      if (layer.sourceKind === "wms") {
+        const tileLayer = L.tileLayer
+          .wms(layer.url, {
+            format: "image/png",
+            transparent: true,
+            attribution: layer.attribution,
+            ...layer.wmsOptions,
+            _refresh: refreshId || undefined,
+            opacity,
+          })
+          .on("tileerror", () => {
+            setStatus(layer.id, "error", "Lỗi tải tile WMS");
+          })
+          .addTo(map);
+
+        externalLayersRef.current.set(layer.id, tileLayer);
+        setStatus(layer.id, "ready", "Sẵn sàng");
+        return;
+      }
+
+      const tileLayer = L.tileLayer(cacheBustedUrl(layer.url, refreshId), {
+        attribution: layer.attribution,
+        ...layer.tileOptions,
+        opacity,
+      })
+        .on("tileerror", () => {
+          setStatus(layer.id, "error", "Lỗi tải tile WMTS");
+        })
+        .addTo(map);
+
+      externalLayersRef.current.set(layer.id, tileLayer);
+      setStatus(layer.id, "ready", "Sẵn sàng");
+    });
+
+    return () => {
+      abortControllers.forEach((controller) => controller.abort());
+    };
+  }, [
+    map,
+    layerOpacities,
+    layerRefreshRequests,
+    isLayerActive,
+    onLayerStatusChange,
+  ]);
 
   useEffect(() => {
     const handleResize = () => map.invalidateSize();
@@ -580,7 +691,9 @@ function MapComponent({
     objectBoxes.clearLayers();
     onLayerStatusChange?.(
       "analysis-results",
-      analysisObjects.length > 0 ? "Sẵn sàng" : "Chờ kết quả",
+      analysisObjects.length > 0
+        ? { state: "ready", message: "Sẵn sàng" }
+        : { state: "idle", message: "Chờ kết quả" },
     );
 
     if (!isLayerActive("analysis-results")) return;
@@ -635,15 +748,15 @@ function MapComponent({
 
   useEffect(() => {
     const groupsByLayerId = {
-      "sample-assets": assetLayer,
       "analysis-results": objectBoxes,
       "admin-boundaries": boundaryLayer,
     };
 
     layerOrder.forEach((layerId) => {
-      groupsByLayerId[layerId]?.bringToFront();
+      const layer = groupsByLayerId[layerId] || externalLayersRef.current.get(layerId);
+      layer?.bringToFront?.();
     });
-  }, [assetLayer, boundaryLayer, objectBoxes, layerOrder]);
+  }, [boundaryLayer, objectBoxes, layerOrder]);
 
   useEffect(() => {
     if (captureRequestId > 0) {
@@ -667,6 +780,7 @@ export default function Map({
   selectRequestId,
   captureRequestId,
   clearRequestId,
+  layerRefreshRequests,
   onLayerStatusChange,
 }) {
   return (
@@ -703,6 +817,7 @@ export default function Map({
         selectRequestId={selectRequestId || 0}
         captureRequestId={captureRequestId || 0}
         clearRequestId={clearRequestId || 0}
+        layerRefreshRequests={layerRefreshRequests || {}}
         onLayerStatusChange={onLayerStatusChange}
       />
     </MapContainer>

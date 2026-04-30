@@ -78,11 +78,74 @@ export default function MapWrapper({ permissions = [] }) {
   const [captureRequestId, setCaptureRequestId] = useState(0);
   const [clearRequestId, setClearRequestId] = useState(0);
   const [layerStatuses, setLayerStatuses] = useState({});
+  const [layerRefreshRequests, setLayerRefreshRequests] = useState({});
+  const [layerHistory, setLayerHistory] = useState([]);
+  const [layerConfigStatus, setLayerConfigStatus] = useState(null);
+  const [hasLoadedLayerConfig, setHasLoadedLayerConfig] = useState(false);
+  const skipNextLayerPersistRef = useRef(false);
+
+  const canViewLayers = canAccess(permissions, "layers.view");
+  const canManageLayers = canAccess(permissions, "layers.manage");
+
+  const loadLayerHistory = useCallback(async () => {
+    if (!canViewLayers) return;
+
+    try {
+      const response = await fetch("/api/map/layers/history?take=20", {
+        cache: "no-store"
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      setLayerHistory(Array.isArray(data.items) ? data.items : []);
+    } catch {
+      setLayerHistory([]);
+    }
+  }, [canViewLayers]);
 
   useEffect(() => {
     setSelectedBasemapId(readStoredBasemap(window.localStorage));
-    setLayerState(readStoredLayerState(window.localStorage, DATA_LAYERS));
-  }, []);
+    const localLayerState = readStoredLayerState(window.localStorage, DATA_LAYERS);
+    setLayerState(localLayerState);
+
+    if (!canViewLayers) {
+      setHasLoadedLayerConfig(true);
+      return;
+    }
+
+    let isMounted = true;
+
+    fetch("/api/map/layers/config", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!isMounted) return;
+
+        if (data?.state) {
+          skipNextLayerPersistRef.current = true;
+          setLayerState(
+            readStoredLayerState(
+              { getItem: () => JSON.stringify(data.state) },
+              DATA_LAYERS
+            )
+          );
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setLayerConfigStatus("Không tải được cấu hình lớp từ máy chủ.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setHasLoadedLayerConfig(true);
+        }
+      });
+
+    loadLayerHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canViewLayers, loadLayerHistory]);
 
   useEffect(() => {
     writeStoredBasemap(window.localStorage, selectedBasemapId);
@@ -90,7 +153,35 @@ export default function MapWrapper({ permissions = [] }) {
 
   useEffect(() => {
     writeStoredLayerState(window.localStorage, layerState);
-  }, [layerState]);
+    if (!hasLoadedLayerConfig || !canManageLayers) return;
+
+    if (skipNextLayerPersistRef.current) {
+      skipNextLayerPersistRef.current = false;
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch("/api/map/layers/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: layerState }),
+      signal: controller.signal
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Layer config save failed");
+        }
+        setLayerConfigStatus("Đã lưu cấu hình lớp.");
+        loadLayerHistory();
+      })
+      .catch((error) => {
+        if (error.name === "AbortError") return;
+        setLayerConfigStatus("Không lưu được cấu hình lớp lên máy chủ.");
+      });
+
+    return () => controller.abort();
+  }, [canManageLayers, hasLoadedLayerConfig, layerState, loadLayerHistory]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -164,9 +255,22 @@ export default function MapWrapper({ permissions = [] }) {
   }, []);
 
   const handleLayerStatusChange = useCallback((layerId, status) => {
+    const nextStatus =
+      typeof status === "string" ? { state: "ready", message: status } : status;
+
     setLayerStatuses((current) =>
-      current[layerId] === status ? current : { ...current, [layerId]: status }
+      current[layerId]?.state === nextStatus?.state &&
+      current[layerId]?.message === nextStatus?.message
+        ? current
+        : { ...current, [layerId]: nextStatus }
     );
+  }, []);
+
+  const refreshLayer = useCallback((layerId) => {
+    setLayerRefreshRequests((current) => ({
+      ...current,
+      [layerId]: (current[layerId] || 0) + 1
+    }));
   }, []);
 
   const analyzeImage = useCallback(
@@ -221,7 +325,6 @@ export default function MapWrapper({ permissions = [] }) {
     (option) => option.value === scanMode
   );
   const selectedBasemap = getBasemap(selectedBasemapId);
-  const canViewLayers = canAccess(permissions, "layers.view");
   const visibleLayers = useMemo(() => visibleLayerIds(layerState), [layerState]);
   const layerOpacities = useMemo(
     () =>
@@ -230,6 +333,31 @@ export default function MapWrapper({ permissions = [] }) {
       ),
     [layerState]
   );
+
+  const exportLayerConfig = useCallback(async () => {
+    if (!canManageLayers) return;
+
+    try {
+      const response = await fetch("/api/map/layers/export", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("Layer export failed");
+      }
+      const data = await response.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `geoai-layer-config-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setLayerConfigStatus("Không xuất được cấu hình lớp.");
+    }
+  }, [canManageLayers]);
 
   return (
     <div className={styles.mapWorkspace} ref={workspaceRef}>
@@ -330,8 +458,17 @@ export default function MapWrapper({ permissions = [] }) {
               onOpacityChange={updateLayerOpacity}
               onMove={updateLayerOrder}
               onReorder={updateLayerReorder}
+              onRefresh={refreshLayer}
               layerStatuses={layerStatuses}
+              canManage={canManageLayers}
+              history={layerHistory}
+              onExport={exportLayerConfig}
             />
+            {layerConfigStatus ? (
+              <p className={styles.actionHint} role="status">
+                {layerConfigStatus}
+              </p>
+            ) : null}
           </CollapsibleSection>
         ) : null}
 
@@ -459,6 +596,7 @@ export default function MapWrapper({ permissions = [] }) {
           visibleLayerIds={visibleLayers}
           layerOpacities={layerOpacities}
           layerOrder={layerState.order}
+          layerRefreshRequests={layerRefreshRequests}
           onLayerStatusChange={handleLayerStatusChange}
         />
       </div>
