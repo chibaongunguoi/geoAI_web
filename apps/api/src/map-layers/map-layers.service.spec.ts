@@ -121,7 +121,7 @@ describe("MapLayersService", () => {
     expect(result.exportedAt).toEqual(expect.any(String));
   });
 
-  it("normalizes saved config to one visible layer", async () => {
+  it("preserves multiple visible layers in saved config", async () => {
     const prisma = prismaStub({
       layerUserConfig: {
         findUnique: jest.fn(),
@@ -142,7 +142,7 @@ describe("MapLayersService", () => {
       where: { userId: "user-1" },
       update: {
         state: {
-          visible: { "admin-boundaries": true, "sample-assets": false },
+          visible: { "sample-assets": true, "admin-boundaries": true },
           opacity: { "sample-assets": 0.75, "admin-boundaries": 0.9 },
           order: ["admin-boundaries", "sample-assets"]
         }
@@ -150,7 +150,7 @@ describe("MapLayersService", () => {
       create: {
         userId: "user-1",
         state: {
-          visible: { "admin-boundaries": true, "sample-assets": false },
+          visible: { "sample-assets": true, "admin-boundaries": true },
           opacity: { "sample-assets": 0.75, "admin-boundaries": 0.9 },
           order: ["admin-boundaries", "sample-assets"]
         }

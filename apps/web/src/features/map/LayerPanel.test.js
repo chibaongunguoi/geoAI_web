@@ -15,7 +15,7 @@ function escapedLayerLabel(id) {
 }
 
 function visibilityControl(id) {
-  return screen.getByRole("radio", { name: labelPattern(id) });
+  return screen.getByRole("checkbox", { name: labelPattern(id) });
 }
 
 function opacityControl(id) {
@@ -55,7 +55,7 @@ describe("LayerPanel", () => {
 
     const assetVisibility = visibilityControl("sample-assets");
 
-    expect(assetVisibility).toHaveAttribute("type", "radio");
+    expect(assetVisibility).toHaveAttribute("type", "checkbox");
 
     fireEvent.click(assetVisibility);
     fireEvent.change(opacityControl("sample-assets"), {

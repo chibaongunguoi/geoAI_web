@@ -442,6 +442,70 @@ body {
   color-scheme: light;
 }
 
+.layer-search select {
+  min-height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-control-bg);
+  color: var(--color-control-text);
+  padding: 0 10px;
+  color-scheme: light;
+}
+
+.asset-display-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.asset-display-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.asset-field-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  border: 0;
+  padding: 0;
+}
+
+.asset-field-list legend {
+  grid-column: 1 / -1;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.asset-field-list label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.asset-export-button {
+  min-height: 34px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.asset-export-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .layer-list {
   display: grid;
   gap: 8px;
@@ -670,6 +734,122 @@ select:focus-visible,
 
 .district-label span {
   display: inline-block;
+}
+
+.asset-marker {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.32);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+  position: relative;
+}
+
+.asset-marker::after {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #22c55e;
+  content: "";
+}
+
+.asset-marker.status-maintenance::after {
+  background: #f59e0b;
+}
+
+.asset-marker.status-review::after {
+  background: #ef4444;
+}
+
+.asset-marker.status-inactive::after {
+  background: #64748b;
+}
+
+.asset-marker.recent {
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.28), 0 8px 22px rgba(15, 23, 42, 0.32);
+}
+
+.asset-cluster {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #4338ca;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.34);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.asset-label {
+  color: #111827;
+  font-size: 11px;
+  font-weight: 900;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+}
+
+.asset-label span {
+  display: inline-block;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 2px 6px;
+}
+
+.asset-popup {
+  display: grid;
+  min-width: 220px;
+  gap: 8px;
+}
+
+.asset-popup img {
+  width: 100%;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.asset-popup strong {
+  color: #111827;
+  font-size: 14px;
+}
+
+.asset-popup dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 8px;
+  margin: 0;
+}
+
+.asset-popup dt {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.asset-popup dd {
+  margin: 0;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.asset-popup a {
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .leaflet-draw-toolbar a,

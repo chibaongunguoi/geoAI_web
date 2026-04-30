@@ -7,7 +7,13 @@
         "code": "DN-LGT-001",
         "name": "Street light cluster",
         "status": "active",
-        "category": "Lighting"
+        "category": "Lighting",
+        "type": "lighting",
+        "priority": "normal",
+        "updatedAt": "2026-04-12",
+        "ownerUnit": "Da Nang Urban Lighting",
+        "imageUrl": "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=360&q=80",
+        "detailUrl": "/assets/DN-LGT-001"
       },
       "geometry": {
         "type": "Point",
@@ -20,7 +26,13 @@
         "code": "DN-RD-014",
         "name": "Road segment marker",
         "status": "maintenance",
-        "category": "Road"
+        "category": "Road",
+        "type": "road",
+        "priority": "high",
+        "updatedAt": "2026-04-02",
+        "ownerUnit": "Da Nang Transport Maintenance",
+        "imageUrl": "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=360&q=80",
+        "detailUrl": "/assets/DN-RD-014"
       },
       "geometry": {
         "type": "Point",
@@ -33,7 +45,13 @@
         "code": "DN-DRN-022",
         "name": "Drainage inspection point",
         "status": "review",
-        "category": "Drainage"
+        "category": "Drainage",
+        "type": "drainage",
+        "priority": "critical",
+        "updatedAt": "2026-03-28",
+        "ownerUnit": "Da Nang Drainage Company",
+        "imageUrl": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=360&q=80",
+        "detailUrl": "/assets/DN-DRN-022"
       },
       "geometry": {
         "type": "Point",

@@ -105,12 +105,8 @@ export class MapLayersService {
       throw new BadRequestException("Layer state order must be an array of ids");
     }
 
-    const selectedLayerId = candidate.order.find((id) => visible[id]) || candidate.order[0];
-
     return {
-      visible: Object.fromEntries(
-        candidate.order.map((id) => [id, selectedLayerId ? id === selectedLayerId : false])
-      ),
+      visible,
       opacity,
       order: candidate.order
     };

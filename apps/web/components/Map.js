@@ -13,6 +13,14 @@ import {
   validateGeoJsonPayload,
   validateLayerConfig,
 } from "@/features/map/layers";
+import {
+  assetDetailUrl,
+  assetLabel,
+  assetMarkerStyle,
+  assetPopupRows,
+  clusterAssets,
+  createDefaultAssetDisplayConfig,
+} from "@/features/map/assets";
 
 const DANANG_CENTER = [16.0544, 108.2022];
 const DANANG_BOUNDS = [
@@ -135,6 +143,72 @@ function geoJsonPopup(feature) {
     .join("")}`;
 }
 
+function assetTypeIcon(feature) {
+  const type = String(feature?.properties?.type || feature?.properties?.category || "").toLowerCase();
+  const icons = {
+    lighting: "L",
+    road: "R",
+    drainage: "D",
+    park: "P",
+  };
+
+  return icons[type] || "A";
+}
+
+function assetPopup(feature, config, permissions) {
+  const properties = feature?.properties || {};
+  const rows = assetPopupRows(feature, config, permissions);
+  const image = properties.imageUrl
+    ? `<img src="${escapeHtml(properties.imageUrl)}" alt="">`
+    : "";
+  const details = rows
+    .map(
+      (row) =>
+        `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`,
+    )
+    .join("");
+
+  return `<div class="asset-popup">${image}<strong>${escapeHtml(
+    properties.name || properties.code || "Asset",
+  )}</strong><dl>${details}</dl><a href="${escapeHtml(
+    assetDetailUrl(feature),
+  )}">Mở hồ sơ chi tiết</a></div>`;
+}
+
+function assetMarkerIcon(feature, config) {
+  const style = assetMarkerStyle(feature, config.colorMode);
+  const recentClass = style.isRecentlyUpdated ? " recent" : "";
+  return L.divIcon({
+    className: "",
+    html: `<span class="asset-marker status-${escapeHtml(
+      style.statusClass,
+    )}${recentClass}" style="background:${escapeHtml(style.color)}">${escapeHtml(
+      assetTypeIcon(feature),
+    )}</span>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -14],
+  });
+}
+
+function clusterIcon(count) {
+  return L.divIcon({
+    className: "",
+    html: `<span class="asset-cluster">${count}</span>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+  });
+}
+
+function labelIcon(label) {
+  return L.divIcon({
+    className: "asset-label",
+    html: `<span>${escapeHtml(label)}</span>`,
+    iconSize: [120, 22],
+    iconAnchor: [60, -10],
+  });
+}
+
 function MapComponent({
   onRectangleDrawn,
   onAnalyzeImage,
@@ -150,10 +224,15 @@ function MapComponent({
   clearRequestId,
   layerRefreshRequests,
   onLayerStatusChange,
+  assetDisplayConfig,
+  permissions,
+  onAssetLoad,
+  onAssetError,
 }) {
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
   const [objectBoxes] = useState(new L.FeatureGroup());
+  const [assetMarkers] = useState(new L.FeatureGroup());
   const [boundaryLayer] = useState(new L.FeatureGroup());
   const [maskLayer] = useState(new L.FeatureGroup());
   const [currentCoords, setCurrentCoords] = useState(null);
@@ -244,6 +323,7 @@ function MapComponent({
     map.fitBounds(DANANG_BOUNDS);
     map.addLayer(drawnItems);
     map.addLayer(objectBoxes);
+    map.addLayer(assetMarkers);
     map.addLayer(maskLayer);
     map.addLayer(boundaryLayer);
     setTimeout(() => map.invalidateSize(), 0);
@@ -268,6 +348,7 @@ function MapComponent({
       map.off(L.Draw.Event.CREATED, handleCreated);
       map.removeLayer(drawnItems);
       map.removeLayer(objectBoxes);
+      map.removeLayer(assetMarkers);
       map.removeLayer(maskLayer);
       map.removeLayer(boundaryLayer);
       externalLayersRef.current.forEach((layer) => map.removeLayer(layer));
@@ -277,10 +358,121 @@ function MapComponent({
     map,
     drawnItems,
     objectBoxes,
+    assetMarkers,
     maskLayer,
     boundaryLayer,
     onRectangleDrawn,
     captureImageForCoords,
+  ]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    const assetVisible = isLayerActive("sample-assets");
+
+    assetMarkers.clearLayers();
+    onAssetLoad?.([]);
+
+    if (!assetVisible) {
+      onLayerStatusChange?.("sample-assets", { state: "idle", message: "Ẩn" });
+      return () => controller.abort();
+    }
+
+    const loadAssets = () => {
+      const bounds = map.getBounds();
+      const bbox = [
+        bounds.getWest(),
+        bounds.getSouth(),
+        bounds.getEast(),
+        bounds.getNorth(),
+      ].join(",");
+
+      onLayerStatusChange?.("sample-assets", { state: "loading", message: "Đang tải" });
+      fetch(`/api/map/assets?bbox=${bbox}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((payload) => {
+          if (!isMounted) return;
+          const features = Array.isArray(payload.features) ? payload.features : [];
+          const opacity = layerOpacities["sample-assets"] ?? 1;
+          const config = assetDisplayConfig || createDefaultAssetDisplayConfig();
+
+          assetMarkers.clearLayers();
+          clusterAssets(features, map.getZoom()).forEach((item) => {
+            if (item.kind === "cluster") {
+              L.marker([item.lat, item.lng], {
+                icon: clusterIcon(item.count),
+                opacity,
+              }).addTo(assetMarkers);
+              return;
+            }
+
+            const feature = item.feature;
+            const [lng, lat] = feature.geometry.coordinates;
+            const marker = L.marker([lat, lng], {
+              icon: assetMarkerIcon(feature, config),
+              opacity,
+            }).bindPopup(assetPopup(feature, config, permissions));
+            marker.addTo(assetMarkers);
+
+            const label = assetLabel(feature, config.labelMode);
+            if (label) {
+              L.marker([lat, lng], {
+                icon: labelIcon(label),
+                interactive: false,
+                opacity,
+              }).addTo(assetMarkers);
+            }
+          });
+
+          onAssetLoad?.(features);
+          onAssetError?.(null);
+          onLayerStatusChange?.("sample-assets", {
+            state: "ready",
+            message: `${features.length} tài sản`,
+          });
+        })
+        .catch((error) => {
+          if (error.name === "AbortError" || !isMounted) return;
+          assetMarkers.clearLayers();
+          onAssetLoad?.([]);
+          onAssetError?.(error.message || "Không tải được tài sản");
+          onLayerStatusChange?.("sample-assets", {
+            state: "error",
+            message: "Lỗi tải tài sản",
+          });
+        });
+    };
+
+    loadAssets();
+    const handleMoveEnd = () => loadAssets();
+    map.on("moveend", handleMoveEnd);
+    map.on("zoomend", handleMoveEnd);
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+      map.off("moveend", handleMoveEnd);
+      map.off("zoomend", handleMoveEnd);
+    };
+  }, [
+    assetDisplayConfig,
+    assetMarkers,
+    isLayerActive,
+    layerOpacities,
+    map,
+    onAssetError,
+    onAssetLoad,
+    onLayerStatusChange,
+    permissions,
+    currentZoom,
   ]);
 
   useEffect(() => {
@@ -750,13 +942,14 @@ function MapComponent({
     const groupsByLayerId = {
       "analysis-results": objectBoxes,
       "admin-boundaries": boundaryLayer,
+      "sample-assets": assetMarkers,
     };
 
     layerOrder.forEach((layerId) => {
       const layer = groupsByLayerId[layerId] || externalLayersRef.current.get(layerId);
       layer?.bringToFront?.();
     });
-  }, [boundaryLayer, objectBoxes, layerOrder]);
+  }, [assetMarkers, boundaryLayer, objectBoxes, layerOrder]);
 
   useEffect(() => {
     if (captureRequestId > 0) {
@@ -782,6 +975,10 @@ export default function Map({
   clearRequestId,
   layerRefreshRequests,
   onLayerStatusChange,
+  assetDisplayConfig,
+  permissions,
+  onAssetLoad,
+  onAssetError,
 }) {
   return (
     <MapContainer
@@ -819,6 +1016,10 @@ export default function Map({
         clearRequestId={clearRequestId || 0}
         layerRefreshRequests={layerRefreshRequests || {}}
         onLayerStatusChange={onLayerStatusChange}
+        assetDisplayConfig={assetDisplayConfig || createDefaultAssetDisplayConfig()}
+        permissions={permissions || []}
+        onAssetLoad={onAssetLoad}
+        onAssetError={onAssetError}
       />
     </MapContainer>
   );

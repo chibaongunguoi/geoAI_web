@@ -54,6 +54,25 @@
 - `EP01-033` - Added `layers.manage` gating for layer changes, refresh, and export while keeping `layers.view` read access.
 - `EP01-034` - Added visible error alerts for active layer-management failures.
 
+### Asset display slice
+
+- `EP01-035` - Added dedicated asset markers with category-specific icons.
+- `EP01-036` - Added clickable asset popups with configurable summary fields.
+- `EP01-037` - Added asset popup links to `/assets/[code]` detail pages.
+- `EP01-038` - Added status indicators on asset markers.
+- `EP01-039` - Added deterministic low-zoom asset clustering without a new dependency.
+- `EP01-040` - Added configurable asset labels by code or name.
+- `EP01-041` - Added representative asset thumbnails in popups.
+- `EP01-042` - Added asset coloring by type or priority.
+- `EP01-044` - Highlighted recently updated assets on the map.
+- `EP01-045` - Added configurable popup fields with role-gated advanced fields.
+- `EP01-046` - Added viewport-based asset loading through `/api/map/assets?bbox=...`.
+- `EP01-047` - Added server-backed per-user asset display configuration with localStorage fallback.
+- `EP01-048` - Added recent asset-display operation history from audit logs.
+- `EP01-049` - Added JSON export for visible assets and persisted asset display metadata.
+- `EP01-050` - Added asset display permission behavior using existing `layers.view` and `assets.importExport`.
+- `EP01-051` - Added visible asset display error reporting in the map sidebar.
+
 ## Partially Implemented / Foundation Only
 
 - `EP02-029` - Permission key exists for API key management, but API key CRUD is still pending.
@@ -62,10 +81,9 @@
 
 ## Recommended Next Backlog Slices
 
-1. `EP01-035` to `EP01-052` - Asset display: markers, popup summary, detail link, status icon, clustering, labels, role-based popup fields, viewport-based loading.
-2. `EP01-052` to `EP01-068` - Search: coordinate search, asset code/name search, suggestions, result highlight, recent history, source filters, no-accent search.
-3. `EP01-069` to `EP01-085` - Filters: type/status/district/date filters, combined filters, saved templates, map/table sync, result counts.
-4. `EP01-103` to `EP01-118` - Measurement: distance/area drawing, units, editable points, clear/copy/export, session persistence, RBAC gate `measurement.use`.
-5. `EP01-119` to `EP01-135` - Export and sharing: PNG/PDF export, title/unit/time, legend/scale, paper setup, expiring share URL, watermark, preview.
-6. `EP02-001` to `EP02-017` - Admin system configuration catalog: CRUD, search/filter/sort, soft delete, unique checks, import/export, audit history.
-7. `EP02-018` to `EP02-034` - Admin API key catalog: CRUD, status, uniqueness, import/export, bulk operations, audit history.
+1. `EP01-052` to `EP01-068` - Search: address keyword search, coordinate search, asset code/name search, suggestions, result highlight, recent history, source filters, no-accent search.
+2. `EP01-069` to `EP01-085` - Filters: type/status/district/date filters, combined filters, saved templates, map/table sync, result counts.
+3. `EP01-103` to `EP01-118` - Measurement: distance/area drawing, units, editable points, clear/copy/export, session persistence, RBAC gate `measurement.use`.
+4. `EP01-119` to `EP01-135` - Export and sharing: PNG/PDF export, title/unit/time, legend/scale, paper setup, expiring share URL, watermark, preview.
+5. `EP02-001` to `EP02-017` - Admin system configuration catalog: CRUD, search/filter/sort, soft delete, unique checks, import/export, audit history.
+6. `EP02-018` to `EP02-034` - Admin API key catalog: CRUD, status, uniqueness, import/export, bulk operations, audit history.

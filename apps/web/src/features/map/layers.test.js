@@ -22,7 +22,8 @@ describe("data layers", () => {
 
     expect(state.order).toEqual(DATA_LAYERS.map((layer) => layer.id));
     expect(state.visible["admin-boundaries"]).toBe(true);
-    expect(state.visible["sample-assets"]).toBe(false);
+    expect(state.visible["sample-assets"]).toBe(true);
+    expect(state.visible["analysis-results"]).toBe(true);
     expect(state.opacity["sample-assets"]).toBe(0.85);
   });
 
@@ -93,40 +94,47 @@ describe("data layers", () => {
     });
   });
 
-  it("selects one visible layer at a time", () => {
+  it("selects a layer without hiding other layers", () => {
     const state = selectLayerVisibility(
       createDefaultLayerState(DATA_LAYERS),
-      "sample-assets"
+      "demo-wms-states"
     );
 
-    expect(state.visible["admin-boundaries"]).toBe(false);
+    expect(state.visible["admin-boundaries"]).toBe(true);
     expect(state.visible["sample-assets"]).toBe(true);
-    expect(visibleLayerIds(state)).toEqual(["sample-assets"]);
+    expect(state.visible["demo-wms-states"]).toBe(true);
+    expect(visibleLayerIds(state)).toEqual([
+      "admin-boundaries",
+      "sample-assets",
+      "demo-wms-states",
+      "analysis-results"
+    ]);
   });
 
-  it("keeps the old toggle helper as exclusive layer selection", () => {
+  it("toggles layer visibility independently", () => {
     const state = toggleLayerVisibility(
       createDefaultLayerState(DATA_LAYERS),
       "sample-assets"
     );
 
-    expect(state.visible["admin-boundaries"]).toBe(false);
-    expect(state.visible["sample-assets"]).toBe(true);
-    expect(visibleLayerIds(state)).toEqual(["sample-assets"]);
+    expect(state.visible["admin-boundaries"]).toBe(true);
+    expect(state.visible["sample-assets"]).toBe(false);
+    expect(state.visible["analysis-results"]).toBe(true);
+    expect(visibleLayerIds(state)).toEqual(["admin-boundaries", "analysis-results"]);
   });
 
-  it("selects only the first layer in a group", () => {
-    const assetGroup = DATA_LAYERS.find((layer) => layer.id === "sample-assets").group;
+  it("toggles all layers in a group", () => {
+    const externalGroup = DATA_LAYERS.find((layer) => layer.id === "demo-wms-states").group;
     const state = setLayerGroupVisibility(
       createDefaultLayerState(DATA_LAYERS),
       DATA_LAYERS,
-      assetGroup,
+      externalGroup,
       true
     );
 
-    expect(state.visible["admin-boundaries"]).toBe(false);
-    expect(state.visible["sample-assets"]).toBe(true);
-    expect(visibleLayerIds(state)).toEqual(["sample-assets"]);
+    expect(state.visible["admin-boundaries"]).toBe(true);
+    expect(state.visible["demo-wms-states"]).toBe(true);
+    expect(state.visible["osm-template-overlay"]).toBe(true);
   });
 
   it("clamps opacity between 0.1 and 1", () => {
@@ -187,7 +195,7 @@ describe("data layers", () => {
     ]);
   });
 
-  it("normalizes stored state with multiple visible layers to one visible layer", () => {
+  it("preserves stored state with multiple visible layers", () => {
     const storage = {
       getItem: jest.fn().mockReturnValue(
         JSON.stringify({
@@ -199,6 +207,10 @@ describe("data layers", () => {
 
     const state = readStoredLayerState(storage);
 
-    expect(visibleLayerIds(state)).toEqual(["sample-assets"]);
+    expect(visibleLayerIds(state)).toEqual([
+      "sample-assets",
+      "admin-boundaries",
+      "analysis-results"
+    ]);
   });
 });

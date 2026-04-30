@@ -128,8 +128,7 @@ export default function LayerPanel({
               <div className="layer-row-main">
                 <label>
                   <input
-                    type="radio"
-                    name="geoai-visible-layer"
+                    type="checkbox"
                     checked={Boolean(state.visible[layer.id])}
                     aria-label={`Hiển thị ${layer.label}`}
                     disabled={!canManage}

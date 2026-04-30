@@ -25,6 +25,7 @@ export const DATA_LAYERS = [
     source: "/data/sample-assets.geojson",
     sourceKind: "geojson",
     url: "/data/sample-assets.geojson",
+    renderer: "asset-display",
     defaultVisible: true,
     defaultOpacity: 0.85,
     minZoom: 11,
@@ -78,7 +79,7 @@ export const DATA_LAYERS = [
     renderer: "analysis-results",
     defaultVisible: true,
     defaultOpacity: 0.75,
-    minZoom: 12,
+    minZoom: 0,
     maxZoom: 19,
     legend: [{ label: "Đối tượng nhận diện", color: "#ef4444" }],
     keywords: ["ai", "runtime", "scan", "result", "ket qua"]
@@ -162,7 +163,7 @@ export function validateGeoJsonPayload(payload) {
 }
 
 export function createDefaultLayerState(layers = DATA_LAYERS) {
-  return normalizeSingleVisibleLayer({
+  return {
     visible: Object.fromEntries(
       layers.map((layer) => [layer.id, Boolean(layer.defaultVisible)])
     ),
@@ -170,17 +171,6 @@ export function createDefaultLayerState(layers = DATA_LAYERS) {
       layers.map((layer) => [layer.id, clampOpacity(layer.defaultOpacity)])
     ),
     order: layerIds(layers)
-  });
-}
-
-function normalizeSingleVisibleLayer(state) {
-  const selectedLayerId = state.order.find((id) => state.visible[id]) || state.order[0];
-
-  return {
-    ...state,
-    visible: Object.fromEntries(
-      state.order.map((id) => [id, selectedLayerId ? id === selectedLayerId : false])
-    )
   };
 }
 
@@ -207,11 +197,11 @@ function cleanStoredState(storedState, layers = DATA_LAYERS) {
     : [];
   const missingIds = defaults.order.filter((id) => !storedOrder.includes(id));
 
-  return normalizeSingleVisibleLayer({
+  return {
     visible,
     opacity,
     order: [...storedOrder, ...missingIds]
-  });
+  };
 }
 
 export function readStoredLayerState(storage, layers = DATA_LAYERS) {
@@ -233,7 +223,17 @@ export function writeStoredLayerState(storage, state) {
 }
 
 export function toggleLayerVisibility(state, layerId) {
-  return selectLayerVisibility(state, layerId);
+  if (!state.order.includes(layerId)) {
+    return state;
+  }
+
+  return {
+    ...state,
+    visible: {
+      ...state.visible,
+      [layerId]: !state.visible[layerId]
+    }
+  };
 }
 
 export function selectLayerVisibility(state, layerId) {
@@ -245,7 +245,7 @@ export function selectLayerVisibility(state, layerId) {
     ...state,
     visible: {
       ...state.visible,
-      ...Object.fromEntries(state.order.map((id) => [id, id === layerId]))
+      [layerId]: true
     }
   };
 }
@@ -259,11 +259,13 @@ export function setLayerGroupVisibility(state, layers, group, visible) {
     return state;
   }
 
-  if (!visible) {
-    return state;
-  }
-
-  return selectLayerVisibility(state, groupLayerIds[0]);
+  return {
+    ...state,
+    visible: {
+      ...state.visible,
+      ...Object.fromEntries(groupLayerIds.map((id) => [id, Boolean(visible)]))
+    }
+  };
 }
 
 export function setLayerOpacity(state, layerId, opacity) {

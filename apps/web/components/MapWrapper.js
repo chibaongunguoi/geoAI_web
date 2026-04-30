@@ -4,8 +4,15 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { canAccess } from "@/features/auth/auth-client";
+import AssetDisplayPanel from "@/features/map/AssetDisplayPanel";
 import CollapsibleSection from "@/features/map/CollapsibleSection";
 import LayerPanel from "@/features/map/LayerPanel";
+import {
+  createDefaultAssetDisplayConfig,
+  normalizeAssetDisplayConfig,
+  readStoredAssetDisplayConfig,
+  writeStoredAssetDisplayConfig
+} from "@/features/map/assets";
 import {
   DATA_LAYERS,
   createDefaultLayerState,
@@ -13,6 +20,7 @@ import {
   opacityForLayer,
   readStoredLayerState,
   reorderLayer,
+  selectLayerVisibility,
   setLayerOpacity,
   setLayerGroupVisibility,
   toggleLayerVisibility,
@@ -82,10 +90,20 @@ export default function MapWrapper({ permissions = [] }) {
   const [layerHistory, setLayerHistory] = useState([]);
   const [layerConfigStatus, setLayerConfigStatus] = useState(null);
   const [hasLoadedLayerConfig, setHasLoadedLayerConfig] = useState(false);
+  const [assetDisplayConfig, setAssetDisplayConfig] = useState(() =>
+    createDefaultAssetDisplayConfig()
+  );
+  const [assetDisplayStatus, setAssetDisplayStatus] = useState(null);
+  const [assetDisplayError, setAssetDisplayError] = useState(null);
+  const [assetHistory, setAssetHistory] = useState([]);
+  const [visibleAssets, setVisibleAssets] = useState([]);
+  const [hasLoadedAssetConfig, setHasLoadedAssetConfig] = useState(false);
   const skipNextLayerPersistRef = useRef(false);
+  const skipNextAssetPersistRef = useRef(false);
 
   const canViewLayers = canAccess(permissions, "layers.view");
   const canManageLayers = canAccess(permissions, "layers.manage");
+  const canExportAssets = canAccess(permissions, "assets.importExport");
 
   const loadLayerHistory = useCallback(async () => {
     if (!canViewLayers) return;
@@ -99,6 +117,21 @@ export default function MapWrapper({ permissions = [] }) {
       setLayerHistory(Array.isArray(data.items) ? data.items : []);
     } catch {
       setLayerHistory([]);
+    }
+  }, [canViewLayers]);
+
+  const loadAssetHistory = useCallback(async () => {
+    if (!canViewLayers) return;
+
+    try {
+      const response = await fetch("/api/map/assets/history?take=20", {
+        cache: "no-store"
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      setAssetHistory(Array.isArray(data.items) ? data.items : []);
+    } catch {
+      setAssetHistory([]);
     }
   }, [canViewLayers]);
 
@@ -152,6 +185,44 @@ export default function MapWrapper({ permissions = [] }) {
   }, [selectedBasemapId]);
 
   useEffect(() => {
+    setAssetDisplayConfig(readStoredAssetDisplayConfig(window.localStorage));
+
+    if (!canViewLayers) {
+      setHasLoadedAssetConfig(true);
+      return;
+    }
+
+    let isMounted = true;
+
+    fetch("/api/map/assets/config", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!isMounted) return;
+
+        if (data?.state) {
+          skipNextAssetPersistRef.current = true;
+          setAssetDisplayConfig(normalizeAssetDisplayConfig(data.state));
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAssetDisplayError("Không tải được cấu hình hiển thị tài sản từ máy chủ.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setHasLoadedAssetConfig(true);
+        }
+      });
+
+    loadAssetHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canViewLayers, loadAssetHistory]);
+
+  useEffect(() => {
     writeStoredLayerState(window.localStorage, layerState);
     if (!hasLoadedLayerConfig || !canManageLayers) return;
 
@@ -182,6 +253,51 @@ export default function MapWrapper({ permissions = [] }) {
 
     return () => controller.abort();
   }, [canManageLayers, hasLoadedLayerConfig, layerState, loadLayerHistory]);
+
+  useEffect(() => {
+    const hasAnalysisObjects = Boolean(analysisResults?.analysis?.objects?.length);
+    if (!hasAnalysisObjects) return;
+
+    setLayerState((current) => selectLayerVisibility(current, "analysis-results"));
+  }, [analysisResults]);
+
+  useEffect(() => {
+    writeStoredAssetDisplayConfig(window.localStorage, assetDisplayConfig);
+    if (!hasLoadedAssetConfig || !canExportAssets) return;
+
+    if (skipNextAssetPersistRef.current) {
+      skipNextAssetPersistRef.current = false;
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch("/api/map/assets/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: assetDisplayConfig }),
+      signal: controller.signal
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Asset display config save failed");
+        }
+        setAssetDisplayStatus("Đã lưu cấu hình tài sản.");
+        setAssetDisplayError(null);
+        loadAssetHistory();
+      })
+      .catch((error) => {
+        if (error.name === "AbortError") return;
+        setAssetDisplayError("Không lưu được cấu hình tài sản lên máy chủ.");
+      });
+
+    return () => controller.abort();
+  }, [
+    assetDisplayConfig,
+    canExportAssets,
+    hasLoadedAssetConfig,
+    loadAssetHistory
+  ]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -359,6 +475,32 @@ export default function MapWrapper({ permissions = [] }) {
     }
   }, [canManageLayers]);
 
+  const exportVisibleAssets = useCallback(async () => {
+    if (!canExportAssets) return;
+
+    try {
+      await fetch("/api/map/assets/export", { cache: "no-store" });
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        config: assetDisplayConfig,
+        assets: visibleAssets
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `geoai-assets-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setAssetDisplayError("Không xuất được dữ liệu tài sản.");
+    }
+  }, [assetDisplayConfig, canExportAssets, visibleAssets]);
+
   return (
     <div className={styles.mapWorkspace} ref={workspaceRef}>
       <aside className={styles.sidebar} aria-label="Bảng điều khiển GeoAI">
@@ -469,6 +611,26 @@ export default function MapWrapper({ permissions = [] }) {
                 {layerConfigStatus}
               </p>
             ) : null}
+          </CollapsibleSection>
+        ) : null}
+
+        {canViewLayers ? (
+          <CollapsibleSection
+            title="Hiển thị tài sản"
+            summary={`${visibleAssets.length} trong vùng xem`}
+          >
+            <AssetDisplayPanel
+              config={assetDisplayConfig}
+              permissions={permissions}
+              status={assetDisplayStatus}
+              error={assetDisplayError}
+              history={assetHistory}
+              visibleAssetCount={visibleAssets.length}
+              onConfigChange={(config) =>
+                setAssetDisplayConfig(normalizeAssetDisplayConfig(config))
+              }
+              onExport={exportVisibleAssets}
+            />
           </CollapsibleSection>
         ) : null}
 
@@ -598,6 +760,10 @@ export default function MapWrapper({ permissions = [] }) {
           layerOrder={layerState.order}
           layerRefreshRequests={layerRefreshRequests}
           onLayerStatusChange={handleLayerStatusChange}
+          assetDisplayConfig={assetDisplayConfig}
+          permissions={permissions}
+          onAssetLoad={setVisibleAssets}
+          onAssetError={setAssetDisplayError}
         />
       </div>
     </div>

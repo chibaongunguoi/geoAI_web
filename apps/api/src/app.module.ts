@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AdminModule } from "./admin/admin.module";
 import { AuthModule } from "./auth/auth.module";
+import { MapAssetsModule } from "./map-assets/map-assets.module";
 import { MapLayersModule } from "./map-layers/map-layers.module";
 import { PrismaModule } from "./prisma/prisma.module";
 
@@ -14,6 +15,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     PrismaModule,
     AuthModule,
     AdminModule,
+    MapAssetsModule,
     MapLayersModule
   ]
 })
