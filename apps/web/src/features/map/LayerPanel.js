@@ -28,7 +28,11 @@ export default function LayerPanel({
   onOpacityChange,
   onMove,
   onReorder,
-  layerStatuses = {}
+  onRefresh = () => {},
+  layerStatuses = {},
+  canManage = true,
+  history = [],
+  onExport = () => {}
 }) {
   const [query, setQuery] = useState("");
   const [dragLayerId, setDragLayerId] = useState(null);
@@ -45,11 +49,18 @@ export default function LayerPanel({
         return {
           name: group,
           visible: visibleCount > 0,
-          summary: `${visibleCount}/${groupLayers.length}`
+          summary: visibleCount > 0 ? "Đang chọn" : "Chọn"
         };
       }),
     [layers, state.visible]
   );
+  const visibleErrors = displayLayers
+    .filter((layer) => state.visible[layer.id] && layerStatuses[layer.id]?.state === "error")
+    .map((layer) => ({
+      id: layer.id,
+      label: layer.label,
+      message: layerStatuses[layer.id]?.message || "Lỗi lớp dữ liệu"
+    }));
 
   return (
     <section className="layer-panel" aria-label="Lớp dữ liệu">
@@ -57,13 +68,28 @@ export default function LayerPanel({
         <h2>Lớp dữ liệu</h2>
         <span>{displayLayers.length}</span>
       </div>
+      <div className="layer-panel-actions">
+        <button type="button" disabled={!canManage} onClick={onExport}>
+          Xuất cấu hình lớp
+        </button>
+      </div>
+      {visibleErrors.length > 0 ? (
+        <div className="layer-alerts" role="alert">
+          {visibleErrors.map((error) => (
+            <p key={error.id}>
+              {error.label}: {error.message}
+            </p>
+          ))}
+        </div>
+      ) : null}
       <div className="layer-group-controls" aria-label="Nhóm lớp">
         {groups.map((group) => (
           <button
             key={group.name}
             type="button"
             aria-pressed={group.visible}
-            onClick={() => onToggleGroup(group.name, !group.visible)}
+            disabled={!canManage}
+            onClick={() => onToggleGroup(group.name, true)}
           >
             {group.name} {group.summary}
           </button>
@@ -80,17 +106,19 @@ export default function LayerPanel({
       <div className="layer-list">
         {displayLayers.map((layer, index) => {
           const opacityValue = Math.round((state.opacity[layer.id] ?? 1) * 100);
+          const status = layerStatuses[layer.id];
+          const statusText = status?.message || status || "Chưa tải";
 
           return (
             <article
               className="layer-row"
-              draggable
+              draggable={canManage}
               key={layer.id}
               onDragStart={() => setDragLayerId(layer.id)}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
-                if (dragLayerId && dragLayerId !== layer.id) {
+                if (canManage && dragLayerId && dragLayerId !== layer.id) {
                   onReorder(dragLayerId, layer.id);
                 }
                 setDragLayerId(null);
@@ -103,6 +131,7 @@ export default function LayerPanel({
                     type="checkbox"
                     checked={Boolean(state.visible[layer.id])}
                     aria-label={`Hiển thị ${layer.label}`}
+                    disabled={!canManage}
                     onChange={() => onToggle(layer.id)}
                   />
                   <span>{layer.label}</span>
@@ -110,7 +139,7 @@ export default function LayerPanel({
                 <small>
                   {layer.group} | {layer.sourceType} | z{layer.minZoom}-{layer.maxZoom}
                 </small>
-                <small>{layerStatuses[layer.id] || "Chưa tải"}</small>
+                <small data-state={status?.state || "idle"}>{statusText}</small>
               </div>
               <LayerLegend legend={layer.legend} />
               <label className="layer-opacity">
@@ -121,6 +150,7 @@ export default function LayerPanel({
                   max="100"
                   step="5"
                   value={opacityValue}
+                  disabled={!canManage}
                   onChange={(event) =>
                     onOpacityChange(layer.id, Number(event.target.value) / 100)
                   }
@@ -129,8 +159,16 @@ export default function LayerPanel({
               <div className="layer-order-controls">
                 <button
                   type="button"
+                  aria-label={`Tải lại ${layer.label}`}
+                  disabled={!canManage}
+                  onClick={() => onRefresh(layer.id)}
+                >
+                  Tải lại
+                </button>
+                <button
+                  type="button"
                   aria-label={`Đưa ${layer.label} lên`}
-                  disabled={index === 0}
+                  disabled={!canManage || index === 0}
                   onClick={() => onMove(layer.id, -1)}
                 >
                   Lên
@@ -138,7 +176,7 @@ export default function LayerPanel({
                 <button
                   type="button"
                   aria-label={`Đưa ${layer.label} xuống`}
-                  disabled={index === displayLayers.length - 1}
+                  disabled={!canManage || index === displayLayers.length - 1}
                   onClick={() => onMove(layer.id, 1)}
                 >
                   Xuống
@@ -148,6 +186,21 @@ export default function LayerPanel({
           );
         })}
       </div>
+      {history.length > 0 ? (
+        <div className="layer-history" aria-label="Lịch sử lớp dữ liệu">
+          <h3>Lịch sử thao tác</h3>
+          <ul>
+            {history.map((item) => (
+              <li key={item.id}>
+                <span>{item.action}</span>
+                <time dateTime={item.createdAt}>
+                  {new Date(item.createdAt).toLocaleString("vi-VN")}
+                </time>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }

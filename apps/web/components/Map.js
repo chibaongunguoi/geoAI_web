@@ -7,7 +7,20 @@ import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
 import { useCallback, useEffect, useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { DATA_LAYERS, layerIsVisibleAtZoom } from "@/features/map/layers";
+import {
+  DATA_LAYERS,
+  layerIsVisibleAtZoom,
+  validateGeoJsonPayload,
+  validateLayerConfig,
+} from "@/features/map/layers";
+import {
+  assetDetailUrl,
+  assetLabel,
+  assetMarkerStyle,
+  assetPopupRows,
+  clusterAssets,
+  createDefaultAssetDisplayConfig,
+} from "@/features/map/assets";
 
 const DANANG_CENTER = [16.0544, 108.2022];
 const DANANG_BOUNDS = [
@@ -103,6 +116,99 @@ function featureCenter(feature) {
   return bounds.isValid() ? bounds.getCenter() : null;
 }
 
+function cacheBustedUrl(url, refreshId) {
+  if (!refreshId) return url;
+
+  return `${url}${url.includes("?") ? "&" : "?"}_refresh=${refreshId}`;
+}
+
+function geoJsonPointLayer(feature, latlng, opacity) {
+  return L.circleMarker(latlng, {
+    radius: 7,
+    color: "#ffffff",
+    weight: 2,
+    opacity,
+    fillColor: feature?.properties?.color || "#f59e0b",
+    fillOpacity: 0.9 * opacity,
+  });
+}
+
+function geoJsonPopup(feature) {
+  const properties = feature?.properties || {};
+  const title = properties.name || properties.title || properties.code || "Feature";
+  const details = [properties.code, properties.status, properties.type].filter(Boolean);
+
+  return `<strong>${escapeHtml(title)}</strong>${details
+    .map((item) => `<br>${escapeHtml(item)}`)
+    .join("")}`;
+}
+
+function assetTypeIcon(feature) {
+  const type = String(feature?.properties?.type || feature?.properties?.category || "").toLowerCase();
+  const icons = {
+    lighting: "L",
+    road: "R",
+    drainage: "D",
+    park: "P",
+  };
+
+  return icons[type] || "A";
+}
+
+function assetPopup(feature, config, permissions) {
+  const properties = feature?.properties || {};
+  const rows = assetPopupRows(feature, config, permissions);
+  const image = properties.imageUrl
+    ? `<img src="${escapeHtml(properties.imageUrl)}" alt="">`
+    : "";
+  const details = rows
+    .map(
+      (row) =>
+        `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`,
+    )
+    .join("");
+
+  return `<div class="asset-popup">${image}<strong>${escapeHtml(
+    properties.name || properties.code || "Asset",
+  )}</strong><dl>${details}</dl><a href="${escapeHtml(
+    assetDetailUrl(feature),
+  )}">Mở hồ sơ chi tiết</a></div>`;
+}
+
+function assetMarkerIcon(feature, config) {
+  const style = assetMarkerStyle(feature, config.colorMode);
+  const recentClass = style.isRecentlyUpdated ? " recent" : "";
+  return L.divIcon({
+    className: "",
+    html: `<span class="asset-marker status-${escapeHtml(
+      style.statusClass,
+    )}${recentClass}" style="background:${escapeHtml(style.color)}">${escapeHtml(
+      assetTypeIcon(feature),
+    )}</span>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -14],
+  });
+}
+
+function clusterIcon(count) {
+  return L.divIcon({
+    className: "",
+    html: `<span class="asset-cluster">${count}</span>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+  });
+}
+
+function labelIcon(label) {
+  return L.divIcon({
+    className: "asset-label",
+    html: `<span>${escapeHtml(label)}</span>`,
+    iconSize: [120, 22],
+    iconAnchor: [60, -10],
+  });
+}
+
 function MapComponent({
   onRectangleDrawn,
   onAnalyzeImage,
@@ -116,18 +222,23 @@ function MapComponent({
   selectRequestId,
   captureRequestId,
   clearRequestId,
+  layerRefreshRequests,
   onLayerStatusChange,
+  assetDisplayConfig,
+  permissions,
+  onAssetLoad,
+  onAssetError,
 }) {
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
   const [objectBoxes] = useState(new L.FeatureGroup());
+  const [assetMarkers] = useState(new L.FeatureGroup());
   const [boundaryLayer] = useState(new L.FeatureGroup());
   const [maskLayer] = useState(new L.FeatureGroup());
-  const [assetLayer] = useState(new L.FeatureGroup());
   const [currentCoords, setCurrentCoords] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(() => map.getZoom());
   const [adminBoundaries, setAdminBoundaries] = useState(null);
-  const [assetFeatures, setAssetFeatures] = useState(null);
+  const externalLayersRef = useRef(new globalThis.Map());
   const lastBoundaryViewKeyRef = useRef(null);
   const rightDragState = useRef(null);
 
@@ -212,7 +323,7 @@ function MapComponent({
     map.fitBounds(DANANG_BOUNDS);
     map.addLayer(drawnItems);
     map.addLayer(objectBoxes);
-    map.addLayer(assetLayer);
+    map.addLayer(assetMarkers);
     map.addLayer(maskLayer);
     map.addLayer(boundaryLayer);
     setTimeout(() => map.invalidateSize(), 0);
@@ -237,15 +348,17 @@ function MapComponent({
       map.off(L.Draw.Event.CREATED, handleCreated);
       map.removeLayer(drawnItems);
       map.removeLayer(objectBoxes);
-      map.removeLayer(assetLayer);
+      map.removeLayer(assetMarkers);
       map.removeLayer(maskLayer);
       map.removeLayer(boundaryLayer);
+      externalLayersRef.current.forEach((layer) => map.removeLayer(layer));
+      externalLayersRef.current.clear();
     };
   }, [
     map,
     drawnItems,
     objectBoxes,
-    assetLayer,
+    assetMarkers,
     maskLayer,
     boundaryLayer,
     onRectangleDrawn,
@@ -254,44 +367,130 @@ function MapComponent({
 
   useEffect(() => {
     let isMounted = true;
-    onLayerStatusChange?.("admin-boundaries", "Đang tải");
+    const controller = new AbortController();
+    const assetVisible = isLayerActive("sample-assets");
+
+    assetMarkers.clearLayers();
+    onAssetLoad?.([]);
+
+    if (!assetVisible) {
+      onLayerStatusChange?.("sample-assets", { state: "idle", message: "Ẩn" });
+      return () => controller.abort();
+    }
+
+    const loadAssets = () => {
+      const bounds = map.getBounds();
+      const bbox = [
+        bounds.getWest(),
+        bounds.getSouth(),
+        bounds.getEast(),
+        bounds.getNorth(),
+      ].join(",");
+
+      onLayerStatusChange?.("sample-assets", { state: "loading", message: "Đang tải" });
+      fetch(`/api/map/assets?bbox=${bbox}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((payload) => {
+          if (!isMounted) return;
+          const features = Array.isArray(payload.features) ? payload.features : [];
+          const opacity = layerOpacities["sample-assets"] ?? 1;
+          const config = assetDisplayConfig || createDefaultAssetDisplayConfig();
+
+          assetMarkers.clearLayers();
+          clusterAssets(features, map.getZoom()).forEach((item) => {
+            if (item.kind === "cluster") {
+              L.marker([item.lat, item.lng], {
+                icon: clusterIcon(item.count),
+                opacity,
+              }).addTo(assetMarkers);
+              return;
+            }
+
+            const feature = item.feature;
+            const [lng, lat] = feature.geometry.coordinates;
+            const marker = L.marker([lat, lng], {
+              icon: assetMarkerIcon(feature, config),
+              opacity,
+            }).bindPopup(assetPopup(feature, config, permissions));
+            marker.addTo(assetMarkers);
+
+            const label = assetLabel(feature, config.labelMode);
+            if (label) {
+              L.marker([lat, lng], {
+                icon: labelIcon(label),
+                interactive: false,
+                opacity,
+              }).addTo(assetMarkers);
+            }
+          });
+
+          onAssetLoad?.(features);
+          onAssetError?.(null);
+          onLayerStatusChange?.("sample-assets", {
+            state: "ready",
+            message: `${features.length} tài sản`,
+          });
+        })
+        .catch((error) => {
+          if (error.name === "AbortError" || !isMounted) return;
+          assetMarkers.clearLayers();
+          onAssetLoad?.([]);
+          onAssetError?.(error.message || "Không tải được tài sản");
+          onLayerStatusChange?.("sample-assets", {
+            state: "error",
+            message: "Lỗi tải tài sản",
+          });
+        });
+    };
+
+    loadAssets();
+    const handleMoveEnd = () => loadAssets();
+    map.on("moveend", handleMoveEnd);
+    map.on("zoomend", handleMoveEnd);
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+      map.off("moveend", handleMoveEnd);
+      map.off("zoomend", handleMoveEnd);
+    };
+  }, [
+    assetDisplayConfig,
+    assetMarkers,
+    isLayerActive,
+    layerOpacities,
+    map,
+    onAssetError,
+    onAssetLoad,
+    onLayerStatusChange,
+    permissions,
+    currentZoom,
+  ]);
+
+  useEffect(() => {
+    let isMounted = true;
+    onLayerStatusChange?.("admin-boundaries", { state: "loading", message: "Đang tải" });
 
     fetch("/api/admin-boundaries")
       .then((response) => response.json())
       .then((data) => {
         if (isMounted && data.success) {
           setAdminBoundaries(data.districts);
-          onLayerStatusChange?.("admin-boundaries", "Sẵn sàng");
+          onLayerStatusChange?.("admin-boundaries", { state: "ready", message: "Sẵn sàng" });
         }
       })
       .catch((error) => {
         console.error("Error loading admin boundaries:", error);
         if (isMounted) {
-          onLayerStatusChange?.("admin-boundaries", "Lỗi tải");
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [onLayerStatusChange]);
-
-  useEffect(() => {
-    let isMounted = true;
-    onLayerStatusChange?.("sample-assets", "Đang tải");
-
-    fetch("/data/sample-assets.geojson")
-      .then((response) => response.json())
-      .then((data) => {
-        if (isMounted) {
-          setAssetFeatures(data);
-          onLayerStatusChange?.("sample-assets", "Sẵn sàng");
-        }
-      })
-      .catch((error) => {
-        console.error("Error loading sample assets:", error);
-        if (isMounted) {
-          onLayerStatusChange?.("sample-assets", "Lỗi tải");
+          onLayerStatusChange?.("admin-boundaries", { state: "error", message: "Lỗi tải" });
         }
       });
 
@@ -413,29 +612,133 @@ function MapComponent({
   ]);
 
   useEffect(() => {
-    assetLayer.clearLayers();
+    const externalLayers = DATA_LAYERS.filter(
+      (layer) => !layer.renderer && ["geojson", "wms", "wmts"].includes(layer.sourceKind),
+    );
+    const abortControllers = [];
 
-    if (!isLayerActive("sample-assets")) return;
-    if (!assetFeatures?.features?.length) return;
+    const removeLayer = (layerId) => {
+      const existingLayer = externalLayersRef.current.get(layerId);
+      if (existingLayer) {
+        map.removeLayer(existingLayer);
+        externalLayersRef.current.delete(layerId);
+      }
+    };
 
-    const layerOpacity = layerOpacities["sample-assets"] ?? 1;
+    const setStatus = (layerId, state, message) => {
+      onLayerStatusChange?.(layerId, { state, message });
+    };
 
-    L.geoJSON(assetFeatures, {
-      pointToLayer: (feature, latlng) =>
-        L.circleMarker(latlng, {
-          radius: 7,
-          color: "#ffffff",
-          weight: 2,
-          opacity: layerOpacity,
-          fillColor: "#f59e0b",
-          fillOpacity: 0.9 * layerOpacity,
-        }).bindPopup(
-          `<strong>${escapeHtml(feature.properties?.name || "Asset")}</strong><br>` +
-            `${escapeHtml(feature.properties?.code || "")}<br>` +
-            `${escapeHtml(feature.properties?.status || "")}`,
-        ),
-    }).addTo(assetLayer);
-  }, [assetFeatures, assetLayer, layerOpacities, isLayerActive]);
+    externalLayers.forEach((layer) => {
+      const refreshId = layerRefreshRequests?.[layer.id] || 0;
+      const opacity = layerOpacities[layer.id] ?? 1;
+
+      if (!isLayerActive(layer.id)) {
+        removeLayer(layer.id);
+        return;
+      }
+
+      const validation = validateLayerConfig(layer);
+      if (!validation.valid) {
+        removeLayer(layer.id);
+        setStatus(layer.id, "error", validation.message);
+        return;
+      }
+
+      if (layer.sourceKind === "geojson") {
+        const controller = new AbortController();
+        abortControllers.push(controller);
+        removeLayer(layer.id);
+        setStatus(layer.id, "loading", "Đang tải");
+
+        fetch(cacheBustedUrl(layer.url, refreshId), {
+          cache: "no-store",
+          signal: controller.signal,
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            const payload = data?.success && data.districts ? data.districts : data;
+            const geoJsonValidation = validateGeoJsonPayload(payload);
+            if (!geoJsonValidation.valid) {
+              throw new Error(geoJsonValidation.message);
+            }
+
+            const geoJsonLayer = L.geoJSON(payload, {
+              pointToLayer: (feature, latlng) => geoJsonPointLayer(feature, latlng, opacity),
+              style: {
+                color: "#f59e0b",
+                weight: 2,
+                opacity,
+                fillOpacity: 0.18 * opacity,
+              },
+              onEachFeature: (feature, leafletLayer) => {
+                leafletLayer.bindPopup(geoJsonPopup(feature));
+              },
+            }).addTo(map);
+
+            externalLayersRef.current.set(layer.id, geoJsonLayer);
+            setStatus(layer.id, "ready", "Sẵn sàng");
+          })
+          .catch((error) => {
+            if (error.name === "AbortError") return;
+            removeLayer(layer.id);
+            setStatus(layer.id, "error", error.message || "Lỗi tải");
+          });
+
+        return;
+      }
+
+      removeLayer(layer.id);
+
+      if (layer.sourceKind === "wms") {
+        const tileLayer = L.tileLayer
+          .wms(layer.url, {
+            format: "image/png",
+            transparent: true,
+            attribution: layer.attribution,
+            ...layer.wmsOptions,
+            _refresh: refreshId || undefined,
+            opacity,
+          })
+          .on("tileerror", () => {
+            setStatus(layer.id, "error", "Lỗi tải tile WMS");
+          })
+          .addTo(map);
+
+        externalLayersRef.current.set(layer.id, tileLayer);
+        setStatus(layer.id, "ready", "Sẵn sàng");
+        return;
+      }
+
+      const tileLayer = L.tileLayer(cacheBustedUrl(layer.url, refreshId), {
+        attribution: layer.attribution,
+        ...layer.tileOptions,
+        opacity,
+      })
+        .on("tileerror", () => {
+          setStatus(layer.id, "error", "Lỗi tải tile WMTS");
+        })
+        .addTo(map);
+
+      externalLayersRef.current.set(layer.id, tileLayer);
+      setStatus(layer.id, "ready", "Sẵn sàng");
+    });
+
+    return () => {
+      abortControllers.forEach((controller) => controller.abort());
+    };
+  }, [
+    map,
+    layerOpacities,
+    layerRefreshRequests,
+    isLayerActive,
+    onLayerStatusChange,
+  ]);
 
   useEffect(() => {
     const handleResize = () => map.invalidateSize();
@@ -580,7 +883,9 @@ function MapComponent({
     objectBoxes.clearLayers();
     onLayerStatusChange?.(
       "analysis-results",
-      analysisObjects.length > 0 ? "Sẵn sàng" : "Chờ kết quả",
+      analysisObjects.length > 0
+        ? { state: "ready", message: "Sẵn sàng" }
+        : { state: "idle", message: "Chờ kết quả" },
     );
 
     if (!isLayerActive("analysis-results")) return;
@@ -635,15 +940,16 @@ function MapComponent({
 
   useEffect(() => {
     const groupsByLayerId = {
-      "sample-assets": assetLayer,
       "analysis-results": objectBoxes,
       "admin-boundaries": boundaryLayer,
+      "sample-assets": assetMarkers,
     };
 
     layerOrder.forEach((layerId) => {
-      groupsByLayerId[layerId]?.bringToFront();
+      const layer = groupsByLayerId[layerId] || externalLayersRef.current.get(layerId);
+      layer?.bringToFront?.();
     });
-  }, [assetLayer, boundaryLayer, objectBoxes, layerOrder]);
+  }, [assetMarkers, boundaryLayer, objectBoxes, layerOrder]);
 
   useEffect(() => {
     if (captureRequestId > 0) {
@@ -667,7 +973,12 @@ export default function Map({
   selectRequestId,
   captureRequestId,
   clearRequestId,
+  layerRefreshRequests,
   onLayerStatusChange,
+  assetDisplayConfig,
+  permissions,
+  onAssetLoad,
+  onAssetError,
 }) {
   return (
     <MapContainer
@@ -703,7 +1014,12 @@ export default function Map({
         selectRequestId={selectRequestId || 0}
         captureRequestId={captureRequestId || 0}
         clearRequestId={clearRequestId || 0}
+        layerRefreshRequests={layerRefreshRequests || {}}
         onLayerStatusChange={onLayerStatusChange}
+        assetDisplayConfig={assetDisplayConfig || createDefaultAssetDisplayConfig()}
+        permissions={permissions || []}
+        onAssetLoad={onAssetLoad}
+        onAssetError={onAssetError}
       />
     </MapContainer>
   );

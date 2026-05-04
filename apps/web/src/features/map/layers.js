@@ -7,6 +7,9 @@ export const DATA_LAYERS = [
     group: "Tham chiếu",
     sourceType: "GeoJSON",
     source: "/api/admin-boundaries",
+    sourceKind: "geojson",
+    url: "/api/admin-boundaries",
+    renderer: "admin-boundaries",
     defaultVisible: true,
     defaultOpacity: 0.9,
     minZoom: 9,
@@ -20,6 +23,9 @@ export const DATA_LAYERS = [
     group: "Tài sản",
     sourceType: "GeoJSON",
     source: "/data/sample-assets.geojson",
+    sourceKind: "geojson",
+    url: "/data/sample-assets.geojson",
+    renderer: "asset-display",
     defaultVisible: true,
     defaultOpacity: 0.85,
     minZoom: 11,
@@ -28,19 +34,59 @@ export const DATA_LAYERS = [
     keywords: ["asset", "geojson", "point", "tai san"]
   },
   {
+    id: "demo-wms-states",
+    label: "WMS demo",
+    group: "Dịch vụ ngoài",
+    sourceType: "WMS",
+    source: "GeoServer demo WMS",
+    sourceKind: "wms",
+    url: "https://ahocevar.com/geoserver/wms",
+    wmsOptions: {
+      layers: "topp:states",
+      format: "image/png",
+      transparent: true
+    },
+    defaultVisible: false,
+    defaultOpacity: 0.65,
+    minZoom: 2,
+    maxZoom: 19,
+    legend: [{ label: "WMS", color: "#38bdf8" }],
+    keywords: ["wms", "external", "service"]
+  },
+  {
+    id: "osm-template-overlay",
+    label: "WMTS/XYZ demo",
+    group: "Dịch vụ ngoài",
+    sourceType: "WMTS",
+    source: "OpenStreetMap tile template",
+    sourceKind: "wmts",
+    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: "&copy; OpenStreetMap contributors",
+    defaultVisible: false,
+    defaultOpacity: 1,
+    minZoom: 2,
+    maxZoom: 19,
+    legend: [{ label: "WMTS/XYZ", color: "#22c55e" }],
+    keywords: ["wmts", "xyz", "external", "tiles"]
+  },
+  {
     id: "analysis-results",
     label: "Kết quả AI",
     group: "GeoAI",
     sourceType: "Thời gian thực",
     source: "Vùng quét hiện tại",
+    sourceKind: "runtime",
+    renderer: "analysis-results",
     defaultVisible: true,
     defaultOpacity: 0.75,
-    minZoom: 12,
+    minZoom: 0,
     maxZoom: 19,
     legend: [{ label: "Đối tượng nhận diện", color: "#ef4444" }],
     keywords: ["ai", "runtime", "scan", "result", "ket qua"]
   }
 ];
+
+const VALID_SOURCE_KINDS = new Set(["geojson", "wms", "wmts", "runtime"]);
 
 function layerIds(layers = DATA_LAYERS) {
   return layers.map((layer) => layer.id);
@@ -58,6 +104,62 @@ function clampOpacity(value) {
   }
 
   return Math.min(1, Math.max(0.1, opacity));
+}
+
+function hasText(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasTilePlaceholders(url) {
+  return ["{z}", "{x}", "{y}"].every((placeholder) => url.includes(placeholder));
+}
+
+export function validateLayerConfig(layer) {
+  if (!layer || !VALID_SOURCE_KINDS.has(layer.sourceKind)) {
+    return {
+      valid: false,
+      message: "Layer sourceKind must be geojson, wms, wmts, or runtime."
+    };
+  }
+
+  if (layer.sourceKind === "runtime") {
+    return { valid: true };
+  }
+
+  if (layer.sourceKind === "geojson") {
+    return hasText(layer.url)
+      ? { valid: true }
+      : { valid: false, message: "GeoJSON layers require a URL." };
+  }
+
+  if (layer.sourceKind === "wms") {
+    return hasText(layer.url) && hasText(layer.wmsOptions?.layers)
+      ? { valid: true }
+      : { valid: false, message: "WMS layers require a URL and wmsOptions.layers." };
+  }
+
+  if (layer.sourceKind === "wmts") {
+    return hasText(layer.url) && hasTilePlaceholders(layer.url)
+      ? { valid: true }
+      : { valid: false, message: "WMTS layers require a URL template with {z}, {x}, and {y}." };
+  }
+
+  return { valid: false, message: "Unsupported layer sourceKind." };
+}
+
+export function validateGeoJsonPayload(payload) {
+  if (payload?.type === "FeatureCollection" && Array.isArray(payload.features)) {
+    return { valid: true };
+  }
+
+  if (payload?.type === "Feature" && Object.hasOwn(payload, "geometry")) {
+    return { valid: true };
+  }
+
+  return {
+    valid: false,
+    message: "GeoJSON response must be a Feature or FeatureCollection."
+  };
 }
 
 export function createDefaultLayerState(layers = DATA_LAYERS) {
@@ -121,11 +223,29 @@ export function writeStoredLayerState(storage, state) {
 }
 
 export function toggleLayerVisibility(state, layerId) {
+  if (!state.order.includes(layerId)) {
+    return state;
+  }
+
   return {
     ...state,
     visible: {
       ...state.visible,
       [layerId]: !state.visible[layerId]
+    }
+  };
+}
+
+export function selectLayerVisibility(state, layerId) {
+  if (!state.order.includes(layerId)) {
+    return state;
+  }
+
+  return {
+    ...state,
+    visible: {
+      ...state.visible,
+      [layerId]: true
     }
   };
 }
