@@ -11,6 +11,7 @@ const rolePermissions = {
     "map.scan",
     "layers.view",
     "search.use",
+    "properties.view",
     "filters.use",
     "ai.query",
     "measurement.use"
@@ -21,6 +22,9 @@ const rolePermissions = {
     "layers.view",
     "layers.manage",
     "search.use",
+    "properties.view",
+    "properties.manage",
+    "properties.import",
     "filters.use",
     "ai.query",
     "measurement.use",

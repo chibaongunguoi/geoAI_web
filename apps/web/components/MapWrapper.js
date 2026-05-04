@@ -8,6 +8,11 @@ import AssetDisplayPanel from "@/features/map/AssetDisplayPanel";
 import CollapsibleSection from "@/features/map/CollapsibleSection";
 import LayerPanel from "@/features/map/LayerPanel";
 import {
+  densitySummaryRows,
+  hasDensityResult,
+  propertySearchAnswerText
+} from "@/features/map/property-search";
+import {
   createDefaultAssetDisplayConfig,
   normalizeAssetDisplayConfig,
   readStoredAssetDisplayConfig,
@@ -98,6 +103,12 @@ export default function MapWrapper({ permissions = [] }) {
   const [assetHistory, setAssetHistory] = useState([]);
   const [visibleAssets, setVisibleAssets] = useState([]);
   const [hasLoadedAssetConfig, setHasLoadedAssetConfig] = useState(false);
+  const [propertyQuery, setPropertyQuery] = useState(
+    "vùng nào ở hòa khánh bắc có số lượng nhà dày đặc nhất"
+  );
+  const [propertySearchResult, setPropertySearchResult] = useState(null);
+  const [propertySearchStatus, setPropertySearchStatus] = useState(null);
+  const [isSearchingProperties, setIsSearchingProperties] = useState(false);
   const skipNextLayerPersistRef = useRef(false);
   const skipNextAssetPersistRef = useRef(false);
 
@@ -382,6 +393,36 @@ export default function MapWrapper({ permissions = [] }) {
     );
   }, []);
 
+  const runPropertySearch = useCallback(async () => {
+    const query = propertyQuery.trim();
+    if (!query || isSearchingProperties) return;
+
+    setIsSearchingProperties(true);
+    setPropertySearchStatus(null);
+
+    try {
+      const response = await fetch(
+        `/api/properties?query=${encodeURIComponent(query)}&limit=10`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      setPropertySearchResult(result);
+      setPropertySearchStatus(
+        propertySearchAnswerText(result) || `${result.items?.length || 0} ket qua`
+      );
+    } catch {
+      setPropertySearchResult(null);
+      setPropertySearchStatus("Khong tim kiem duoc du lieu nha/dat.");
+    } finally {
+      setIsSearchingProperties(false);
+    }
+  }, [isSearchingProperties, propertyQuery]);
+
   const refreshLayer = useCallback((layerId) => {
     setLayerRefreshRequests((current) => ({
       ...current,
@@ -590,6 +631,52 @@ export default function MapWrapper({ permissions = [] }) {
           </div>
         </CollapsibleSection>
 
+        <CollapsibleSection
+          title="Tìm kiếm nhà đất"
+          summary={propertySearchResult?.answer?.type === "density" ? "Mật độ nhà" : "Ngôn ngữ tự nhiên"}
+          defaultOpen
+        >
+          <form
+            className={styles.propertySearch}
+            onSubmit={(event) => {
+              event.preventDefault();
+              runPropertySearch();
+            }}
+          >
+            <label>
+              Câu hỏi
+              <textarea
+                className={styles.textAreaInput}
+                value={propertyQuery}
+                rows={3}
+                onChange={(event) => setPropertyQuery(event.target.value)}
+              />
+            </label>
+            <button
+              className={styles.primaryAction}
+              type="submit"
+              disabled={isSearchingProperties || !propertyQuery.trim()}
+            >
+              {isSearchingProperties ? "Đang tìm..." : "Tìm kiếm"}
+            </button>
+          </form>
+          {propertySearchStatus ? (
+            <p className={styles.actionHint} role="status">
+              {propertySearchStatus}
+            </p>
+          ) : null}
+          {hasDensityResult(propertySearchResult) ? (
+            <ol className={styles.densityList}>
+              {densitySummaryRows(propertySearchResult).map((region) => (
+                <li key={region.id}>
+                  <span>{region.label}</span>
+                  <strong>{region.count.toLocaleString("vi-VN")}</strong>
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </CollapsibleSection>
+
         {canViewLayers ? (
           <CollapsibleSection title="Lớp dữ liệu" summary={`${visibleLayers.length} đang bật`}>
             <LayerPanel
@@ -764,6 +851,7 @@ export default function MapWrapper({ permissions = [] }) {
           permissions={permissions}
           onAssetLoad={setVisibleAssets}
           onAssetError={setAssetDisplayError}
+          propertySearchResult={propertySearchResult}
         />
       </div>
     </div>

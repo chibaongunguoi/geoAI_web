@@ -191,6 +191,24 @@ function assetMarkerIcon(feature, config) {
   });
 }
 
+function propertyDensityPopup(region) {
+  return `<strong>${escapeHtml(region.label || "Vung mat do")}</strong><br>${escapeHtml(
+    Number(region.count || 0).toLocaleString("vi-VN"),
+  )} toa nha`;
+}
+
+function propertyDensityBounds(region) {
+  const bbox = region?.bbox;
+  if (!bbox) return null;
+
+  const bounds = [
+    [Number(bbox.south), Number(bbox.west)],
+    [Number(bbox.north), Number(bbox.east)],
+  ];
+
+  return bounds.every((pair) => pair.every(Number.isFinite)) ? bounds : null;
+}
+
 function clusterIcon(count) {
   return L.divIcon({
     className: "",
@@ -228,6 +246,7 @@ function MapComponent({
   permissions,
   onAssetLoad,
   onAssetError,
+  propertySearchResult,
 }) {
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
@@ -235,6 +254,7 @@ function MapComponent({
   const [assetMarkers] = useState(new L.FeatureGroup());
   const [boundaryLayer] = useState(new L.FeatureGroup());
   const [maskLayer] = useState(new L.FeatureGroup());
+  const [propertySearchLayer] = useState(new L.FeatureGroup());
   const [currentCoords, setCurrentCoords] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(() => map.getZoom());
   const [adminBoundaries, setAdminBoundaries] = useState(null);
@@ -326,6 +346,7 @@ function MapComponent({
     map.addLayer(assetMarkers);
     map.addLayer(maskLayer);
     map.addLayer(boundaryLayer);
+    map.addLayer(propertySearchLayer);
     setTimeout(() => map.invalidateSize(), 0);
 
     const handleCreated = (event) => {
@@ -351,6 +372,7 @@ function MapComponent({
       map.removeLayer(assetMarkers);
       map.removeLayer(maskLayer);
       map.removeLayer(boundaryLayer);
+      map.removeLayer(propertySearchLayer);
       externalLayersRef.current.forEach((layer) => map.removeLayer(layer));
       externalLayersRef.current.clear();
     };
@@ -361,9 +383,63 @@ function MapComponent({
     assetMarkers,
     maskLayer,
     boundaryLayer,
+    propertySearchLayer,
     onRectangleDrawn,
     captureImageForCoords,
   ]);
+
+  useEffect(() => {
+    propertySearchLayer.clearLayers();
+
+    const regions =
+      propertySearchResult?.map?.type === "property-density"
+        ? propertySearchResult.map.regions || []
+        : [];
+
+    if (regions.length === 0) {
+      return;
+    }
+
+    const maxCount = Math.max(...regions.map((region) => Number(region.count || 0)), 1);
+    const group = [];
+
+    regions.forEach((region) => {
+      const bounds = propertyDensityBounds(region);
+      if (!bounds) return;
+
+      const intensity = Number(region.count || 0) / maxCount;
+      const rectangle = L.rectangle(bounds, {
+        color: "#dc2626",
+        weight: intensity > 0.85 ? 3 : 2,
+        opacity: 0.88,
+        fillColor: intensity > 0.72 ? "#ef4444" : "#f97316",
+        fillOpacity: 0.18 + intensity * 0.34,
+      }).bindPopup(propertyDensityPopup(region));
+      rectangle.addTo(propertySearchLayer);
+      group.push(rectangle);
+
+      if (region.center?.lat && region.center?.lng) {
+        L.marker([region.center.lat, region.center.lng], {
+          interactive: false,
+          icon: L.divIcon({
+            className: "property-density-label",
+            html: `<span>${escapeHtml(Number(region.count || 0).toLocaleString("vi-VN"))}</span>`,
+            iconSize: [86, 28],
+            iconAnchor: [43, 14],
+          }),
+        }).addTo(propertySearchLayer);
+      }
+    });
+
+    const bounds = L.featureGroup(group).getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds.pad(0.35), {
+        animate: true,
+        padding: [28, 28],
+        maxZoom: 17,
+      });
+    }
+  }, [map, propertySearchLayer, propertySearchResult]);
 
   useEffect(() => {
     let isMounted = true;

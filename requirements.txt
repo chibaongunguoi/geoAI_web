@@ -24,3 +24,6 @@ requests==2.31.0
 
 # Environment variables
 python-dotenv==1.0.0
+
+# Direct PostgreSQL bulk import for Da Nang Overture buildings
+psycopg[binary]>=3.2.0

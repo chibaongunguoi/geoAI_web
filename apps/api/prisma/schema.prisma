@@ -92,6 +92,44 @@ model LayerUserConfig {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model BuildingProperty {
+  id                   String    @id @default(cuid())
+  code                 String    @unique
+  overtureId           String?   @unique
+  name                 String?
+  addressLine          String?
+  street               String?
+  ward                 String?
+  district             String?
+  city                 String    @default("Da Nang")
+  propertyType         String    @default("building")
+  status               String    @default("ACTIVE")
+  source               String    @default("manual")
+  sourceVersion        String?
+  level                Float?
+  height               Float?
+  floors               Int?
+  areaSqm              Float?
+  centroidLat          Float?
+  centroidLng          Float?
+  bbox                 Json?
+  geometry             Json?
+  attributes           Json?
+  searchText           String    @default("")
+  searchTextNormalized String    @default("")
+  embedding            Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
+
+  @@index([city, district, ward])
+  @@index([street])
+  @@index([status])
+  @@index([source, overtureId])
+  @@index([deletedAt])
+  @@index([searchTextNormalized])
+}
+
 model AssetDisplayUserConfig {
   userId    String   @id
   state     Json
