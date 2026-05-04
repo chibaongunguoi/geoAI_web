@@ -1,24 +1,20 @@
 {
-  "name": "my-app",
+  "name": "geoai-platform",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
-  },
-  "dependencies": {
-    "axios": "^1.15.0",
-    "html2canvas": "^1.4.1",
-    "leaflet": "^1.9.4",
-    "leaflet-draw": "^1.0.4",
-    "leaflet-image": "^0.4.0",
-    "next": "16.2.2",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-leaflet": "^5.0.0"
-  },
-  "devDependencies": {
-    "babel-plugin-react-compiler": "1.0.0"
+    "dev": "npm run dev -w @geoai/web",
+    "dev:web": "npm run dev -w @geoai/web",
+    "dev:api": "npm run start:dev -w @geoai/api",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "test:api": "npm run test -w @geoai/api",
+    "test:web": "npm run test -w @geoai/web",
+    "prisma:generate": "npm run prisma:generate -w @geoai/api",
+    "prisma:migrate": "npm run prisma:migrate -w @geoai/api",
+    "prisma:seed": "npm run prisma:seed -w @geoai/api"
   }
 }

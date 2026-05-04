@@ -1,0 +1,44 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "code": "DN-LGT-001",
+        "name": "Street light cluster",
+        "status": "active",
+        "category": "Lighting"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [108.2208, 16.0615]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "code": "DN-RD-014",
+        "name": "Road segment marker",
+        "status": "maintenance",
+        "category": "Road"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [108.1962, 16.0471]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "code": "DN-DRN-022",
+        "name": "Drainage inspection point",
+        "status": "review",
+        "category": "Drainage"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [108.2436, 16.0738]
+      }
+    }
+  ]
+}

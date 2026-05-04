@@ -1,7 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+/node_modules/
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,24 +12,43 @@
 !.yarn/versions
 
 # testing
-/coverage
+/coverage/
+coverage/
 
 # next.js
 /.next/
+.next/
 /out/
+out/
 
 # production
-/build
+/build/
+build/
+/dist/
+dist/
+
+# generated GeoAI map/cache data
+/geoai_data/
+*.gpkg
+
+# python
+__pycache__/
+*.py[cod]
+/.venv/
+/.venv310/
 
 # misc
 .DS_Store
 *.pem
+.swc/
+.cache/
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
 # env files (can opt-in for committing if needed)
 .env*
