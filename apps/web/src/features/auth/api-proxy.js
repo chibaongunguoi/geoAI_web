@@ -14,12 +14,21 @@ export async function proxyToApi(request, path, options = {}) {
     headers.set("content-type", "application/json");
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    method: options.method || request.method,
-    headers,
-    body: options.body,
-    cache: "no-store"
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method: options.method || request.method,
+      headers,
+      body: options.body,
+      cache: "no-store"
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Nest API is unavailable", target: API_URL },
+      { status: 503 }
+    );
+  }
 
   const responseHeaders = new Headers();
   const setCookie = response.headers.get("set-cookie");

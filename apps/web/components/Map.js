@@ -33,6 +33,7 @@ const MAP_VIEW_BOUNDS = [
 ];
 const OBJECT_COLORS = {
   building: "#ef4444",
+  density_region: "#2563eb",
 };
 const ADMIN_ALIASES = {
   hai_chau: "haichau",
@@ -197,6 +198,16 @@ function propertyDensityPopup(region) {
   )} toa nha`;
 }
 
+function propertyDensityObjectPopup(object) {
+  const properties = object?.properties || {};
+  const title = properties.name || properties.code || "Building";
+  const details = [properties.code, properties.ward, properties.district, properties.source].filter(Boolean);
+
+  return `<strong>${escapeHtml(title)}</strong>${details
+    .map((item) => `<br>${escapeHtml(item)}`)
+    .join("")}`;
+}
+
 function propertyDensityBounds(region) {
   const bbox = region?.bbox;
   if (!bbox) return null;
@@ -207,6 +218,17 @@ function propertyDensityBounds(region) {
   ];
 
   return bounds.every((pair) => pair.every(Number.isFinite)) ? bounds : null;
+}
+
+function propertyDensityCenter(region, fallbackBounds) {
+  const lat = Number(region?.center?.lat);
+  const lng = Number(region?.center?.lng);
+
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return L.latLng(lat, lng);
+  }
+
+  return fallbackBounds?.isValid?.() ? fallbackBounds.getCenter() : null;
 }
 
 function clusterIcon(count) {
@@ -390,6 +412,7 @@ function MapComponent({
 
   useEffect(() => {
     propertySearchLayer.clearLayers();
+    const focusTimers = [];
 
     const regions =
       propertySearchResult?.map?.type === "property-density"
@@ -397,26 +420,51 @@ function MapComponent({
         : [];
 
     if (regions.length === 0) {
-      return;
+      return undefined;
     }
 
+    drawnItems.clearLayers();
     const maxCount = Math.max(...regions.map((region) => Number(region.count || 0)), 1);
     const group = [];
+    const focusGroup = [];
+    let topRegionBounds = null;
 
-    regions.forEach((region) => {
+    regions.forEach((region, regionIndex) => {
       const bounds = propertyDensityBounds(region);
       if (!bounds) return;
 
       const intensity = Number(region.count || 0) / maxCount;
+      const isTopRegion = regionIndex === 0;
+      const latLngBounds = L.latLngBounds(bounds);
+
+      if (isTopRegion) {
+        topRegionBounds = latLngBounds;
+        const selectionRectangle = L.rectangle(latLngBounds, {
+          color: "#2563eb",
+          weight: 2.5,
+          opacity: 1,
+          fillColor: "#2563eb",
+          fillOpacity: 0.06,
+          interactive: false,
+        });
+        selectionRectangle.addTo(drawnItems);
+        const coordinates = boundsToCoordinates(selectionRectangle.getBounds());
+        setCurrentCoords(coordinates);
+        onRectangleDrawn(coordinates);
+      }
+
       const rectangle = L.rectangle(bounds, {
-        color: "#dc2626",
-        weight: intensity > 0.85 ? 3 : 2,
-        opacity: 0.88,
-        fillColor: intensity > 0.72 ? "#ef4444" : "#f97316",
-        fillOpacity: 0.18 + intensity * 0.34,
+        color: isTopRegion ? "#facc15" : "#dc2626",
+        weight: isTopRegion ? 4 : intensity > 0.85 ? 3 : 2,
+        opacity: isTopRegion ? 1 : 0.88,
+        fillColor: isTopRegion ? "#ef4444" : intensity > 0.72 ? "#ef4444" : "#f97316",
+        fillOpacity: isTopRegion ? 0.28 : 0.18 + intensity * 0.34,
       }).bindPopup(propertyDensityPopup(region));
       rectangle.addTo(propertySearchLayer);
       group.push(rectangle);
+      if (isTopRegion) {
+        focusGroup.push(rectangle);
+      }
 
       if (region.center?.lat && region.center?.lng) {
         L.marker([region.center.lat, region.center.lng], {
@@ -429,17 +477,121 @@ function MapComponent({
           }),
         }).addTo(propertySearchLayer);
       }
+
+      if (isTopRegion) {
+        const center = propertyDensityCenter(region, latLngBounds);
+
+        if (center) {
+          L.circle(center, {
+            radius: 45,
+            color: "#facc15",
+            weight: 4,
+            opacity: 1,
+            fillColor: "#ef4444",
+            fillOpacity: 0.16,
+            interactive: false,
+          }).addTo(propertySearchLayer);
+
+          L.marker(center, {
+            interactive: false,
+            zIndexOffset: 900,
+            icon: L.divIcon({
+              className: "property-density-focus-label",
+              html: `<span>Khu dày đặc nhất<br><strong>${escapeHtml(
+                Number(region.count || 0).toLocaleString("vi-VN"),
+              )}</strong></span>`,
+              iconSize: [132, 42],
+              iconAnchor: [66, 50],
+            }),
+          }).addTo(propertySearchLayer);
+        }
+      }
+
+      const objects = Array.isArray(region.objects) ? region.objects : [];
+      objects.forEach((object) => {
+        if (
+          object.geometry &&
+          typeof object.geometry === "object" &&
+          !Array.isArray(object.geometry)
+        ) {
+          const footprint = L.geoJSON(
+            {
+              type: "Feature",
+              properties: object.properties || {},
+              geometry: object.geometry,
+            },
+            {
+              style: {
+                color: objectColor(object.type),
+                weight: 2.4,
+                opacity: 0.95,
+                fill: true,
+                fillColor: objectColor(object.type),
+                fillOpacity: 0.1,
+              },
+            },
+          ).bindPopup(propertyDensityObjectPopup(object));
+
+          footprint.addTo(propertySearchLayer);
+          group.push(footprint);
+          if (isTopRegion) {
+            focusGroup.push(footprint);
+          }
+          return;
+        }
+
+        if (!object.bbox || object.bbox.length !== 4) return;
+
+        const [minLng, minLat, maxLng, maxLat] = object.bbox;
+        const objectBounds = [
+          [Number(minLat), Number(minLng)],
+          [Number(maxLat), Number(maxLng)],
+        ];
+        if (!objectBounds.every((pair) => pair.every(Number.isFinite))) return;
+
+        const footprint = L.rectangle(objectBounds, {
+          color: objectColor(object.type),
+          weight: 2,
+          opacity: 0.95,
+          fill: true,
+          fillColor: objectColor(object.type),
+          fillOpacity: 0.08,
+        }).bindPopup(propertyDensityObjectPopup(object));
+
+        footprint.addTo(propertySearchLayer);
+        group.push(footprint);
+        if (isTopRegion) {
+          focusGroup.push(footprint);
+        }
+      });
     });
 
-    const bounds = L.featureGroup(group).getBounds();
-    if (bounds.isValid()) {
-      map.fitBounds(bounds.pad(0.35), {
-        animate: true,
-        padding: [28, 28],
-        maxZoom: 17,
-      });
+    const bounds = L.featureGroup(focusGroup.length > 0 ? focusGroup : group).getBounds();
+    const scanStyleBounds = topRegionBounds?.isValid?.() ? topRegionBounds : bounds;
+    if (scanStyleBounds.isValid()) {
+      const maxZoom = map.getMaxZoom();
+      const targetZoom = Math.min(Number.isFinite(maxZoom) ? maxZoom : 18, 18);
+      const focusSearchBounds = () => {
+        map.invalidateSize();
+        propertySearchLayer.bringToFront();
+        drawnItems.bringToFront();
+        map.flyToBounds(scanStyleBounds.pad(0.22), {
+          animate: true,
+          duration: 0.75,
+          padding: [34, 34],
+          maxZoom: targetZoom,
+        });
+      };
+
+      focusSearchBounds();
+      focusTimers.push(setTimeout(focusSearchBounds, 120));
+      focusTimers.push(setTimeout(focusSearchBounds, 650));
     }
-  }, [map, propertySearchLayer, propertySearchResult]);
+
+    return () => {
+      focusTimers.forEach((timer) => clearTimeout(timer));
+    };
+  }, [drawnItems, map, onRectangleDrawn, propertySearchLayer, propertySearchResult]);
 
   useEffect(() => {
     let isMounted = true;
@@ -586,6 +738,10 @@ function MapComponent({
 
   useEffect(() => {
     const boundaryVisible = isLayerActive("admin-boundaries");
+    const hasPropertyDensityFocus =
+      propertySearchResult?.map?.type === "property-density" &&
+      Array.isArray(propertySearchResult.map.regions) &&
+      propertySearchResult.map.regions.length > 0;
 
     if (!boundaryVisible) {
       boundaryLayer.clearLayers();
@@ -667,7 +823,11 @@ function MapComponent({
     });
 
     const bounds = L.geoJSON(selectedCollection).getBounds();
-    if (bounds.isValid() && lastBoundaryViewKeyRef.current !== boundaryViewKey) {
+    if (
+      bounds.isValid() &&
+      lastBoundaryViewKeyRef.current !== boundaryViewKey &&
+      !hasPropertyDensityFocus
+    ) {
       lastBoundaryViewKeyRef.current = boundaryViewKey;
       map.fitBounds(bounds.pad(isAllDaNang ? 0.08 : 0.22), {
         animate: true,
@@ -685,6 +845,7 @@ function MapComponent({
     layerOpacities,
     currentZoom,
     isLayerActive,
+    propertySearchResult,
   ]);
 
   useEffect(() => {
@@ -969,6 +1130,8 @@ function MapComponent({
     const layerOpacity = layerOpacities["analysis-results"] ?? 1;
 
     analysisObjects.forEach((object) => {
+      const isDensityRegion = object.geometrySource === "property_search_density_region";
+
       if (object.geometry) {
         const footprint = L.geoJSON(
           {
@@ -979,11 +1142,11 @@ function MapComponent({
           {
             style: {
               color: objectColor(object.type),
-              weight: object.geometrySource === "geoai_mask" ? 2 : 2.4,
+              weight: isDensityRegion ? 3 : object.geometrySource === "geoai_mask" ? 2 : 2.4,
               opacity: layerOpacity,
               fill: true,
               fillColor: objectColor(object.type),
-              fillOpacity: 0.08 * layerOpacity,
+              fillOpacity: (isDensityRegion ? 0.04 : 0.08) * layerOpacity,
               interactive: false,
             },
           },
@@ -1003,9 +1166,12 @@ function MapComponent({
         ],
         {
           color: objectColor(object.type),
-          weight: 2,
+          weight: isDensityRegion ? 3 : 2,
           opacity: layerOpacity,
-          fill: false,
+          fill: isDensityRegion,
+          fillColor: objectColor(object.type),
+          fillOpacity: isDensityRegion ? 0.05 * layerOpacity : 0,
+          dashArray: isDensityRegion ? "8 5" : undefined,
           interactive: false,
         },
       );
@@ -1025,7 +1191,10 @@ function MapComponent({
       const layer = groupsByLayerId[layerId] || externalLayersRef.current.get(layerId);
       layer?.bringToFront?.();
     });
-  }, [assetMarkers, boundaryLayer, objectBoxes, layerOrder]);
+
+    propertySearchLayer.bringToFront();
+    drawnItems.bringToFront();
+  }, [assetMarkers, boundaryLayer, drawnItems, objectBoxes, propertySearchLayer, layerOrder]);
 
   useEffect(() => {
     if (captureRequestId > 0) {
@@ -1055,6 +1224,7 @@ export default function Map({
   permissions,
   onAssetLoad,
   onAssetError,
+  propertySearchResult,
 }) {
   return (
     <MapContainer
@@ -1096,6 +1266,7 @@ export default function Map({
         permissions={permissions || []}
         onAssetLoad={onAssetLoad}
         onAssetError={onAssetError}
+        propertySearchResult={propertySearchResult}
       />
     </MapContainer>
   );

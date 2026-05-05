@@ -1,260 +1,258 @@
-# Next Session: Search + Vietnamese AI Query Slice
+# Next Session: Search UX + Vietnamese AI Query
 
 Source backlog file: `E:\codex_tasks_simple.txt`
 
-This handoff is based on these backlog groups:
-
-- `EP01-052` to `EP01-068`: address/location/asset search.
-- `EP04-001` to `EP04-016`: Vietnamese natural-language AI query.
-- Later follow-up: `EP04-017` to `EP04-032` for generated SQL review/editing.
-- Later follow-up: `EP01-069` to `EP01-085` for advanced filters.
-
-## Capability
-
-Users should be able to search Da Nang buildings/properties from one map-side search surface using Vietnamese text, no-accent text, coordinates, asset/property code, name, address, ward, and district. Results must appear as both text/table results and map highlights. The current PostgreSQL search should remain the fallback, while the next infrastructure step prepares Elasticsearch/OpenSearch fuzzy search and MiniLM semantic retrieval.
-
-Example queries:
-
-- `Nguyen Luong Bang Hoa Khanh Bac`
-- `Cho toi danh sach cac can nha o duong Nguyen Luong Bang tai phuong Hoa Khanh Bac`
-- `Cho toi biet so cac toa nha cua phuong Hoa Khanh Bac thuoc Lien Chieu la bao nhieu`
-- `Vung nao o Hoa Khanh Bac co so luong nha day dac nhat`
-- `16.071, 108.150`
-- `DN-OVT-...`
+This file is the forward plan. Completed work is recorded in [backlog-progress.md](./backlog-progress.md).
 
 ## Current State
 
+### Implemented
+
 - PostgreSQL table: `BuildingProperty`.
 - Current DB rows: `235,250` `source='overture'` rows.
-- Full dry-run importable Overture rows: `424,486`.
+- Full ward-clipped dry-run importable Overture rows: `424,486`.
 - Neon project limit blocked full import at `512 MB`.
-- Current API supports:
-  - property CRUD
+- `/api/properties` supports:
+  - guarded property search/detail/create/update/soft-delete/import endpoints
   - PostgreSQL normalized no-accent search
   - lightweight fuzzy ranking
   - Vietnamese count questions
   - Vietnamese density questions
   - map-ready density regions
-- Current web supports:
+  - stable `items`, `answer`, `map`, and `meta` response shape
+- Web map supports:
   - map sidebar property search panel
-  - text answer display
-  - density cell map rendering
-- Not implemented yet:
-  - address keyword UX polish
-  - coordinate search
-  - code/name dedicated search modes
-  - suggestions while typing
-  - result list selection and map focus
-  - result highlight lifecycle
-  - recent search history
-  - source filters
-  - clear no-result/error states
-  - export of search results
-  - real Elasticsearch/OpenSearch index
-  - MiniLM embedding generation and vector retrieval
+  - answer text for property queries
+  - density-region rendering
+  - top density bbox rendering
+  - scan-style building boxes for the densest region
+  - auto-zoom/focus for density questions such as `vùng nào ở hòa khánh bắc có số lượng nhà dày đặc nhất`
+- Optional Elasticsearch/MiniLM infrastructure is implemented:
+  - Elasticsearch 8.x, not OpenSearch
+  - index name: `building_properties_v1`
+  - `dense_vector` embedding with `dims: 384`, `index: true`, `similarity: cosine`
+  - `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
+  - PostgreSQL hydration and fallback
+  - embeddings live only in Elasticsearch, not Neon/PostgreSQL
 
-## Backlog Mapping
+### Still Pending
 
-### EP01 Search Slice
+- Result list/table for normal property search.
+- Selecting one result and focusing/highlighting it on the map.
+- Coordinate search.
+- Dedicated code/name/address/source search modes.
+- Suggestions while typing.
+- Recent search and recent natural-language question history.
+- Favorite/sample question UX beyond the current default text.
+- Source filters.
+- Clear no-result and error states.
+- Search result export.
+- Advanced filters.
+- Full import decision for the Overture dataset.
 
-- `EP01-052`: keyword address search.
-- `EP01-053`: coordinate search and map movement.
-- `EP01-054`: asset/property code search.
-- `EP01-055`: asset/property name search.
-- `EP01-056`: search suggestions while typing.
-- `EP01-057`: auto zoom/focus to selected result.
-- `EP01-058`: highlight selected results on map.
-- `EP01-059`: list multiple matching results.
-- `EP01-060`: recent search history.
-- `EP01-061`: filter search source by address/property.
-- `EP01-062`: no-accent search.
-- `EP01-063`: clear no-result and error messages.
-- `EP01-064`: persist last search configuration.
-- `EP01-065`: audit/history for search operations.
-- `EP01-066`: export search results.
-- `EP01-067`: role-based access for search.
-- `EP01-068`: alert when search fails.
+## Codex Task Mapping
 
-### EP04 Natural-Language Query Slice
+### Search: `EP01-052` to `EP01-068`
 
-- `EP04-001`: Vietnamese natural-language asset/property questions.
-- `EP04-002`: show query results on map.
-- `EP04-003`: show query results in table/list.
-- `EP04-004`: sample Vietnamese questions.
-- `EP04-005`: support accented and no-accent questions.
-- `EP04-006`: parse conditions such as type, status, district/ward, and time.
-- `EP04-007`: recent question history.
-- `EP04-008`: favorite questions.
-- `EP04-009`: ambiguous-question warning and rewrite suggestions.
-- `EP04-010`: restrict AI query scope by existing permissions.
-- `EP04-011`: export AI query results to Excel.
-- `EP04-012`: persist last natural-language query config.
-- `EP04-013`: audit/history for natural-language query actions.
-- `EP04-014`: export natural-language query result data.
-- `EP04-015`: role-based access for natural-language query.
-- `EP04-016`: alert when natural-language query fails.
+- `EP01-052` - Keyword address search: backend partially available; UX polish still needed.
+- `EP01-053` - Coordinate search and map movement: pending.
+- `EP01-054` - Asset/property code search: property search partly available; dedicated mode pending.
+- `EP01-055` - Asset/property name search: property search partly available; dedicated mode pending.
+- `EP01-056` - Suggestions while typing: pending.
+- `EP01-057` - Auto zoom/focus: done for density question; pending for selected normal results.
+- `EP01-058` - Highlight results on map: done for density question; pending for selected normal results.
+- `EP01-059` - List multiple matching results: pending in web UI.
+- `EP01-060` - Recent search history: pending.
+- `EP01-061` - Source filter by address/property: pending.
+- `EP01-062` - No-accent search: backend partially done.
+- `EP01-063` - Clear no-result/error messages: pending polish.
+- `EP01-064` - Persist last search configuration: pending.
+- `EP01-065` - Search operation history/audit: pending.
+- `EP01-066` - Export search results: pending.
+- `EP01-067` - Role-based search access: existing permission path is in place; dedicated UX/access behavior pending.
+- `EP01-068` - Alert when search fails: pending polish.
 
-## Recommended One-Session Scope
+### Vietnamese Natural-Language Query: `EP04-001` to `EP04-016`
 
-Do this next session first, before full Elasticsearch/MiniLM infrastructure:
+- `EP04-001` - Vietnamese natural-language asset/property questions: partially done for property count/density.
+- `EP04-002` - Show query results on map: done for density; pending for general list results.
+- `EP04-003` - Show query results in table/list: pending.
+- `EP04-004` - Sample Vietnamese questions: pending proper UI.
+- `EP04-005` - Accented and no-accent questions: partially done.
+- `EP04-006` - Parse conditions such as type/status/district/ward/time: partially done for ward/district; type/status/time pending.
+- `EP04-007` - Recent question history: pending.
+- `EP04-008` - Favorite questions: pending.
+- `EP04-009` - Ambiguous-question warning and rewrite suggestions: pending.
+- `EP04-010` - Restrict AI query scope by permissions: pending explicit verification.
+- `EP04-011` - Export AI query results to Excel: pending.
+- `EP04-012` - Persist last natural-language query config: pending.
+- `EP04-013` - Audit/history for natural-language query actions: pending.
+- `EP04-014` - Export natural-language query result data: pending.
+- `EP04-015` - Role-based access for natural-language query: pending explicit verification.
+- `EP04-016` - Alert when natural-language query fails: pending polish.
 
-1. Build the unified search result contract and UI behavior for `EP01-052` to `EP01-063`.
-2. Add recent search/query history foundation for `EP01-060` and `EP04-007`.
-3. Add sample question presets for `EP04-004`.
-4. Add permission/error behavior for `EP01-067`, `EP01-068`, `EP04-010`, `EP04-015`, and `EP04-016`.
-5. Keep PostgreSQL as the active backend, but shape the provider interface so Elasticsearch/MiniLM can be added cleanly next.
+### Later Slices
 
-Reason: the user-facing backlog stories require stable list/map/history/error behavior first. Elasticsearch/MiniLM can then replace or enhance the provider without rewriting the UI contract.
+- `EP01-069` to `EP01-085` - Advanced filters: type, status, district/ward, date, combined filters, saved templates, map/table sync, counts, export, permissions, error alerts.
+- `EP01-103` to `EP01-118` - Measurement tools: distance, area, units, editable points, clear/copy/export, session persistence, permissions, error alerts.
+- `EP01-119` to `EP01-135` - Export and sharing: PNG/PDF, title/unit/time, legend/scale, paper setup, expiring share URL, watermark, preview.
+- `EP04-017` to `EP04-032` - Generated SQL review/editing. Do not start this until the search/query UX contract is stable.
 
-## Implementation Contract
+## Recommended Next Session Scope
 
-### API
+Do these in order.
 
-Keep `/properties` as the main query endpoint, but make its response contract stable:
+1. Build the normal property search result list for `EP01-052`, `EP01-054`, `EP01-055`, and `EP01-059`.
+   - Show rows from `/api/properties`.
+   - Include code/name/address/ward/district/status where available.
+   - Keep density answers in the existing answer panel.
 
-```ts
-type PropertySearchResponse = {
-  items: BuildingPropertyRow[];
-  answer?: {
-    type: "count" | "density" | "list" | "coordinate";
-    text: string;
-    count?: number;
-    filters?: Record<string, string>;
-    topRegion?: unknown;
-  };
-  map?: {
-    type: "property-results" | "property-density" | "coordinate";
-    regions?: unknown[];
-    points?: unknown[];
-    focus?: { lat: number; lng: number; zoom?: number };
-  };
-  suggestions?: Array<{
-    label: string;
-    value: string;
-    type: "address" | "property" | "coordinate" | "question";
-  }>;
-  meta: {
-    limit: number;
-    tokens: string[];
-    normalizedQuery: string;
-    searchMode: string;
-    warnings?: string[];
-  };
-};
+2. Add selected-result map focus for `EP01-057` and `EP01-058`.
+   - Clicking a result should zoom to its centroid or bbox.
+   - Draw a visible selected-result bbox/marker.
+   - Keep the density bbox behavior that already works.
+
+3. Add coordinate search for `EP01-053`.
+   - Accept `lat,lng` and `lng,lat` safely.
+   - Return `map.focus`.
+   - Move the map to the point and display a marker.
+
+4. Add suggestions and source mode for `EP01-056` and `EP01-061`.
+   - Start with simple suggestions from recent searches and returned items.
+   - Add source modes: all, address, property/code, coordinate, natural-language question.
+   - Do not break the existing one-input workflow.
+
+5. Add history/persistence foundation for `EP01-060`, `EP01-064`, `EP04-007`, and `EP04-012`.
+   - Start with localStorage if backend audit/history is too large for one session.
+   - Reuse the existing audit/history pattern only if it stays small.
+
+6. Add clear user feedback for `EP01-063`, `EP01-068`, and `EP04-016`.
+   - Empty result state.
+   - Backend unavailable state.
+   - Elasticsearch fallback warning state from `meta.warnings`.
+
+7. Extend Vietnamese natural-language behavior for `EP04-004`, `EP04-006`, and `EP04-009`.
+   - Add sample question buttons.
+   - Add condition parsing for status/type only if the data is reliable.
+   - Add an ambiguity warning for unclear ward/district or too-broad questions.
+
+8. Defer export/favorites until after list/focus/history are stable.
+   - `EP01-066`, `EP04-008`, `EP04-011`, `EP04-014`.
+
+## Elasticsearch + MiniLM Operations
+
+Use this to verify the semantic search projection. PostgreSQL remains source of truth.
+
+Start Elasticsearch:
+
+```bash
+docker compose -f docker-compose.search.yml up -d
 ```
 
-Add or prepare these service methods:
+Start the MiniLM embedding service:
 
-- `searchProperties`
-- `suggestProperties`
-- `recordSearchHistory`
-- `listSearchHistory`
-- `favoriteQuestion`
-- `exportSearchResults`
+```bash
+.venv310\Scripts\python.exe scripts\property_embedding_service.py
+```
 
-### Web
+Index active `BuildingProperty` rows:
 
-Upgrade the map sidebar search panel:
+```bash
+.venv310\Scripts\python.exe scripts\index_building_properties.py
+```
 
-- one input for keyword/NL question
-- source selector: all/address/property/code/coordinate/AI question
-- suggestions dropdown
-- result list with selectable rows
-- map highlight for selected row
-- auto zoom/focus on selected result
-- recent queries
-- sample Vietnamese questions
-- no-result and error state
+Set these in the API runtime when using Elasticsearch:
 
-### Data
+```text
+PROPERTY_SEARCH_PROVIDER=elasticsearch
+ELASTICSEARCH_URL=http://localhost:9200
+ELASTICSEARCH_USERNAME=
+ELASTICSEARCH_PASSWORD=
+PROPERTY_INDEX_NAME=building_properties_v1
+EMBEDDING_SERVICE_URL=http://localhost:5055
+EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+EMBEDDING_BATCH_SIZE=128
+```
 
-For one-session scope, keep data storage light:
+Verify:
 
-- Use localStorage first for recent search UI if backend history is too large for the session.
-- Prefer adding backend history only if there is already a local audit/history pattern to reuse.
-- Do not add embedding vectors to Neon.
-- Do not expand the current Overture import until the DB size decision is made.
+```bash
+npm run dev:api
+npm run dev:web
+```
 
-## Elasticsearch + MiniLM Infrastructure Lane
+Then query:
 
-This is the following infrastructure slice after the search UX contract is stable.
+```text
+/api/properties?query=Nguyen%20Luong%20Bang%20Hoa%20Khanh%20Bac&limit=10
+```
 
-### Services
+Expected:
 
-- Add Elasticsearch or OpenSearch as a read/search projection.
-- Add a Python embedding/indexing worker using:
-  - `sentence-transformers`
-  - `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
-- PostgreSQL remains the source of truth.
+- With ES running: `meta.searchMode` should indicate Elasticsearch/MiniLM hybrid search.
+- With ES or the embedding service stopped: results should fall back to PostgreSQL and include `meta.warnings`.
+- Count and density questions should continue to use PostgreSQL aggregation.
 
-### Index
+## Import Decision To Carry Forward
 
-Create `building_properties_v1`.
+The current Neon project is limited to `512 MB`.
 
-Recommended fields:
+Known data points:
 
-- `id`
-- `code`
-- `overtureId`
-- `name`
-- `addressLine`
-- `street`
-- `ward`
-- `district`
-- `city`
-- `propertyType`
-- `status`
-- `source`
-- `centroidLat`
-- `centroidLng`
-- `bbox`
-- `searchText`
-- `searchTextNormalized`
-- `embedding`
-- `updatedAt`
-- `deletedAt`
+- Raw Overture rows in the source GeoPackage: `621,175`.
+- Full ward-clipped importable buildings: `424,486`.
+- Current partial DB state: `235,250` Overture rows.
+- The current partial import follows stream order and is not a clean administrative subset.
+- The full staging table has `424,486` rows and should be dropped/truncated before any replacement import.
 
-Recommended search behavior:
+Recommended decision for the next data session:
 
-- fuzzy lexical query over address/name/street/search text
-- kNN semantic query over MiniLM embedding
-- score merge and dedupe by `BuildingProperty.id`
-- hydrate final records from PostgreSQL
-- fallback to PostgreSQL when ES or embedding service is unavailable
+- Either upgrade Neon and import all `424,486` ward-clipped rows.
+- Or reset Overture rows and import a smaller planned subset on the current `512 MB` project.
 
-## TDD Test Plan
+Candidate smaller subset:
 
-Write tests first.
+- `Liên Chiểu`
+- `Cẩm Lệ`
+- `Hải Châu`
+- `Thanh Khê`
+
+This subset is about `193,991` buildings, includes the Nguyễn Lương Bằng / Hòa Khánh search area, and has safer headroom than the accidental `235,250` row partial import.
+
+Do not make this import change inside the search UX session unless the user explicitly asks for data reset/import work.
+
+## Suggested Test Plan
 
 API tests:
 
-- keyword address search returns matching `BuildingProperty` rows.
-- coordinate query returns a map focus object.
-- property code query matches exact code.
-- property name query matches no-accent text.
-- suggestions return address/property/question suggestions.
-- selected result payload has map point/region data.
-- no-result query returns clear warning.
+- Keyword address search returns matching `BuildingProperty` rows.
+- Coordinate query returns `map.focus`.
+- Property code query matches exact code.
+- Property name query matches no-accent text.
+- Suggestions return address/property/question suggestions.
+- Selected-result payload has map point/bbox data.
+- No-result query returns a clear warning/state.
 - Vietnamese NL query supports accented and no-accent text.
-- density question still uses PostgreSQL aggregation.
-- provider fallback returns PostgreSQL results when ES is disabled.
+- Density question still uses PostgreSQL aggregation and returns top bbox.
+- ES fallback returns PostgreSQL results when ES is disabled or embedding fails.
 
 Web tests:
 
-- search input renders with default sample question.
-- submitting query calls `/api/properties`.
-- result answer text is shown.
-- result list rows are shown.
-- density regions are passed to map.
-- recent searches are saved and displayed.
-- no-result/error state is visible.
+- Search input renders with the default Vietnamese question.
+- Submitting a query calls `/api/properties`.
+- Answer text is shown.
+- Result list rows are shown.
+- Clicking a result focuses/highlights it on the map.
+- Density result draws the top bbox and building boxes.
+- Recent searches are saved and displayed.
+- No-result/error state is visible.
 
-Worker tests, only if ES/MiniLM is added in the session:
+Python/script tests:
 
-- embedding text payload is deterministic.
-- deleted rows are skipped.
-- bulk index document id equals `BuildingProperty.id`.
-- retries do not duplicate documents.
+- Embedding text payload is deterministic.
+- Deleted rows are skipped.
+- Bulk index document id equals `BuildingProperty.id`.
+- Repeated indexing does not duplicate documents.
 
 Run:
 
@@ -263,75 +261,18 @@ npm run test -w @geoai/api -- properties.service.spec.ts
 npm run test:web
 npm run test:api
 npm run build
-```
-
-If Python worker is added:
-
-```bash
 .venv310\Scripts\python.exe -m unittest discover scripts
 ```
 
-## Proposed Files
+## Non-Goals For The Next Search UX Session
 
-Likely new files for the next session:
-
-- `apps/web/src/features/map/property-search-panel.js`
-- `apps/web/src/features/map/property-search-panel.test.js`
-- `apps/web/src/features/map/property-search-history.js`
-- `apps/web/src/features/map/property-search-history.test.js`
-- `apps/api/src/properties/property-search-response.ts`
-- `apps/api/src/properties/property-search-provider.ts`
-- `apps/api/src/properties/postgres-property-search.provider.ts`
-
-Likely later ES/MiniLM files:
-
-- `apps/api/src/properties/elasticsearch-property-search.provider.ts`
-- `apps/api/src/properties/hybrid-property-search.service.ts`
-- `scripts/index_building_properties.py`
-- `scripts/test_index_building_properties.py`
-- `docker-compose.search.yml`
-
-## Environment Variables For Later ES/MiniLM
-
-Add only when implementation actually uses them:
-
-```text
-PROPERTY_SEARCH_PROVIDER=postgres|elasticsearch
-ELASTICSEARCH_URL=http://localhost:9200
-ELASTICSEARCH_USERNAME=
-ELASTICSEARCH_PASSWORD=
-PROPERTY_INDEX_NAME=building_properties_v1
-EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
-EMBEDDING_BATCH_SIZE=128
-```
-
-## Non-Goals
-
-- Do not finish the full Overture import in this search session.
-- Do not store embeddings in the current Neon project.
+- Do not store embeddings in Neon/PostgreSQL.
 - Do not remove PostgreSQL fallback.
-- Do not implement editable generated SQL in this session; that belongs to `EP04-017` to `EP04-032`.
-- Do not implement the whole advanced filter slice; that belongs to `EP01-069` to `EP01-085`.
+- Do not switch from Elasticsearch to OpenSearch.
+- Do not expand/reset the Overture import unless the user explicitly asks for the data session.
+- Do not implement generated SQL editing yet.
+- Do not implement the full advanced filter slice until search list/focus/history are stable.
 
-## Open Questions
+## Handoff Summary
 
-- Should recent/favorite search history be backend-persisted now, or localStorage first?
-- Should property search use `search.use` only, or add a dedicated `properties.search` permission?
-- Should Elasticsearch or OpenSearch be the chosen search engine?
-- Is Docker acceptable for local search infrastructure?
-- Should the current accidental `235,250` row partial import be reset before indexing?
-- Should the DB import target be all `424,486` rows on a larger Neon plan or the `193,991` row district subset?
-
-## Handoff
-
-Recommended next session order:
-
-1. Write API tests for `EP01-052` to `EP01-063` result contract.
-2. Stabilize `/properties` response shape for list, count, density, coordinate, and no-result cases.
-3. Add suggestion endpoint or suggestion mode for `EP01-056`.
-4. Add web result list, selection, map focus, and highlight behavior for `EP01-057` to `EP01-059`.
-5. Add recent query/sample question UI for `EP01-060`, `EP04-004`, and `EP04-007`.
-6. Add no-result/error/permission behavior for `EP01-063`, `EP01-067`, `EP01-068`, `EP04-010`, `EP04-015`, and `EP04-016`.
-7. Update `docs/backlog-progress.md` with completed EP IDs and remaining ES/MiniLM infrastructure status.
-
-Ready for implementation with PostgreSQL provider first; Elasticsearch/MiniLM should be the next infrastructure lane after the search UI contract is stable.
+The next best product slice is `EP01-052` to `EP01-068` plus the user-facing parts of `EP04-001` to `EP04-016`: result list, selected-result focus, coordinate search, suggestions, history, source modes, and clear error/fallback states. ES/MiniLM is ready for operational verification, but the biggest user-visible gap is now search UX around normal list results, not the density bbox path.

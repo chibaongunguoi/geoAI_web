@@ -42,6 +42,7 @@ export class PropertiesController {
       ward: query.ward,
       district: query.district,
       status: query.status,
+      source: query.source,
       limit: Number(query.limit || 20)
     } satisfies PropertySearchInput);
   }

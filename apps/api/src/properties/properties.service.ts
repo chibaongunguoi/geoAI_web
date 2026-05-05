@@ -2,9 +2,12 @@ import {
   BadRequestException,
   Inject,
   Injectable,
-  NotFoundException
+  NotFoundException,
+  Optional
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
+import { PropertySearchProvider } from "./property-search-provider";
 
 type Delegate = {
   findMany?: (args: unknown) => Promise<unknown[]>;
@@ -71,11 +74,27 @@ type PropertyDensityRegion = {
   };
   ward?: string;
   district?: string;
+  objects?: PropertyDensityObject[];
 };
 
 type PropertySearchMap = {
   type: "property-density";
   regions: PropertyDensityRegion[];
+};
+
+type PropertyDensityObject = {
+  id: string;
+  type: "building";
+  bbox?: [number, number, number, number];
+  geometry?: unknown;
+  geometrySource: "overture_property_search";
+  properties: {
+    code?: string;
+    name?: string | null;
+    ward?: string | null;
+    district?: string | null;
+    source?: string | null;
+  };
 };
 
 type PropertySearchAnswer = {
@@ -106,6 +125,10 @@ type DensityRegionRow = {
   minLng?: number;
   maxLat?: number;
   maxLng?: number;
+  cellSouth?: number;
+  cellWest?: number;
+  cellNorth?: number;
+  cellEast?: number;
   ward?: string | null;
   district?: string | null;
 };
@@ -116,6 +139,7 @@ export type PropertySearchInput = {
   ward?: string;
   district?: string;
   status?: string;
+  source?: string;
   limit?: number;
 };
 
@@ -168,6 +192,8 @@ const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 20;
 const DEFAULT_DENSITY_GRID_SIZE = 0.002;
 const DEFAULT_DENSITY_REGION_LIMIT = 6;
+const DEFAULT_DENSITY_OBJECT_LIMIT = 180;
+const DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
 const VALID_STATUSES = new Set<PropertyStatus>([
   "ACTIVE",
   "INACTIVE",
@@ -229,14 +255,77 @@ const DANANG_DISTRICTS = [
   "thanh khe"
 ];
 
+type PropertiesServiceOptions = {
+  elasticsearchProvider?: PropertySearchProvider;
+  propertySearchProvider?: "postgres" | "elasticsearch";
+};
+export const PROPERTIES_SERVICE_OPTIONS = "PROPERTIES_SERVICE_OPTIONS";
+
 @Injectable()
 export class PropertiesService {
-  constructor(@Inject(PrismaService) private readonly prisma: PropertiesPrisma) {}
+  private readonly configuredElasticsearchProvider?: PropertySearchProvider;
+  private readonly propertySearchProvider?: "postgres" | "elasticsearch";
 
-  async searchProperties(input: PropertySearchInput = {}) {
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PropertiesPrisma,
+    @Optional()
+    @Inject(PROPERTIES_SERVICE_OPTIONS)
+    options: PropertiesServiceOptions = {}
+  ) {
+    this.configuredElasticsearchProvider = options.elasticsearchProvider;
+    this.propertySearchProvider = options.propertySearchProvider;
+  }
+
+  async searchProperties(input: PropertySearchInput = {}): Promise<any> {
     const limit = this.validLimit(input.limit);
     const intent = this.searchIntent(input.query);
     const tokens = this.searchTokens(input.query);
+
+    if (this.shouldUseElasticsearch(intent, input, tokens)) {
+      try {
+        const providerResult = await this.elasticsearchProvider().search({
+          query: input.query,
+          status: VALID_STATUSES.has(input.status as PropertyStatus) ? input.status : undefined,
+          source: this.cleanString(input.source),
+          limit,
+          tokens,
+          normalizedQuery: normalizeSearchText(input.query || "")
+        });
+
+        return {
+          items: providerResult.items,
+          meta: {
+            limit,
+            tokens,
+            normalizedQuery: normalizeSearchText(input.query || ""),
+            searchMode: providerResult.searchMode,
+            semanticModel: providerResult.semanticModel || DEFAULT_EMBEDDING_MODEL
+          }
+        };
+      } catch {
+        const result = await this.searchPropertiesPostgres(input, limit, intent, tokens);
+        return {
+          ...result,
+          meta: {
+            ...result.meta,
+            warnings: [
+              ...(result.meta.warnings || []),
+              "Elasticsearch/MiniLM search unavailable; used PostgreSQL fallback."
+            ]
+          }
+        };
+      }
+    }
+
+    return this.searchPropertiesPostgres(input, limit, intent, tokens);
+  }
+
+  private async searchPropertiesPostgres(
+    input: PropertySearchInput,
+    limit: number,
+    intent: SearchIntent,
+    tokens: string[]
+  ) {
     const where = this.searchWhere(input, tokens, intent);
     const densityRegions =
       intent.type === "density"
@@ -285,9 +374,27 @@ export class PropertiesService {
             : intent.type === "count"
             ? "postgres-normalized-vietnamese-nl"
             : "postgres-normalized-lexical",
-        semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready"
+        semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
+        warnings: [] as string[]
       }
     };
+  }
+
+  private shouldUseElasticsearch(intent: SearchIntent, input: PropertySearchInput, tokens: string[]) {
+    const provider = this.propertySearchProvider || process.env.PROPERTY_SEARCH_PROVIDER;
+    return (
+      provider === "elasticsearch" &&
+      intent.type === "list" &&
+      Boolean(input.query?.trim()) &&
+      tokens.length > 0
+    );
+  }
+
+  private elasticsearchProvider() {
+    return (
+      this.configuredElasticsearchProvider ||
+      new ElasticsearchPropertySearchProvider(this.prisma)
+    );
   }
 
   async getProperty(id: string) {
@@ -423,6 +530,11 @@ export class PropertiesService {
       where.status = input.status;
     }
 
+    const source = this.cleanString(input.source);
+    if (source) {
+      where.source = source;
+    }
+
     return where;
   }
 
@@ -438,6 +550,11 @@ export class PropertiesService {
 
     if (input.status && VALID_STATUSES.has(input.status as PropertyStatus)) {
       where.status = input.status;
+    }
+
+    const source = this.cleanString(input.source);
+    if (source) {
+      where.source = source;
     }
 
     return where;
@@ -656,6 +773,10 @@ export class PropertiesService {
         min_lng AS "minLng",
         max_lat AS "maxLat",
         max_lng AS "maxLng",
+        (lat_cell * $1)::DOUBLE PRECISION AS "cellSouth",
+        (lng_cell * $2)::DOUBLE PRECISION AS "cellWest",
+        ((lat_cell + 1) * $1)::DOUBLE PRECISION AS "cellNorth",
+        ((lng_cell + 1) * $2)::DOUBLE PRECISION AS "cellEast",
         ward,
         district
       FROM cells
@@ -670,7 +791,10 @@ export class PropertiesService {
       limit
     );
 
-    return rows.map((row, index) => this.densityRegion(row, index));
+    const regions = rows.map((row, index) => this.densityRegion(row, index));
+    await this.attachDensityObjects(regions, terms);
+
+    return regions;
   }
 
   private densitySearchTerms(intent: SearchIntent, tokens: string[]) {
@@ -684,10 +808,10 @@ export class PropertiesService {
   private densityRegion(row: DensityRegionRow, index: number): PropertyDensityRegion {
     const centerLat = this.roundCoordinate(Number(row.centerLat));
     const centerLng = this.roundCoordinate(Number(row.centerLng));
-    const south = this.roundCoordinate(Number(row.minLat));
-    const west = this.roundCoordinate(Number(row.minLng));
-    const north = this.roundCoordinate(Number(row.maxLat));
-    const east = this.roundCoordinate(Number(row.maxLng));
+    const south = this.roundCoordinate(Number(row.cellSouth ?? row.minLat));
+    const west = this.roundCoordinate(Number(row.cellWest ?? row.minLng));
+    const north = this.roundCoordinate(Number(row.cellNorth ?? row.maxLat));
+    const east = this.roundCoordinate(Number(row.cellEast ?? row.maxLng));
     const ward = this.cleanString(row.ward);
     const district = this.cleanString(row.district);
 
@@ -698,8 +822,105 @@ export class PropertiesService {
       center: { lat: centerLat, lng: centerLng },
       bbox: { south, west, north, east },
       ward,
-      district
+      district,
+      objects: []
     };
+  }
+
+  private async attachDensityObjects(regions: PropertyDensityRegion[], terms: string[]) {
+    if (regions.length === 0) {
+      return;
+    }
+
+    const topRegion = regions[0];
+    const andFilters: Record<string, unknown>[] = [
+      { centroidLat: { gte: topRegion.bbox.south, lte: topRegion.bbox.north } },
+      { centroidLng: { gte: topRegion.bbox.west, lte: topRegion.bbox.east } }
+    ];
+
+    for (const term of terms) {
+      this.addNormalizedPhraseFilter(andFilters, term);
+    }
+
+    const rows = (await this.prisma.buildingProperty.findMany({
+      where: {
+        deletedAt: null,
+        AND: andFilters
+      },
+      orderBy: [{ updatedAt: "desc" }],
+      take: DEFAULT_DENSITY_OBJECT_LIMIT
+    })) as BuildingPropertyRow[];
+
+    topRegion.objects = rows
+      .map((row) => this.densityObject(row))
+      .filter((object): object is PropertyDensityObject => Boolean(object));
+  }
+
+  private densityObject(row: BuildingPropertyRow): PropertyDensityObject | null {
+    const bbox = this.propertyObjectBbox(row);
+    const geometry = this.validGeoJsonGeometry(row.geometry);
+
+    if (!bbox && !geometry) {
+      return null;
+    }
+
+    return {
+      id: row.id,
+      type: "building",
+      bbox,
+      geometry,
+      geometrySource: "overture_property_search",
+      properties: {
+        code: row.code,
+        name: row.name,
+        ward: row.ward,
+        district: row.district,
+        source: row.source
+      }
+    };
+  }
+
+  private validGeoJsonGeometry(geometry: unknown) {
+    if (!geometry || typeof geometry !== "object" || Array.isArray(geometry)) {
+      return undefined;
+    }
+
+    const candidate = geometry as { type?: unknown; coordinates?: unknown };
+    if (typeof candidate.type !== "string" || !Array.isArray(candidate.coordinates)) {
+      return undefined;
+    }
+
+    return geometry;
+  }
+
+  private propertyObjectBbox(row: BuildingPropertyRow): [number, number, number, number] | undefined {
+    const bbox = row.bbox;
+
+    if (Array.isArray(bbox) && bbox.length === 4) {
+      const values = bbox.map((value) => Number(value));
+      return values.every(Number.isFinite)
+        ? (values as [number, number, number, number])
+        : undefined;
+    }
+
+    if (bbox && typeof bbox === "object") {
+      const objectBbox = bbox as { xmin?: unknown; ymin?: unknown; xmax?: unknown; ymax?: unknown };
+      const values = [objectBbox.xmin, objectBbox.ymin, objectBbox.xmax, objectBbox.ymax].map((value) => Number(value));
+      return values.every(Number.isFinite)
+        ? (values as [number, number, number, number])
+        : undefined;
+    }
+
+    if (row.centroidLat !== undefined && row.centroidLng !== undefined) {
+      const lat = Number(row.centroidLat);
+      const lng = Number(row.centroidLng);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        const delta = 0.00004;
+        return [lng - delta, lat - delta, lng + delta, lat + delta];
+      }
+    }
+
+    return undefined;
   }
 
   private searchAnswer(

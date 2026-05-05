@@ -1,5 +1,7 @@
 # Product Backlog Progress
 
+This file records what is already implemented or only partially implemented. Forward-looking recommendations and next-session plans belong in [next-session-semantic-search.md](./next-session-semantic-search.md).
+
 ## Completed
 
 ### RBAC foundation
@@ -75,33 +77,52 @@
 
 ### Da Nang building/property management slice
 
-- Added PostgreSQL-backed `BuildingProperty` catalog for Da Nang buildings/properties with Overture IDs, geometry, centroid, address/admin fields, management status, raw attributes, normalized search text, and future embedding storage.
+- Added PostgreSQL-backed `BuildingProperty` catalog for Da Nang buildings/properties with Overture IDs, geometry, centroid, address/admin fields, management status, raw attributes, and normalized search text.
 - Added guarded Nest API endpoints for property search, detail, create, update, soft delete, and Overture building import/upsert.
 - Added Next route proxies for `/api/properties`, `/api/properties/[id]`, and `/api/properties/import/overture`.
 - Added real Overture GeoPackage import tooling with ward/district enrichment from cached Da Nang GADM ward boundaries.
-- Added Vietnamese natural-language count answers for ward/district building questions, including no-accent matching such as `phường hòa khánh bắc thuộc liên chiểu`.
-- Added Vietnamese density intent search for questions like `vùng nào ở hòa khánh bắc có số lượng nhà dày đặc nhất`; the API returns a text answer plus map-ready density regions, and the web map renders those regions as highlighted cells.
+- Added Vietnamese natural-language count answers for ward/district building questions, including accented and no-accent matching such as `phường hòa khánh bắc thuộc liên chiểu`.
+- Added Vietnamese density intent search for questions like `vùng nào ở hòa khánh bắc có số lượng nhà dày đặc nhất`; the API returns a text answer plus map-ready density regions.
+- Added web map rendering for density-search output, including the top density bbox, scan-style building boxes, answer text, and auto-zoom/focus to the densest region.
 - Applied the migration and seeded `properties.view`, `properties.manage`, and `properties.import`.
+
+### Elasticsearch + MiniLM search infrastructure
+
+- Added Elasticsearch 8.x as the chosen optional search projection, with PostgreSQL kept as source of truth and hydration source.
+- Added `@elastic/elasticsearch` to the API workspace.
+- Added provider-based property search infrastructure:
+  - PostgreSQL normalized/fuzzy search fallback.
+  - Elasticsearch hybrid lexical + semantic provider.
+  - Fallback warnings when Elasticsearch or the embedding service is unavailable.
+- Added Elasticsearch index support for `building_properties_v1` with `dense_vector` embeddings using 384 dimensions and cosine similarity.
+- Added `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` embedding service for Vietnamese-compatible semantic vectors.
+- Added local search operations assets:
+  - `docker-compose.search.yml`
+  - `scripts/property_embedding_service.py`
+  - `scripts/index_building_properties.py`
+  - `scripts/test_index_building_properties.py`
+- Embeddings are stored only in Elasticsearch, not in Neon/PostgreSQL.
+
+### Stability fixes
+
+- Hardened the web auth fetch path so the main page does not hard-crash when the Nest API is unavailable.
+- Hardened web API proxies so backend connection failures return controlled 503 JSON responses.
+- Fixed the property density map path so `propertySearchResult` reaches the Leaflet component that draws and zooms the density bbox.
 
 ## Partially Implemented / Foundation Only
 
 - `EP02-029` - Permission key exists for API key management, but API key CRUD is still pending.
 - `EP02-082` - Shared log permission exists, but dedicated API log ingestion/listing is still pending.
 - `EP02-099` - Audit log endpoint exists, but admin UI and richer system log workflows are still pending.
+- `EP01-052` - Property keyword search exists through `/api/properties`, but address-search UX polish and source-specific modes are still pending.
+- `EP01-057` and `EP01-058` - Density-question auto-zoom and highlight are implemented. Generic selected-result focus/highlight for normal result lists is still pending.
+- `EP01-062` and `EP04-005` - Accented/no-accent matching exists for property search and current Vietnamese count/density questions. Broader parser coverage still needs more cases.
+- `EP04-001` to `EP04-006` - Vietnamese natural-language property queries are partially implemented for count and density. General condition parsing, list/table answers, ambiguity handling, and export are still pending.
 - Da Nang building/property import is still partial on the current Neon database. Full ward-clipped dry-run found `424,486` importable buildings from `621,175` raw Overture rows, but the full import stopped at Neon project size limit `512 MB`.
-- Current database state is `235,250` `source='overture'` rows: `235,000` rows from staged upsert progress plus the earlier `250` initial rows. This is not a clean administrative subset because it follows GPKG stream order; do not treat it as done.
-- The direct PostgreSQL importer now supports `--dry-run`, advisory locking, staging/upsert resume, storage preflight, `--district`, and `--ward` filters. The current full staging table has `424,486` rows and should be dropped/truncated before a smaller replacement import on the 512 MB Neon project.
-- Recommended 512 MB subset: reset Overture rows and import `Liên Chiểu`, `Cẩm Lệ`, `Hải Châu`, and `Thanh Khê` only. This is `193,991` buildings, includes the Nguyễn Lương Bằng / Hòa Khánh search area, and has safer headroom than the current accidental `235,250` row partial import.
-- Da Nang building/property search is PostgreSQL normalized lexical search today. Elasticsearch fuzzy search and `paraphrase-multilingual-MiniLM-L12-v2` semantic embeddings are prepared by schema/API seams but are not wired to a running embedding/indexing service yet.
+- Current database state is `235,250` `source='overture'` rows: `235,000` rows from staged upsert progress plus the earlier `250` initial rows. This is not a clean administrative subset because it follows GPKG stream order; do not treat it as a complete import.
+- The direct PostgreSQL importer supports `--dry-run`, advisory locking, staging/upsert resume, storage preflight, `--district`, and `--ward` filters. The current full staging table has `424,486` rows and should be dropped/truncated before any replacement import.
+- Da Nang building/property search supports an optional Elasticsearch/MiniLM provider through `PROPERTY_SEARCH_PROVIDER=elasticsearch`. PostgreSQL normalized lexical search remains the automatic fallback when Elasticsearch or the embedding service is unavailable.
 
-## Recommended Next Backlog Slices
+## Handoff
 
-Detailed handoff for the search infrastructure slice: [next-session-semantic-search.md](./next-session-semantic-search.md).
-
-1. Finish the database import decision: either upgrade Neon for all `424,486` buildings, or reset/reload the recommended `193,991` row district subset (`Liên Chiểu`, `Cẩm Lệ`, `Hải Châu`, `Thanh Khê`) on the current `512 MB` project.
-2. `EP01-052` to `EP01-068` - Search: address keyword search, coordinate search, asset code/name search, suggestions, result highlight, recent history, source filters, no-accent search.
-3. `EP01-069` to `EP01-085` - Filters: type/status/district/date filters, combined filters, saved templates, map/table sync, result counts.
-4. `EP01-103` to `EP01-118` - Measurement: distance/area drawing, units, editable points, clear/copy/export, session persistence, RBAC gate `measurement.use`.
-5. `EP01-119` to `EP01-135` - Export and sharing: PNG/PDF export, title/unit/time, legend/scale, paper setup, expiring share URL, watermark, preview.
-6. `EP02-001` to `EP02-017` - Admin system configuration catalog: CRUD, search/filter/sort, soft delete, unique checks, import/export, audit history.
-7. `EP02-018` to `EP02-034` - Admin API key catalog: CRUD, status, uniqueness, import/export, bulk operations, audit history.
+Next actions and recommendations are tracked in [next-session-semantic-search.md](./next-session-semantic-search.md).

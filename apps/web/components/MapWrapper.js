@@ -8,6 +8,7 @@ import AssetDisplayPanel from "@/features/map/AssetDisplayPanel";
 import CollapsibleSection from "@/features/map/CollapsibleSection";
 import LayerPanel from "@/features/map/LayerPanel";
 import {
+  densityRegions,
   densitySummaryRows,
   hasDensityResult,
   propertySearchAnswerText
@@ -73,6 +74,77 @@ function selectedLabel(options, value) {
   return options.find((option) => option.value === value)?.label || "";
 }
 
+function finiteBboxArray(value) {
+  if (!Array.isArray(value) || value.length !== 4) return null;
+
+  const bbox = value.map(Number);
+  return bbox.every(Number.isFinite) && bbox[0] < bbox[2] && bbox[1] < bbox[3]
+    ? bbox
+    : null;
+}
+
+function densityRegionBbox(region) {
+  const bbox = region?.bbox;
+
+  if (Array.isArray(bbox)) {
+    return finiteBboxArray(bbox);
+  }
+
+  if (bbox && typeof bbox === "object") {
+    return finiteBboxArray([bbox.west, bbox.south, bbox.east, bbox.north]);
+  }
+
+  return null;
+}
+
+function validGeometry(geometry) {
+  return (
+    geometry &&
+    typeof geometry === "object" &&
+    !Array.isArray(geometry) &&
+    typeof geometry.type === "string"
+  );
+}
+
+function densityAnalysisObjects(result) {
+  const topRegion = densityRegions(result)[0];
+  if (!topRegion) return [];
+
+  const objects = Array.isArray(topRegion.objects) ? topRegion.objects : [];
+  const normalizedObjects = objects
+    .map((object, index) => {
+      const bbox = finiteBboxArray(object?.bbox);
+      const geometry = validGeometry(object?.geometry) ? object.geometry : null;
+
+      if (!bbox && !geometry) return null;
+
+      return {
+        id: object.id || `${topRegion.id || "density-region"}-${index + 1}`,
+        type: object.type || "building",
+        geometrySource: object.geometrySource || "property_search_density",
+        properties: object.properties || {},
+        ...(bbox ? { bbox } : {}),
+        ...(geometry ? { geometry } : {})
+      };
+    })
+    .filter(Boolean);
+
+  const bbox = densityRegionBbox(topRegion);
+  if (!bbox) {
+    return normalizedObjects;
+  }
+
+  return [
+    ...normalizedObjects,
+    {
+      id: `${topRegion.id || "density-region"}-bbox`,
+      type: "density_region",
+      bbox,
+      geometrySource: "property_search_density_region"
+    }
+  ];
+}
+
 export default function MapWrapper({ permissions = [] }) {
   const abortControllerRef = useRef(null);
   const workspaceRef = useRef(null);
@@ -115,6 +187,10 @@ export default function MapWrapper({ permissions = [] }) {
   const canViewLayers = canAccess(permissions, "layers.view");
   const canManageLayers = canAccess(permissions, "layers.manage");
   const canExportAssets = canAccess(permissions, "assets.importExport");
+  const propertySearchAnalysisObjects = useMemo(
+    () => densityAnalysisObjects(propertySearchResult),
+    [propertySearchResult]
+  );
 
   const loadLayerHistory = useCallback(async () => {
     if (!canViewLayers) return;
@@ -266,11 +342,13 @@ export default function MapWrapper({ permissions = [] }) {
   }, [canManageLayers, hasLoadedLayerConfig, layerState, loadLayerHistory]);
 
   useEffect(() => {
-    const hasAnalysisObjects = Boolean(analysisResults?.analysis?.objects?.length);
+    const hasAnalysisObjects =
+      Boolean(analysisResults?.analysis?.objects?.length) ||
+      propertySearchAnalysisObjects.length > 0;
     if (!hasAnalysisObjects) return;
 
     setLayerState((current) => selectLayerVisibility(current, "analysis-results"));
-  }, [analysisResults]);
+  }, [analysisResults, propertySearchAnalysisObjects.length]);
 
   useEffect(() => {
     writeStoredAssetDisplayConfig(window.localStorage, assetDisplayConfig);
@@ -338,6 +416,7 @@ export default function MapWrapper({ permissions = [] }) {
   const requestSelection = () => {
     if (isAnalyzing) return;
     setAnalysisResults(null);
+    setPropertySearchResult(null);
     setSelectRequestId((requestId) => requestId + 1);
   };
 
@@ -438,6 +517,7 @@ export default function MapWrapper({ permissions = [] }) {
 
       setIsAnalyzing(true);
       setAnalysisResults(null);
+      setPropertySearchResult(null);
 
       try {
         const formData = new FormData();
@@ -489,6 +569,13 @@ export default function MapWrapper({ permissions = [] }) {
         DATA_LAYERS.map((layer) => [layer.id, opacityForLayer(layerState, layer.id)])
       ),
     [layerState]
+  );
+  const activeAnalysisObjects = useMemo(
+    () =>
+      analysisResults?.analysis?.objects?.length
+        ? analysisResults.analysis.objects
+        : propertySearchAnalysisObjects,
+    [analysisResults, propertySearchAnalysisObjects]
   );
 
   const exportLayerConfig = useCallback(async () => {
@@ -835,7 +922,7 @@ export default function MapWrapper({ permissions = [] }) {
         <Map
           onRectangleDrawn={handleRectangleDrawn}
           onAnalyzeImage={analyzeImage}
-          analysisObjects={analysisResults?.analysis?.objects || []}
+          analysisObjects={activeAnalysisObjects}
           selectedBasemap={selectedBasemap}
           onCursorMove={setCursorPosition}
           selectRequestId={selectRequestId}

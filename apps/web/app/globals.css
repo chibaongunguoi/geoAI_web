@@ -759,6 +759,31 @@ select:focus-visible,
   padding: 0 8px;
 }
 
+.property-density-focus-label {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-align: center;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.85), 0 0 2px rgba(0, 0, 0, 0.95);
+  white-space: nowrap;
+}
+
+.property-density-focus-label span {
+  display: inline-block;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 8px;
+  background: rgba(127, 29, 29, 0.92);
+  box-shadow: 0 10px 24px rgba(127, 29, 29, 0.35);
+  padding: 5px 9px;
+}
+
+.property-density-focus-label strong {
+  color: #fef08a;
+  font-size: 13px;
+}
+
 .asset-marker {
   display: grid;
   width: 30px;

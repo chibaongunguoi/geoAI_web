@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
 import { PropertiesService } from "./properties.service";
 
 function prismaStub(overrides = {}) {
@@ -33,12 +34,29 @@ const propertyRow = {
   source: "overture",
   centroidLat: 16.071,
   centroidLng: 108.15,
+  bbox: { xmin: 108.15, ymin: 16.07, xmax: 108.151, ymax: 16.071 },
+  geometry: {
+    type: "Polygon",
+    coordinates: [
+      [
+        [108.15, 16.07],
+        [108.151, 16.07],
+        [108.151, 16.071],
+        [108.15, 16.071],
+        [108.15, 16.07]
+      ]
+    ]
+  },
   searchTextNormalized: "nha nguyen luong bang hoa khanh bac lien chieu da nang",
   createdAt: new Date("2026-05-01T00:00:00.000Z"),
   updatedAt: new Date("2026-05-01T00:00:00.000Z")
 };
 
 describe("PropertiesService", () => {
+  afterEach(() => {
+    delete process.env.PROPERTY_SEARCH_PROVIDER;
+  });
+
   it("searches Vietnamese natural-language property queries with accent-insensitive tokens", async () => {
     const prisma = prismaStub({
       buildingProperty: {
@@ -149,12 +167,21 @@ describe("PropertiesService", () => {
           minLng: 108.15,
           maxLat: 16.072,
           maxLng: 108.152,
+          cellSouth: 16.07,
+          cellWest: 108.15,
+          cellNorth: 16.072,
+          cellEast: 108.152,
           ward: "Hoa Khanh Bac",
           district: "Lien Chieu"
         }
       ]),
       buildingProperty: {
-        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            ...propertyRow,
+            geometry: "fiona.Geometry(coordinates=[...], type='MultiPolygon')"
+          }
+        ]),
         findUnique: jest.fn(),
         count: jest.fn().mockResolvedValue(10308),
         create: jest.fn(),
@@ -190,11 +217,19 @@ describe("PropertiesService", () => {
               west: 108.15,
               north: 16.072,
               east: 108.152
-            }
+            },
+            objects: [
+              expect.objectContaining({
+                type: "building",
+                bbox: [108.15, 16.07, 108.151, 16.071],
+                geometrySource: "overture_property_search"
+              })
+            ]
           })
         ]
       })
     );
+    expect(result.map.regions[0].objects[0].geometry).toBeUndefined();
     expect(result.meta.searchMode).toBe("postgres-normalized-vietnamese-nl-fuzzy-density");
     expect(prisma.$queryRawUnsafe).toHaveBeenCalledWith(
       expect.stringContaining("FLOOR"),
@@ -206,6 +241,129 @@ describe("PropertiesService", () => {
       "%bac%",
       6
     );
+  });
+
+  it("uses Elasticsearch lexical and MiniLM semantic search then hydrates unique PostgreSQL rows", async () => {
+    const embedding = new Array(384).fill(0.25);
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ embeddings: [embedding] })
+    });
+    const elasticsearch = {
+      ping: jest.fn().mockResolvedValue(true),
+      search: jest.fn().mockResolvedValue({
+        hits: {
+          hits: [
+            { _id: "property-2", _score: 11 },
+            { _id: "property-1", _score: 10 },
+            { _id: "property-2", _score: 9 }
+          ]
+        }
+      })
+    };
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([
+          propertyRow,
+          {
+            ...propertyRow,
+            id: "property-2",
+            code: "DN-BLD-000002",
+            name: "Nha Hoa Khanh Bac"
+          }
+        ]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(2),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const provider = new ElasticsearchPropertySearchProvider(prisma, {
+      client: elasticsearch,
+      fetch: fetchMock,
+      indexName: "building_properties_v1",
+      embeddingServiceUrl: "http://localhost:5055",
+      embeddingModel: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    });
+
+    const result = await provider.search({
+      query: "nha tren Nguyen Luong Bang Hoa Khanh Bac",
+      limit: 10,
+      tokens: ["nguyen", "luong", "bang", "hoa", "khanh", "bac"],
+      normalizedQuery: "nha tren nguyen luong bang hoa khanh bac"
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:5055/embed",
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          texts: ["nha tren nguyen luong bang hoa khanh bac"],
+          model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+        })
+      })
+    );
+    expect(elasticsearch.search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        index: "building_properties_v1",
+        size: 20,
+        knn: expect.objectContaining({
+          field: "embedding",
+          query_vector: embedding,
+          k: 20,
+          num_candidates: 100
+        }),
+        query: expect.objectContaining({
+          bool: expect.objectContaining({
+            must: expect.arrayContaining([expect.objectContaining({ multi_match: expect.any(Object) })]),
+            filter: [{ term: { deleted: false } }]
+          })
+        })
+      })
+    );
+    expect(prisma.buildingProperty.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: { in: ["property-2", "property-1"] },
+          deletedAt: null
+        }
+      })
+    );
+    expect(result.items.map((item) => item.id)).toEqual(["property-2", "property-1"]);
+    expect(result.searchMode).toBe("elasticsearch-minilm-hybrid");
+    expect(result.semanticModel).toBe("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2");
+  });
+
+  it("falls back to PostgreSQL search with a warning when Elasticsearch fails", async () => {
+    process.env.PROPERTY_SEARCH_PROVIDER = "elasticsearch";
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma, {
+      elasticsearchProvider: {
+        search: jest.fn().mockRejectedValue(new Error("elasticsearch unavailable"))
+      }
+    });
+
+    const result = await service.searchProperties({
+      query: "Nguyen Luong Bang",
+      limit: 10
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.meta.searchMode).toBe("postgres-normalized-lexical");
+    expect(result.meta.warnings).toEqual([
+      "Elasticsearch/MiniLM search unavailable; used PostgreSQL fallback."
+    ]);
   });
 
   it("creates a managed Da Nang property with normalized search text and audit history", async () => {
