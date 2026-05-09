@@ -363,6 +363,7 @@ function MapComponent({
   visibleAssets,
   onMeasurementPointAdd,
   onMeasurementPointEdit,
+  onViewportChange,
 }) {
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
@@ -379,6 +380,21 @@ function MapComponent({
   const externalLayersRef = useRef(new globalThis.Map());
   const lastBoundaryViewKeyRef = useRef(null);
   const rightDragState = useRef(null);
+
+  const reportViewport = useCallback(() => {
+    const center = map.getCenter();
+    const bounds = map.getBounds();
+    onViewportChange?.({
+      center: { lat: center.lat, lng: center.lng },
+      zoom: map.getZoom(),
+      bounds: {
+        west: bounds.getWest(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        north: bounds.getNorth(),
+      },
+    });
+  }, [map, onViewportChange]);
 
   const isLayerActive = useCallback(
     (layerId) => {
@@ -955,6 +971,16 @@ function MapComponent({
   }, [map]);
 
   useEffect(() => {
+    reportViewport();
+    map.on("moveend", reportViewport);
+    map.on("zoomend", reportViewport);
+    return () => {
+      map.off("moveend", reportViewport);
+      map.off("zoomend", reportViewport);
+    };
+  }, [map, reportViewport]);
+
+  useEffect(() => {
     const boundaryVisible = isLayerActive("admin-boundaries");
     const hasPropertyDensityFocus =
       propertySearchResult?.map?.type === "property-density" &&
@@ -1450,6 +1476,7 @@ export default function Map({
   visibleAssets,
   onMeasurementPointAdd,
   onMeasurementPointEdit,
+  onViewportChange,
 }) {
   return (
     <MapContainer
@@ -1498,6 +1525,7 @@ export default function Map({
         visibleAssets={visibleAssets || []}
         onMeasurementPointAdd={onMeasurementPointAdd}
         onMeasurementPointEdit={onMeasurementPointEdit}
+        onViewportChange={onViewportChange}
       />
     </MapContainer>
   );

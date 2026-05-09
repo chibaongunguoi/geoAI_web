@@ -50,6 +50,17 @@ import {
   readFilterState,
   writeFilterState
 } from "@/features/filters/filter-state";
+import MapExportDialog from "@/features/export/MapExportDialog";
+import {
+  DEFAULT_EXPORT_METADATA,
+  addExportHistory,
+  buildMapExportState,
+  normalizeExportMetadata,
+  readExportStorage,
+  writeExportStorage
+} from "@/features/export/map-export-state";
+import { captureElementPng, downloadDataUrl, exportPrintablePdf } from "@/features/export/map-capture";
+import { decodeShareState, shareUrlFromState } from "@/features/export/share-state";
 import MeasurementToolbar from "@/features/measurement/MeasurementToolbar";
 import { buildMeasurementExport, getMeasurementResult } from "@/features/measurement/measurement-utils";
 import {
@@ -105,6 +116,7 @@ function selectedLabel(options, value) {
 export default function MapWrapper({ permissions = [] }) {
   const abortControllerRef = useRef(null);
   const workspaceRef = useRef(null);
+  const mapCanvasRef = useRef(null);
   const [adminArea, setAdminArea] = useState("all_da_nang");
   const [scanMode, setScanMode] = useState("geoai");
   const [selectedBasemapId, setSelectedBasemapId] = useState("satellite");
@@ -148,6 +160,11 @@ export default function MapWrapper({ permissions = [] }) {
   const [measurementState, setMeasurementState] = useState(DEFAULT_MEASUREMENT_STATE);
   const [measurementHistory, setMeasurementHistory] = useState([]);
   const [measurementStatus, setMeasurementStatus] = useState(null);
+  const [exportMetadata, setExportMetadata] = useState(DEFAULT_EXPORT_METADATA);
+  const [exportTemplates, setExportTemplates] = useState([]);
+  const [exportHistory, setExportHistory] = useState([]);
+  const [exportStatus, setExportStatus] = useState(null);
+  const [mapViewport, setMapViewport] = useState(null);
   const { history: searchHistory, addSearch } = useSearchHistory();
   const skipNextLayerPersistRef = useRef(false);
   const skipNextAssetPersistRef = useRef(false);
@@ -157,6 +174,8 @@ export default function MapWrapper({ permissions = [] }) {
   const canExportAssets = canAccess(permissions, "assets.importExport");
   const canUseFilters = canAccess(permissions, "filters.use");
   const canMeasure = canAccess(permissions, "measurement.use");
+  const canExportMap = canAccess(permissions, "export.use");
+  const canShareMap = canAccess(permissions, "share.create");
   const loadLayerHistory = useCallback(async () => {
     if (!canViewLayers) return;
 
@@ -196,6 +215,28 @@ export default function MapWrapper({ permissions = [] }) {
     const storedMeasurement = readMeasurementStorage(window.localStorage);
     setMeasurementState(storedMeasurement.state);
     setMeasurementHistory(storedMeasurement.history);
+    const storedExport = readExportStorage(window.localStorage);
+    setExportTemplates(storedExport.templates);
+    setExportHistory(storedExport.history);
+
+    const shareParam = new URLSearchParams(window.location.search).get("share");
+    if (shareParam) {
+      const shared = decodeShareState(shareParam);
+      if (shared.error) {
+        setExportStatus(shared.error);
+      } else if (shared.state) {
+        if (shared.state.filters && canUseFilters) {
+          setAssetFilters(normalizeAssetFilters(shared.state.filters));
+        }
+        if (shared.state.metadata) {
+          setExportMetadata(normalizeExportMetadata(shared.state.metadata));
+        }
+        if (shared.state.viewport) {
+          setMapViewport(shared.state.viewport);
+        }
+        setExportStatus("Shared map state loaded.");
+      }
+    }
     const localLayerState = readStoredLayerState(window.localStorage, DATA_LAYERS);
     setLayerState(localLayerState);
 
@@ -865,6 +906,124 @@ export default function MapWrapper({ permissions = [] }) {
     propertySearchResult
   ]);
 
+  const persistExportState = useCallback((templates, history) => {
+    const saved = writeExportStorage(window.localStorage, { templates, history });
+    if (!saved) {
+      setExportStatus("Export history could not be saved locally.");
+    }
+  }, []);
+
+  const currentExportState = useCallback(
+    (metadata = exportMetadata) =>
+      buildMapExportState({
+        viewport: mapViewport,
+        basemap: selectedBasemap,
+        visibleLayers,
+        filters: assetFilters,
+        focusedProperty,
+        propertySearchResult,
+        measurement: measurementResult.error ? null : measurementResult,
+        metadata
+      }),
+    [
+      assetFilters,
+      exportMetadata,
+      focusedProperty,
+      mapViewport,
+      measurementResult,
+      propertySearchResult,
+      selectedBasemap,
+      visibleLayers
+    ]
+  );
+
+  const recordExportHistory = useCallback(
+    (format, metadata, status = "success") => {
+      const nextHistory = addExportHistory(exportHistory, format, metadata, status);
+      setExportHistory(nextHistory);
+      persistExportState(exportTemplates, nextHistory);
+      return nextHistory;
+    },
+    [exportHistory, exportTemplates, persistExportState]
+  );
+
+  const updateExportMetadata = useCallback((metadata) => {
+    setExportMetadata(normalizeExportMetadata(metadata));
+  }, []);
+
+  const saveExportTemplate = useCallback(() => {
+    if (!canExportMap) return;
+    const template = {
+      name: exportMetadata.title || `Template ${exportTemplates.length + 1}`,
+      metadata: normalizeExportMetadata(exportMetadata)
+    };
+    const nextTemplates = [
+      template,
+      ...exportTemplates.filter((item) => item.name !== template.name)
+    ].slice(0, 20);
+    setExportTemplates(nextTemplates);
+    persistExportState(nextTemplates, exportHistory);
+    setExportStatus("Export template saved.");
+  }, [canExportMap, exportHistory, exportMetadata, exportTemplates, persistExportState]);
+
+  const loadExportTemplate = useCallback((template) => {
+    setExportMetadata(normalizeExportMetadata(template?.metadata));
+    setExportStatus(`Loaded template: ${template?.name}`);
+  }, []);
+
+  const exportMapPng = useCallback(async () => {
+    if (!canExportMap) return;
+
+    const metadata = normalizeExportMetadata({ ...exportMetadata, format: "png" });
+    try {
+      const image = await captureElementPng(mapCanvasRef.current);
+      downloadDataUrl(image, `geoai-map-${new Date().toISOString().slice(0, 10)}.png`);
+      recordExportHistory("png", metadata, "success");
+      setExportStatus("Map exported as PNG.");
+    } catch (error) {
+      recordExportHistory("png", metadata, "error");
+      setExportStatus(error.message || "PNG export failed.");
+    }
+  }, [canExportMap, exportMetadata, recordExportHistory]);
+
+  const exportMapPdf = useCallback(async () => {
+    if (!canExportMap) return;
+
+    const metadata = normalizeExportMetadata({ ...exportMetadata, format: "pdf" });
+    try {
+      const image = await captureElementPng(mapCanvasRef.current);
+      exportPrintablePdf({
+        imageDataUrl: image,
+        metadata
+      });
+      recordExportHistory("pdf", metadata, "success");
+      setExportStatus("PDF export opened in a print window.");
+    } catch (error) {
+      recordExportHistory("pdf", metadata, "error");
+      setExportStatus(error.message || "PDF export failed.");
+    }
+  }, [canExportMap, exportMetadata, recordExportHistory]);
+
+  const copyShareLink = useCallback(async () => {
+    if (!canShareMap) return;
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      const state = currentExportState(exportMetadata);
+      const url = shareUrlFromState(state, window.location.href, {
+        expiresInHours: exportMetadata.shareExpiryHours
+      });
+      await navigator.clipboard.writeText(url);
+      recordExportHistory("share", exportMetadata, "success");
+      setExportStatus("Share link copied.");
+    } catch (error) {
+      recordExportHistory("share", exportMetadata, "error");
+      setExportStatus(error.message || "Share link copy failed.");
+    }
+  }, [canShareMap, currentExportState, exportMetadata, recordExportHistory]);
+
   return (
     <div className={styles.mapWorkspace} ref={workspaceRef}>
       <aside className={styles.sidebar} aria-label="Bảng điều khiển GeoAI">
@@ -1112,6 +1271,29 @@ export default function MapWrapper({ permissions = [] }) {
           </CollapsibleSection>
         ) : null}
 
+        {canExportMap || canShareMap ? (
+          <CollapsibleSection
+            title="Export & share"
+            summary={exportMetadata.format.toUpperCase()}
+            defaultOpen
+          >
+            <MapExportDialog
+              canExport={canExportMap}
+              canShare={canShareMap}
+              metadata={exportMetadata}
+              templates={exportTemplates}
+              history={exportHistory}
+              status={exportStatus}
+              onMetadataChange={updateExportMetadata}
+              onExportPng={exportMapPng}
+              onExportPdf={exportMapPdf}
+              onShare={copyShareLink}
+              onSaveTemplate={saveExportTemplate}
+              onLoadTemplate={loadExportTemplate}
+            />
+          </CollapsibleSection>
+        ) : null}
+
         {canViewLayers ? (
           <CollapsibleSection title="Lớp dữ liệu" summary={`${visibleLayers.length} đang bật`}>
             <LayerPanel
@@ -1263,7 +1445,7 @@ export default function MapWrapper({ permissions = [] }) {
         ) : null}
       </aside>
 
-      <div className={styles.mapCanvas}>
+      <div className={styles.mapCanvas} ref={mapCanvasRef}>
         <div className={styles.mapModeBadge} data-mode={scanMode}>
           {selectedScanMode?.label}
         </div>
@@ -1293,6 +1475,7 @@ export default function MapWrapper({ permissions = [] }) {
           visibleAssets={visibleAssets}
           onMeasurementPointAdd={addMeasurementPoint}
           onMeasurementPointEdit={editMeasurementPoint}
+          onViewportChange={setMapViewport}
         />
       </div>
     </div>

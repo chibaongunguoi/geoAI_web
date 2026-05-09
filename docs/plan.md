@@ -334,111 +334,69 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 
 ---
 
-**Goal**: Export the current map context and share reproducible map state. This phase depends on Phase 5 filters and Phase 6 measurement payloads so exports can include current filters, selected layers, map bounds, measurements, legend, and metadata.
+**Goal**: Export the current map context and share reproducible map state. Phase 7 depends on Phase 5 filters and Phase 6 measurement payloads, and v1 stays client-side with existing `export.use` and `share.create` permissions.
 
-#### TASK-700: Export State Model + Capture Utilities (EP01-119→124, 127)
+#### TASK-700: Export State Model + Capture Utilities (EP01-119->124, 127)
 
-##### TASK-700-A: Define map export state adapter
+- **Files**:
+  - [NEW] `apps/web/src/features/export/map-export-state.js`
+  - [NEW] `apps/web/src/features/export/map-capture.js`
+  - [NEW] `apps/web/src/features/export/map-export-state.test.js`
+  - [NEW] `apps/web/src/features/export/map-capture.test.js`
+- Capture center, zoom, bbox, basemap, visible layers, filters, selected result/search summary, and measurement result.
+- Normalize export metadata: title, organization, PNG/PDF format, paper size, orientation, legend/scale/timestamp/watermark toggles, and share expiry.
+- Use existing `html2canvas` for PNG capture; controlled errors cover missing map elements and capture failure.
+- Status: implemented as web-only helpers; no API persistence added.
 
-- **File**: [NEW] `apps/web/lib/mapExportState.js`
-- Capture center, zoom, bbox, basemap, visible layers, filters, selected result, density overlays, and measurements
-- Normalize state so it can be used by PNG/PDF/share URL
+#### TASK-701: Export Dialog + Sidebar Integration (EP01-121->124, 128, 129, 130, 131)
 
-##### TASK-700-B: Add map canvas capture utility
-
-- **File**: [NEW] `apps/web/lib/mapCapture.js`
-- Capture Leaflet map container as an image using a browser-side capture library or existing dependency if available
-- Include safeguards for unloaded tiles and cross-origin failures
-
-##### TASK-700-C: Add export metadata model
-
-- **File**: [NEW] `apps/web/lib/exportMetadata.js`
-- Title, organization/unit, timestamp, paper size, orientation, legend/scalebar toggles, watermark toggle
-
----
-
-#### TASK-701: Export Dialog + Preview (EP01-121→124, 128, 129, 130, 131)
-
-##### TASK-701-A: Create MapExportDialog component
-
-- **File**: [NEW] `apps/web/components/MapExportDialog.js`
-- Controls for PNG/PDF, title, unit, paper size, orientation, legend, scale, watermark
-- Save/load export templates in localStorage
-
-##### TASK-701-B: Add export preview panel
-
-- **File**: [NEW] `apps/web/components/MapExportPreview.js`
-- Show current map image, legend, scale, title, unit, timestamp, watermark
-- Preview should reflect selected paper orientation and toggles
-
-##### TASK-701-C: Wire dialog into map toolbar
-
-- **File**: [MODIFY] `apps/web/components/MapWrapper.js`
-- Add export/share action beside existing map controls
-
----
+- **Files**:
+  - [NEW] `apps/web/src/features/export/MapExportDialog.js`
+  - [NEW] `apps/web/src/features/export/MapExportDialog.test.js`
+  - [MODIFY] `apps/web/components/MapWrapper.js`
+  - [MODIFY] `apps/web/app/globals.css`
+- Add compact controls for export title, organization, format, paper size, orientation, share expiry, legend, scale, timestamp, watermark, templates, history, and action status.
+- Render the panel only when the user has `export.use` or `share.create`.
+- Store templates and export/share history in localStorage.
+- Status: implemented in the existing map sidebar.
 
 #### TASK-702: PNG + PDF Export Implementation (EP01-119, 120, 121, 122, 123, 128)
 
-##### TASK-702-A: Export PNG
-
-- **File**: [MODIFY] `apps/web/lib/mapCapture.js`
-- Download PNG including map, legend, scale, title, timestamp, and optional watermark
-
-##### TASK-702-B: Export PDF
-
-- **File**: [NEW] `apps/web/lib/pdfExport.js`
-- Generate PDF from preview/captured image
-- Respect paper size and orientation
-
-##### TASK-702-C: Export tests
-
-- **File**: [NEW] `apps/web/lib/mapExportState.test.js`
-- Cover state capture, metadata defaults, template persistence, and invalid export errors
-
----
+- **Files**:
+  - [MODIFY] `apps/web/src/features/export/map-capture.js`
+  - [MODIFY] `apps/web/components/MapWrapper.js`
+- PNG export downloads the captured map canvas as `geoai-map-YYYY-MM-DD.png`.
+- PDF export opens a print-ready document containing the captured map image and metadata; browser print/save-to-PDF owns the final PDF file in v1.
+- Export history records success/error status locally.
+- Status: implemented without adding a PDF dependency.
 
 #### TASK-703: Share URL + Expiry (EP01-125, 126, 127)
 
-##### TASK-703-A: Add share-state serialization
+- **Files**:
+  - [NEW] `apps/web/src/features/export/share-state.js`
+  - [NEW] `apps/web/src/features/export/share-state.test.js`
+  - [NEW] `apps/web/app/share/map/route.js`
+  - [NEW] `apps/web/app/share/map/route.test.js`
+  - [MODIFY] `apps/web/components/MapWrapper.js`
+- Serialize map export state into compact URL-safe base64url payloads with `createdAt` and `expiresAt`.
+- `/share/map` validates `state`/`share` query payloads and redirects to `/?share=...` or a controlled share error marker.
+- `MapWrapper` reads shared state on load and restores filters/export metadata/status for v1.
+- Status: implemented with URL payloads only; no server-side share table.
 
-- **File**: [NEW] `apps/web/lib/shareState.js`
-- Serialize map state into compact URL-safe payload
-- Include center, zoom, filters, visible layers, selected asset/search, and measurement payload references
+#### TASK-704: Export Permissions, History, Errors (EP01-132->135)
 
-##### TASK-703-B: Add share link route handler
-
-- **File**: [NEW] `apps/web/app/share/map/route.js`
-- Decode shared state and redirect/open the map with restored context
-- Validate expiry timestamp before applying state
-
-##### TASK-703-C: Restore shared map state
-
-- **File**: [MODIFY] `apps/web/components/MapWrapper.js`
-- On load, apply shared basemap/layers/filters/center/zoom/result focus
-
----
-
-#### TASK-704: Export Permissions, History, Errors (EP01-132→135)
-
-##### TASK-704-A: Seed and enforce export/share permission
-
-- **File**: [MODIFY] `apps/api/prisma/seed.ts`
-- Add permission key such as `map.exportShare`
-- Disable export/share actions when permission is absent
-
-##### TASK-704-B: Record export/share history locally
-
-- **File**: [NEW] `apps/web/hooks/useExportHistory.js`
-- Record export format, metadata, share expiry, createdAt, and status
-
-##### TASK-704-C: Add export/share error states
-
-- **File**: [MODIFY] `apps/web/components/MapExportDialog.js`
-- Handle capture failure, PDF failure, invalid share payload, expired link, and clipboard failure
+- **Files**:
+  - [NEW] `apps/web/components/__tests__/MapWrapperExport.test.js`
+  - [MODIFY] `apps/web/components/Map.js`
+  - [MODIFY] `apps/web/components/MapWrapper.js`
+- Reuse existing RBAC keys: `export.use` for PNG/PDF/template actions and `share.create` for share-link copy.
+- Add map viewport reporting from `Map.js` to `MapWrapper` so export/share payloads include center, zoom, and bounds.
+- Surface controlled errors for capture failure, print-window failure, invalid/expired share payloads, clipboard failure, and localStorage failure.
+- Verification targets:
+  - RED captured with `npm run test -w @geoai/web -- map-export-state.test.js share-state.test.js MapExportDialog.test.js map-capture.test.js`.
+  - GREEN confirmed with the same targets plus `MapWrapperExport.test.js` and `route.test.js`.
 
 ---
-
 ### Phase 8: Dashboard (EP03-069→085)
 
 ---
@@ -667,7 +625,7 @@ graph TD
 
 ## Principles Applied
 
-- **DRY**: Reuse one normalized filter model across map search, asset list, export payloads, presets, and share-ready URL params; reuse one measurement model across map overlays, toolbar summaries, local history, copy text, and JSON/GeoJSON export payloads.
-- **SOLID**: Keep filter parsing/serialization separate from UI components; keep API date filtering inside `PropertiesService.searchWhere()`; keep measurement math/state in `apps/web/src/features/measurement/` while `MapWrapper` orchestrates permission-gated UI and `Map.js` owns Leaflet rendering.
-- **TDD**: Add failing API/helper/component tests before Phase 5 implementation; add failing measurement helper/state/toolbar/MapWrapper tests before Phase 6 implementation; verify the same focused targets after each fix.
-- **YAGNI**: Store filter presets/history and measurement sessions/history in localStorage for v1; avoid database-backed preset/session models and server-side snapping until multi-device sharing or cadastral-grade measurement is required.
+- **DRY**: Reuse one normalized filter model across map search, asset list, export payloads, presets, and share-ready URL params; reuse one measurement model across map overlays, toolbar summaries, local history, copy text, and JSON/GeoJSON export payloads; reuse one export-state model across PNG, printable PDF, share URLs, templates, and history.
+- **SOLID**: Keep filter parsing/serialization separate from UI components; keep API date filtering inside `PropertiesService.searchWhere()`; keep measurement math/state in `apps/web/src/features/measurement/`; keep export/share serialization and capture helpers in `apps/web/src/features/export/` while `MapWrapper` orchestrates permission-gated workflows and `Map.js` owns Leaflet viewport reporting.
+- **TDD**: Add failing API/helper/component tests before Phase 5 implementation; add failing measurement helper/state/toolbar/MapWrapper tests before Phase 6 implementation; add failing export/share helper/dialog/route/MapWrapper tests before Phase 7 implementation; verify the same focused targets after each fix.
+- **YAGNI**: Store filter presets/history, measurement sessions/history, and export templates/history in localStorage for v1; avoid database-backed preset/session/share models, server-side snapping, and a dedicated PDF dependency until multi-device sharing, cadastral-grade measurement, or higher-fidelity reporting is required.
