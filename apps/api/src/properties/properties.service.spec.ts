@@ -235,11 +235,51 @@ describe("PropertiesService", () => {
       expect.stringContaining("FLOOR"),
       0.002,
       0.002,
+      "overture",
       "%hoa khanh bac%",
       "%hoa%",
       "%khanh%",
       "%bac%",
       6
+    );
+  });
+
+  it("excludes demo property rows from default density answers", async () => {
+    const prisma = prismaStub({
+      $queryRawUnsafe: jest.fn().mockResolvedValue([]),
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma);
+
+    await service.searchProperties({
+      query: "vung nao o hoa khanh bac co so luong nha day dac nhat",
+      limit: 5
+    });
+
+    expect(prisma.$queryRawUnsafe).toHaveBeenCalledWith(
+      expect.stringContaining('"source" = $3'),
+      0.002,
+      0.002,
+      "overture",
+      "%hoa khanh bac%",
+      "%hoa%",
+      "%khanh%",
+      "%bac%",
+      6
+    );
+    expect(prisma.buildingProperty.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          source: "overture"
+        })
+      })
     );
   });
 
@@ -334,6 +374,99 @@ describe("PropertiesService", () => {
     expect(result.items.map((item) => item.id)).toEqual(["property-2", "property-1"]);
     expect(result.searchMode).toBe("elasticsearch-minilm-hybrid");
     expect(result.semanticModel).toBe("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2");
+  });
+
+  it("passes parsed ward and district filters into Elasticsearch semantic search", async () => {
+    process.env.PROPERTY_SEARCH_PROVIDER = "elasticsearch";
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const search = jest.fn().mockResolvedValue({
+      items: [],
+      searchMode: "elasticsearch-minilm-hybrid",
+      semanticModel: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    });
+    const service = new PropertiesService(prisma, {
+      propertySearchProvider: "elasticsearch",
+      elasticsearchProvider: { search }
+    });
+
+    await service.searchProperties({
+      query: "tim nha o phuong hoa khanh bac thuoc quan lien chieu",
+      limit: 10
+    });
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: {
+          ward: "hoa khanh bac",
+          district: "lien chieu"
+        }
+      })
+    );
+  });
+
+  it("hydrates Elasticsearch hits with parsed location filters so semantic search stays in the requested area", async () => {
+    const embedding = new Array(384).fill(0.25);
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ embeddings: [embedding] })
+    });
+    const elasticsearch = {
+      ping: jest.fn().mockResolvedValue(true),
+      search: jest.fn().mockResolvedValue({
+        hits: {
+          hits: [{ _id: "property-1", _score: 10 }]
+        }
+      })
+    };
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const provider = new ElasticsearchPropertySearchProvider(prisma, {
+      client: elasticsearch,
+      fetch: fetchMock,
+      indexName: "building_properties_v1",
+      embeddingServiceUrl: "http://localhost:5055"
+    });
+
+    await provider.search({
+      query: "nha o hoa khanh bac lien chieu",
+      limit: 10,
+      tokens: ["hoa", "khanh", "bac", "lien", "chieu"],
+      normalizedQuery: "nha o hoa khanh bac lien chieu",
+      filters: {
+        ward: "hoa khanh bac",
+        district: "lien chieu"
+      }
+    });
+
+    expect(prisma.buildingProperty.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { in: ["property-1"] },
+          deletedAt: null,
+          AND: [
+            { searchTextNormalized: { contains: "hoa khanh bac" } },
+            { searchTextNormalized: { contains: "lien chieu" } }
+          ]
+        })
+      })
+    );
   });
 
   it("falls back to PostgreSQL search with a warning when Elasticsearch fails", async () => {

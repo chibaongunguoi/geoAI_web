@@ -90,7 +90,8 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
     const rows = (await this.prisma.buildingProperty.findMany({
       where: {
         id: { in: ids },
-        deletedAt: null
+        deletedAt: null,
+        ...this.locationWhere(input.filters)
       }
     })) as PropertySearchProviderRow[];
     const rowById = new Map(rows.map((row) => [row.id, row]));
@@ -147,6 +148,25 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
 
   private async searchHits(input: PropertySearchProviderInput, queryVector: number[]) {
     const filters: unknown[] = [{ term: { deleted: false } }];
+    const must: unknown[] = [
+      {
+        multi_match: {
+          query: input.query || input.normalizedQuery,
+          fields: [
+            "code^5",
+            "name^4",
+            "addressLine^4",
+            "street^3",
+            "ward^2",
+            "district^2",
+            "searchText^2",
+            "searchTextNormalized"
+          ],
+          fuzziness: "AUTO",
+          operator: "or"
+        }
+      }
+    ];
 
     if (input.status) {
       filters.push({ term: { status: input.status } });
@@ -155,31 +175,16 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
     if (input.source) {
       filters.push({ term: { source: input.source } });
     }
+    for (const term of this.locationTerms(input.filters)) {
+      must.push({ match_phrase: { searchTextNormalized: term } });
+    }
 
     const response = await this.client.search({
       index: this.indexName,
       size: Math.max(input.limit * 2, input.limit),
       query: {
         bool: {
-          must: [
-            {
-              multi_match: {
-                query: input.query || input.normalizedQuery,
-                fields: [
-                  "code^5",
-                  "name^4",
-                  "addressLine^4",
-                  "street^3",
-                  "ward^2",
-                  "district^2",
-                  "searchText^2",
-                  "searchTextNormalized"
-                ],
-                fuzziness: "AUTO",
-                operator: "or"
-              }
-            }
-          ],
+          must,
           filter: filters
         }
       },
@@ -193,6 +198,24 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
     });
 
     return response.hits?.hits || [];
+  }
+
+  private locationWhere(filters?: PropertySearchProviderInput["filters"]) {
+    const terms = this.locationTerms(filters);
+
+    if (terms.length === 0) {
+      return {};
+    }
+
+    return {
+      AND: terms.map((term) => ({ searchTextNormalized: { contains: term } }))
+    };
+  }
+
+  private locationTerms(filters?: PropertySearchProviderInput["filters"]) {
+    return [filters?.ward, filters?.district].filter(
+      (term): term is string => Boolean(term && term.trim().length >= 3)
+    );
   }
 
   private uniqueHitIds(hits: Array<{ _id?: string; _source?: { id?: string } }>) {

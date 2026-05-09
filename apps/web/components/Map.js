@@ -231,6 +231,37 @@ function propertyDensityCenter(region, fallbackBounds) {
   return fallbackBounds?.isValid?.() ? fallbackBounds.getCenter() : null;
 }
 
+function deterministicAngle(seed) {
+  const text = String(seed || "");
+  const hash = Array.from(text).reduce(
+    (value, char) => (value * 31 + char.charCodeAt(0)) % 9973,
+    17,
+  );
+
+  return ((hash % 70) - 35) * (Math.PI / 180);
+}
+
+function rotatedFootprintPoints(bounds, seed) {
+  const [[minLat, minLng], [maxLat, maxLng]] = bounds;
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLng = (minLng + maxLng) / 2;
+  const halfLat = Math.max((maxLat - minLat) / 2, 0.000035);
+  const halfLng = Math.max((maxLng - minLng) / 2, 0.000035);
+  const angle = deterministicAngle(seed);
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+
+  return [
+    [-halfLat, -halfLng],
+    [-halfLat, halfLng],
+    [halfLat, halfLng],
+    [halfLat, -halfLng],
+  ].map(([latOffset, lngOffset]) => [
+    centerLat + latOffset * cos - lngOffset * sin,
+    centerLng + latOffset * sin + lngOffset * cos,
+  ]);
+}
+
 function clusterIcon(count) {
   return L.divIcon({
     className: "",
@@ -424,16 +455,16 @@ function MapComponent({
     }
 
     drawnItems.clearLayers();
-    const maxCount = Math.max(...regions.map((region) => Number(region.count || 0)), 1);
     const group = [];
     const focusGroup = [];
     let topRegionBounds = null;
 
-    regions.forEach((region, regionIndex) => {
+    const focusedRegions = regions.slice(0, 1);
+
+    focusedRegions.forEach((region, regionIndex) => {
       const bounds = propertyDensityBounds(region);
       if (!bounds) return;
 
-      const intensity = Number(region.count || 0) / maxCount;
       const isTopRegion = regionIndex === 0;
       const latLngBounds = L.latLngBounds(bounds);
 
@@ -441,10 +472,10 @@ function MapComponent({
         topRegionBounds = latLngBounds;
         const selectionRectangle = L.rectangle(latLngBounds, {
           color: "#2563eb",
-          weight: 2.5,
+          weight: 3,
           opacity: 1,
           fillColor: "#2563eb",
-          fillOpacity: 0.06,
+          fillOpacity: 0.04,
           interactive: false,
         });
         selectionRectangle.addTo(drawnItems);
@@ -454,28 +485,16 @@ function MapComponent({
       }
 
       const rectangle = L.rectangle(bounds, {
-        color: isTopRegion ? "#facc15" : "#dc2626",
-        weight: isTopRegion ? 4 : intensity > 0.85 ? 3 : 2,
-        opacity: isTopRegion ? 1 : 0.88,
-        fillColor: isTopRegion ? "#ef4444" : intensity > 0.72 ? "#ef4444" : "#f97316",
-        fillOpacity: isTopRegion ? 0.28 : 0.18 + intensity * 0.34,
+        color: "#2563eb",
+        weight: 3,
+        opacity: 1,
+        fillColor: "#2563eb",
+        fillOpacity: 0.03,
       }).bindPopup(propertyDensityPopup(region));
       rectangle.addTo(propertySearchLayer);
       group.push(rectangle);
       if (isTopRegion) {
         focusGroup.push(rectangle);
-      }
-
-      if (region.center?.lat && region.center?.lng) {
-        L.marker([region.center.lat, region.center.lng], {
-          interactive: false,
-          icon: L.divIcon({
-            className: "property-density-label",
-            html: `<span>${escapeHtml(Number(region.count || 0).toLocaleString("vi-VN"))}</span>`,
-            iconSize: [86, 28],
-            iconAnchor: [43, 14],
-          }),
-        }).addTo(propertySearchLayer);
       }
 
       if (isTopRegion) {
@@ -523,11 +542,11 @@ function MapComponent({
             {
               style: {
                 color: objectColor(object.type),
-                weight: 2.4,
+                weight: 2.1,
                 opacity: 0.95,
-                fill: true,
+                fill: false,
                 fillColor: objectColor(object.type),
-                fillOpacity: 0.1,
+                fillOpacity: 0,
               },
             },
           ).bindPopup(propertyDensityObjectPopup(object));
@@ -549,13 +568,13 @@ function MapComponent({
         ];
         if (!objectBounds.every((pair) => pair.every(Number.isFinite))) return;
 
-        const footprint = L.rectangle(objectBounds, {
+        const footprint = L.polygon(rotatedFootprintPoints(objectBounds, object.id), {
           color: objectColor(object.type),
-          weight: 2,
+          weight: 2.1,
           opacity: 0.95,
-          fill: true,
+          fill: false,
           fillColor: objectColor(object.type),
-          fillOpacity: 0.08,
+          fillOpacity: 0,
         }).bindPopup(propertyDensityObjectPopup(object));
 
         footprint.addTo(propertySearchLayer);

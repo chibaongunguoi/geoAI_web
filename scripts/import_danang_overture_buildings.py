@@ -494,18 +494,12 @@ def stage_row_from_feature(
 
     centroid = geometry.representative_point()
     xmin, ymin, xmax, ymax = geometry.bounds
-    name = primary_name(properties.get("names"))
-    address_line = clean_string(properties.get("addressLine") or properties.get("address_line"))
-    street = clean_string(properties.get("street"))
     code = overture_code(overture_id)
     search_text = " ".join(
         item
         for item in [
             code,
             overture_id,
-            name,
-            address_line,
-            street,
             ward.ward,
             ward.district,
             "Da Nang",
@@ -519,9 +513,9 @@ def stage_row_from_feature(
     return BuildingStageRow(
         code=code,
         overture_id=overture_id,
-        name=name,
-        address_line=address_line,
-        street=street,
+        name=None,
+        address_line=None,
+        street=None,
         ward=ward.ward,
         district=ward.district,
         city="Da Nang",
@@ -537,7 +531,11 @@ def stage_row_from_feature(
         centroid_lng=round(float(centroid.x), 6),
         bbox={"xmin": xmin, "ymin": ymin, "xmax": xmax, "ymax": ymax},
         geometry=json_safe(geometry_payload),
-        attributes=json_safe(properties),
+        attributes={
+            "trustedColumnsOnly": True,
+            "adminBoundarySource": "GADM 4.1",
+            "geometrySource": "Overture Maps buildings",
+        },
         search_text=search_text,
         search_text_normalized=normalize_search_text(search_text),
     )

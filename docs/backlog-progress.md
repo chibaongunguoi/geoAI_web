@@ -108,7 +108,7 @@ This file records what is already implemented or only partially implemented. For
 - Hardened the web auth fetch path so the main page does not hard-crash when the Nest API is unavailable.
 - Hardened web API proxies so backend connection failures return controlled 503 JSON responses.
 - Fixed the property density map path so `propertySearchResult` reaches the Leaflet component that draws and zooms the density bbox.
-
+m
 ## Partially Implemented / Foundation Only
 
 - `EP02-029` - Permission key exists for API key management, but API key CRUD is still pending.
@@ -118,9 +118,9 @@ This file records what is already implemented or only partially implemented. For
 - `EP01-057` and `EP01-058` - Density-question auto-zoom and highlight are implemented. Generic selected-result focus/highlight for normal result lists is still pending.
 - `EP01-062` and `EP04-005` - Accented/no-accent matching exists for property search and current Vietnamese count/density questions. Broader parser coverage still needs more cases.
 - `EP04-001` to `EP04-006` - Vietnamese natural-language property queries are partially implemented for count and density. General condition parsing, list/table answers, ambiguity handling, and export are still pending.
-- Da Nang building/property import is still partial on the current Neon database. Full ward-clipped dry-run found `424,486` importable buildings from `621,175` raw Overture rows, but the full import stopped at Neon project size limit `512 MB`.
-- Current database state is `235,250` `source='overture'` rows: `235,000` rows from staged upsert progress plus the earlier `250` initial rows. This is not a clean administrative subset because it follows GPKG stream order; do not treat it as a complete import.
-- The direct PostgreSQL importer supports `--dry-run`, advisory locking, staging/upsert resume, storage preflight, `--district`, and `--ward` filters. The current full staging table has `424,486` rows and should be dropped/truncated before any replacement import.
+- Da Nang building/property import is now clean for `Liên Chiểu` only on the current Neon database. The previous `manual-demo` rows were removed, staging tables were dropped after import, and the table now has `63,445` trusted `source='overture'` rows for Liên Chiểu.
+- Liên Chiểu row counts by GADM ward: `Hòa Minh` 18,657; `Hòa Khánh Bắc` 14,300; `Hòa Khánh Nam` 14,039; `Hòa Hiệp Nam` 8,878; `Hòa Hiệp Bắc` 7,571.
+- The direct PostgreSQL importer supports `--dry-run`, advisory locking, staging/upsert resume, storage preflight, `--district`, and `--ward` filters. For the Liên Chiểu reload it was run with `--batch-size 1000`; each staging/upsert batch commits independently.
 - Da Nang building/property search supports an optional Elasticsearch/MiniLM provider through `PROPERTY_SEARCH_PROVIDER=elasticsearch`. PostgreSQL normalized lexical search remains the automatic fallback when Elasticsearch or the embedding service is unavailable.
 
 ## Handoff

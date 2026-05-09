@@ -250,6 +250,28 @@ export function selectLayerVisibility(state, layerId) {
   };
 }
 
+export function focusLayerVisibility(state, layerId, preservedLayerIds = []) {
+  if (!state.order.includes(layerId)) {
+    return state;
+  }
+
+  const preserved = new Set(preservedLayerIds);
+  return {
+    ...state,
+    visible: Object.fromEntries(
+      state.order.map((id) => [id, id === layerId || preserved.has(id)])
+    )
+  };
+}
+
+export function hideAllLayerVisibility(state, preservedLayerIds = []) {
+  const preserved = new Set(preservedLayerIds);
+  return {
+    ...state,
+    visible: Object.fromEntries(state.order.map((id) => [id, preserved.has(id)]))
+  };
+}
+
 export function setLayerGroupVisibility(state, layers, group, visible) {
   const groupLayerIds = layers
     .filter((layer) => layer.group === group)

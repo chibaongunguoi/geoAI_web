@@ -192,7 +192,7 @@ const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 20;
 const DEFAULT_DENSITY_GRID_SIZE = 0.002;
 const DEFAULT_DENSITY_REGION_LIMIT = 6;
-const DEFAULT_DENSITY_OBJECT_LIMIT = 180;
+const DEFAULT_DENSITY_OBJECT_LIMIT = 2000;
 const DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
 const VALID_STATUSES = new Set<PropertyStatus>([
   "ACTIVE",
@@ -280,16 +280,18 @@ export class PropertiesService {
     const limit = this.validLimit(input.limit);
     const intent = this.searchIntent(input.query);
     const tokens = this.searchTokens(input.query);
+    const source = this.searchSource(input.source);
 
     if (this.shouldUseElasticsearch(intent, input, tokens)) {
       try {
         const providerResult = await this.elasticsearchProvider().search({
           query: input.query,
           status: VALID_STATUSES.has(input.status as PropertyStatus) ? input.status : undefined,
-          source: this.cleanString(input.source),
+          source,
           limit,
           tokens,
-          normalizedQuery: normalizeSearchText(input.query || "")
+          normalizedQuery: normalizeSearchText(input.query || ""),
+          filters: intent.filters
         });
 
         return {
@@ -303,7 +305,7 @@ export class PropertiesService {
           }
         };
       } catch {
-        const result = await this.searchPropertiesPostgres(input, limit, intent, tokens);
+        const result = await this.searchPropertiesPostgres(input, limit, intent, tokens, source);
         return {
           ...result,
           meta: {
@@ -317,19 +319,20 @@ export class PropertiesService {
       }
     }
 
-    return this.searchPropertiesPostgres(input, limit, intent, tokens);
+    return this.searchPropertiesPostgres(input, limit, intent, tokens, source);
   }
 
   private async searchPropertiesPostgres(
     input: PropertySearchInput,
     limit: number,
     intent: SearchIntent,
-    tokens: string[]
+    tokens: string[],
+    source: string
   ) {
-    const where = this.searchWhere(input, tokens, intent);
+    const where = this.searchWhere(input, tokens, intent, source);
     const densityRegions =
       intent.type === "density"
-        ? await this.densityRegions(intent, tokens, DEFAULT_DENSITY_REGION_LIMIT)
+        ? await this.densityRegions(intent, tokens, DEFAULT_DENSITY_REGION_LIMIT, source)
         : [];
     const total = await this.prisma.buildingProperty.count({ where });
     let rows = (await this.prisma.buildingProperty.findMany({
@@ -341,7 +344,7 @@ export class PropertiesService {
 
     if (rankedRows.length === 0 && tokens.length > 0 && intent.type === "list") {
       rows = (await this.prisma.buildingProperty.findMany({
-        where: this.fuzzySearchWhere(input, tokens),
+        where: this.fuzzySearchWhere(input, tokens, source),
         orderBy: [{ updatedAt: "desc" }],
         take: MAX_LIMIT
       })) as BuildingPropertyRow[];
@@ -395,6 +398,10 @@ export class PropertiesService {
       this.configuredElasticsearchProvider ||
       new ElasticsearchPropertySearchProvider(this.prisma)
     );
+  }
+
+  private searchSource(source?: string) {
+    return this.cleanString(source) || OVERTURE_SOURCE;
   }
 
   async getProperty(id: string) {
@@ -511,8 +518,13 @@ export class PropertiesService {
     return property;
   }
 
-  private searchWhere(input: PropertySearchInput, tokens: string[], intent: SearchIntent) {
-    const where: Record<string, unknown> = { deletedAt: null };
+  private searchWhere(
+    input: PropertySearchInput,
+    tokens: string[],
+    intent: SearchIntent,
+    source: string
+  ) {
+    const where: Record<string, unknown> = { deletedAt: null, source };
     const andFilters: Record<string, unknown>[] = [];
 
     this.addNormalizedPhraseFilter(andFilters, intent.filters.ward);
@@ -530,16 +542,11 @@ export class PropertiesService {
       where.status = input.status;
     }
 
-    const source = this.cleanString(input.source);
-    if (source) {
-      where.source = source;
-    }
-
     return where;
   }
 
-  private fuzzySearchWhere(input: PropertySearchInput, tokens: string[]) {
-    const where: Record<string, unknown> = { deletedAt: null };
+  private fuzzySearchWhere(input: PropertySearchInput, tokens: string[], source: string) {
+    const where: Record<string, unknown> = { deletedAt: null, source };
     const candidates = [...new Set(tokens.flatMap((token) => [token, token.slice(0, 4)]))]
       .filter((token) => token.length >= 3)
       .map((token) => ({ searchTextNormalized: { contains: token } }));
@@ -550,11 +557,6 @@ export class PropertiesService {
 
     if (input.status && VALID_STATUSES.has(input.status as PropertyStatus)) {
       where.status = input.status;
-    }
-
-    const source = this.cleanString(input.source);
-    if (source) {
-      where.source = source;
     }
 
     return where;
@@ -726,14 +728,15 @@ export class PropertiesService {
   private async densityRegions(
     intent: SearchIntent,
     tokens: string[],
-    limit: number
+    limit: number,
+    source: string
   ): Promise<PropertyDensityRegion[]> {
     if (!this.prisma.$queryRawUnsafe) {
       return [];
     }
 
     const terms = this.densitySearchTerms(intent, tokens);
-    const filters = terms.map((_, index) => `"searchTextNormalized" LIKE $${index + 3}`);
+    const filters = terms.map((_, index) => `"searchTextNormalized" LIKE $${index + 4}`);
     const whereSql = filters.length > 0 ? `AND ${filters.join(" AND ")}` : "";
     const sql = `
       WITH filtered AS (
@@ -744,6 +747,7 @@ export class PropertiesService {
           "district"
         FROM "BuildingProperty"
         WHERE "deletedAt" IS NULL
+          AND "source" = $3
           AND "centroidLat" IS NOT NULL
           AND "centroidLng" IS NOT NULL
           ${whereSql}
@@ -781,18 +785,19 @@ export class PropertiesService {
         district
       FROM cells
       ORDER BY count DESC, center_lat ASC, center_lng ASC
-      LIMIT $${terms.length + 3}
+      LIMIT $${terms.length + 4}
     `;
     const rows = await this.prisma.$queryRawUnsafe<DensityRegionRow[]>(
       sql,
       DEFAULT_DENSITY_GRID_SIZE,
       DEFAULT_DENSITY_GRID_SIZE,
+      source,
       ...terms.map((term) => `%${term}%`),
       limit
     );
 
     const regions = rows.map((row, index) => this.densityRegion(row, index));
-    await this.attachDensityObjects(regions, terms);
+    await this.attachDensityObjects(regions, terms, source);
 
     return regions;
   }
@@ -827,7 +832,11 @@ export class PropertiesService {
     };
   }
 
-  private async attachDensityObjects(regions: PropertyDensityRegion[], terms: string[]) {
+  private async attachDensityObjects(
+    regions: PropertyDensityRegion[],
+    terms: string[],
+    source: string
+  ) {
     if (regions.length === 0) {
       return;
     }
@@ -845,6 +854,7 @@ export class PropertiesService {
     const rows = (await this.prisma.buildingProperty.findMany({
       where: {
         deletedAt: null,
+        source,
         AND: andFilters
       },
       orderBy: [{ updatedAt: "desc" }],

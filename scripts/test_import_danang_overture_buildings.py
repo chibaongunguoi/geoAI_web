@@ -63,6 +63,10 @@ class ImportDaNangOvertureBuildingsTest(unittest.TestCase):
         self.assertEqual(row.code, "DN-OVT-BUILDING1")
         self.assertEqual(row.centroid_lat, 0.3)
         self.assertEqual(row.centroid_lng, 0.3)
+        self.assertIsNone(row.name)
+        self.assertIsNone(row.address_line)
+        self.assertIsNone(row.street)
+        self.assertEqual(row.attributes["trustedColumnsOnly"], True)
         self.assertIn("hoa khanh bac", row.search_text_normalized)
 
     def test_building_outside_wards_is_skipped(self):

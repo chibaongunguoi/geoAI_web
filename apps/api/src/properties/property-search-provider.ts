@@ -25,6 +25,10 @@ export type PropertySearchProviderInput = {
   limit: number;
   tokens: string[];
   normalizedQuery: string;
+  filters?: {
+    ward?: string;
+    district?: string;
+  };
 };
 
 export type PropertySearchProviderResult = {

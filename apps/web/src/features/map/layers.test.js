@@ -8,6 +8,8 @@ import {
   readStoredLayerState,
   reorderLayer,
   selectLayerVisibility,
+  focusLayerVisibility,
+  hideAllLayerVisibility,
   setLayerOpacity,
   setLayerGroupVisibility,
   toggleLayerVisibility,
@@ -109,6 +111,32 @@ describe("data layers", () => {
       "demo-wms-states",
       "analysis-results"
     ]);
+  });
+
+  it("focuses one scan layer without keeping unrelated layers visible", () => {
+    const state = focusLayerVisibility(
+      createDefaultLayerState(DATA_LAYERS),
+      "analysis-results",
+      ["admin-boundaries"]
+    );
+
+    expect(state.visible["admin-boundaries"]).toBe(true);
+    expect(state.visible["sample-assets"]).toBe(false);
+    expect(state.visible["demo-wms-states"]).toBe(false);
+    expect(state.visible["osm-template-overlay"]).toBe(false);
+    expect(state.visible["analysis-results"]).toBe(true);
+    expect(visibleLayerIds(state)).toEqual(["admin-boundaries", "analysis-results"]);
+  });
+
+  it("hides noisy catalog layers while preserving reference layers for standalone query overlays", () => {
+    const state = hideAllLayerVisibility(createDefaultLayerState(DATA_LAYERS), [
+      "admin-boundaries"
+    ]);
+
+    expect(state.visible["admin-boundaries"]).toBe(true);
+    expect(state.visible["sample-assets"]).toBe(false);
+    expect(state.visible["analysis-results"]).toBe(false);
+    expect(visibleLayerIds(state)).toEqual(["admin-boundaries"]);
   });
 
   it("toggles layer visibility independently", () => {
