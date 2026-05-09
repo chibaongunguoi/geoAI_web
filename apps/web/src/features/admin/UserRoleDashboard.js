@@ -14,13 +14,13 @@ function roleCodesFor(user) {
 
 export default function UserRoleDashboard({ users, canManageRoles }) {
   const initialRoles = useMemo(
-    () =>
-      Object.fromEntries(
-        users.map((user) => [user.id, [...roleCodesFor(user)]])
-      ),
+    () => Object.fromEntries(users.map((user) => [user.id, [...roleCodesFor(user)]])),
     [users]
   );
   const [selectedRoles, setSelectedRoles] = useState(initialRoles);
+  const [userStatuses, setUserStatuses] = useState(() =>
+    Object.fromEntries(users.map((user) => [user.id, user.status || "ACTIVE"]))
+  );
   const [message, setMessage] = useState("");
   const [pendingUserId, setPendingUserId] = useState(null);
   const [isPending, startTransition] = useTransition();
@@ -63,6 +63,28 @@ export default function UserRoleDashboard({ users, canManageRoles }) {
     });
   };
 
+  const updateStatus = (userId, status) => {
+    startTransition(async () => {
+      setMessage("");
+      setPendingUserId(userId);
+      const response = await fetch(`/api/admin/users/${userId}/status`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+
+      setPendingUserId(null);
+
+      if (!response.ok) {
+        setMessage("Không thể cập nhật trạng thái tài khoản.");
+        return;
+      }
+
+      setUserStatuses((current) => ({ ...current, [userId]: status }));
+      setMessage("Đã cập nhật trạng thái tài khoản.");
+    });
+  };
+
   return (
     <div className="admin-user-list">
       {message ? <p className="form-status">{message}</p> : null}
@@ -72,7 +94,7 @@ export default function UserRoleDashboard({ users, canManageRoles }) {
             <strong>{user.name}</strong>
             <span>{user.username}</span>
             <span>{user.email}</span>
-            <span>{user.status}</span>
+            <span>{userStatuses[user.id]}</span>
           </div>
           <fieldset disabled={!canManageRoles || pendingUserId === user.id}>
             <legend>Vai trò</legend>
@@ -88,14 +110,26 @@ export default function UserRoleDashboard({ users, canManageRoles }) {
             ))}
           </fieldset>
           {canManageRoles ? (
-            <button
-              className="text-button"
-              type="button"
-              disabled={isPending && pendingUserId === user.id}
-              onClick={() => saveRoles(user.id)}
-            >
-              {pendingUserId === user.id ? "Đang lưu..." : "Lưu vai trò"}
-            </button>
+            <div className="admin-user-actions">
+              <button
+                className="text-button"
+                type="button"
+                disabled={isPending && pendingUserId === user.id}
+                onClick={() => saveRoles(user.id)}
+              >
+                {pendingUserId === user.id ? "Đang lưu..." : "Lưu vai trò"}
+              </button>
+              <button
+                className="text-button"
+                type="button"
+                disabled={isPending && pendingUserId === user.id}
+                onClick={() =>
+                  updateStatus(user.id, userStatuses[user.id] === "LOCKED" ? "ACTIVE" : "LOCKED")
+                }
+              >
+                {userStatuses[user.id] === "LOCKED" ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+              </button>
+            </div>
           ) : null}
         </section>
       ))}

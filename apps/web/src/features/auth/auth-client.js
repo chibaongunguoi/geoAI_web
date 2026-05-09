@@ -18,6 +18,16 @@ export const navigationItems = [
     href: "/admin/permissions",
     label: "Quyền",
     permission: "admin.permissions.view"
+  },
+  {
+    href: "/admin/permissions/matrix",
+    label: "Ma trận quyền",
+    permission: "admin.permissions.view"
+  },
+  {
+    href: "/admin/audit-logs",
+    label: "Nhật ký",
+    permission: "admin.logs.view"
   }
 ];
 

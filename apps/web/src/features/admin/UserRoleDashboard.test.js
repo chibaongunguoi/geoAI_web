@@ -31,4 +31,18 @@ describe("UserRoleDashboard", () => {
       });
     });
   });
+
+  it("toggles account lock state through the admin BFF route", async () => {
+    render(<UserRoleDashboard users={users} canManageRoles={true} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Khóa tài khoản" }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith("/api/admin/users/user-1/status", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status: "LOCKED" })
+      });
+    });
+  });
 });

@@ -399,6 +399,8 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 
 ---
 
+**Status**: Implemented for TASK-300→302. This completes the admin audit log UI, user search/role filtering, account lock/unlock, and read-only role-permission matrix. API-key CRUD and API log ingestion remain deferred to the broader EP02 backlog.
+
 #### TASK-300: Audit Log Admin UI (EP02-099)
 
 ##### TASK-300-A: Create audit log page
@@ -437,6 +439,14 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 - **File**: [NEW] `apps/web/app/admin/permissions/matrix/page.js`
 - Show roles × permissions grid
 - Read-only view for auditing
+
+#### Phase 3 Hard Issues / Solutions
+
+- **Admin filters shape**: `AdminService.listUsers()` originally accepted a single search string. Phase 3 needed search plus role filtering, so it now accepts either the legacy string or a `{ search, role }` object to avoid breaking existing callers.
+- **Audit log filtering**: The audit endpoint existed but ignored filter criteria. Added action/entity/actor/date filters in `AdminService.listAuditLogs()` and kept the response capped at 100 rows with actor display data included.
+- **Account status mutation**: User status existed as a field but there was no guarded mutation path. Added `PATCH /admin/users/:id/status`, a Next BFF proxy, validation for `ACTIVE`/`LOCKED`, and audit history under `admin.users.status.update`.
+- **Server component testability**: Admin pages remain server-rendered, while reusable display logic lives in small components (`AuditLogTable`, `PermissionMatrix`, `UserRoleDashboard`) with focused Jest tests.
+- **TDD evidence**: RED was captured with `npm run test -w @geoai/api -- admin.service.spec.ts --runInBand` and `npm run test -w @geoai/web -- UserRoleDashboard.test.js AuditLogTable.test.js PermissionMatrix.test.js`; GREEN was confirmed with the same API target and the expanded web target including `auth-client.test.js`.
 
 ---
 

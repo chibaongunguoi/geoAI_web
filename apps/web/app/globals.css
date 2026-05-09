@@ -349,6 +349,99 @@ body {
   font-weight: 800;
 }
 
+.admin-user-actions,
+.admin-filter-bar {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-filter-bar {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
+  align-items: end;
+  margin-bottom: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 12px;
+}
+
+.admin-filter-bar label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-filter-bar input,
+.admin-filter-bar select {
+  min-height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-control-bg);
+  color: var(--color-control-text);
+  padding: 0 10px;
+}
+
+.admin-audit-row {
+  grid-template-columns:
+    minmax(220px, 1.4fr)
+    minmax(100px, 0.7fr)
+    minmax(140px, 0.8fr)
+    minmax(150px, 0.8fr);
+}
+
+.empty-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  padding: 14px;
+  font-size: 14px;
+}
+
+.permission-matrix-shell {
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.permission-matrix {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.permission-matrix th,
+.permission-matrix td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px;
+  text-align: center;
+}
+
+.permission-matrix thead th {
+  background: var(--color-card-soft-bg);
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
+.permission-matrix tbody th {
+  text-align: left;
+}
+
+.permission-matrix tbody th strong,
+.permission-matrix tbody th span {
+  display: block;
+}
+
+.permission-matrix tbody th span {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
 .layer-panel {
   display: grid;
   gap: 10px;

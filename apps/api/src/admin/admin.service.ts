@@ -6,12 +6,13 @@ type Delegate = {
   findMany?: (args?: unknown) => Promise<unknown[]>;
   findUnique?: (args: unknown) => Promise<unknown>;
   create?: (args: unknown) => Promise<unknown>;
+  update?: (args: unknown) => Promise<unknown>;
   deleteMany?: (args: unknown) => Promise<unknown>;
   createMany?: (args: unknown) => Promise<unknown>;
 };
 
 type AdminPrisma = {
-  user: Required<Pick<Delegate, "findMany" | "findUnique">>;
+  user: Required<Pick<Delegate, "findMany" | "findUnique" | "update">>;
   role: Required<Pick<Delegate, "findMany" | "findUnique">>;
   userRole: Required<Pick<Delegate, "deleteMany" | "createMany">>;
   permission: Required<Pick<Delegate, "findMany">>;
@@ -28,21 +29,54 @@ type IdRow = {
   id: string;
 };
 
+type ListUsersInput = {
+  search?: string;
+  role?: string;
+};
+
+type ListAuditLogsInput = {
+  action?: string;
+  entityType?: string;
+  actorUserId?: string;
+  from?: string;
+  to?: string;
+};
+
+const USER_STATUSES = ["ACTIVE", "LOCKED"] as const;
+type UserStatus = (typeof USER_STATUSES)[number];
+
 @Injectable()
 export class AdminService {
   constructor(@Inject(PrismaService) private readonly prisma: AdminPrisma) {}
 
-  listUsers(search?: string) {
-    return this.prisma.user.findMany({
-      where: search
-        ? {
-            OR: [
-              { email: { contains: search, mode: "insensitive" } },
-              { username: { contains: search, mode: "insensitive" } },
-              { name: { contains: search, mode: "insensitive" } }
-            ]
+  listUsers(input?: string | ListUsersInput) {
+    const filters = typeof input === "string" ? { search: input } : input || {};
+    const andFilters: Record<string, unknown>[] = [];
+
+    if (filters.search) {
+      andFilters.push({
+        OR: [
+          { email: { contains: filters.search, mode: "insensitive" } },
+          { username: { contains: filters.search, mode: "insensitive" } },
+          { name: { contains: filters.search, mode: "insensitive" } }
+        ]
+      });
+    }
+
+    if (this.validRoleCode(filters.role)) {
+      andFilters.push({
+        roles: {
+          some: {
+            role: {
+              code: filters.role
+            }
           }
-        : undefined,
+        }
+      });
+    }
+
+    return this.prisma.user.findMany({
+      where: andFilters.length > 0 ? { AND: andFilters } : undefined,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -96,6 +130,34 @@ export class AdminService {
     });
   }
 
+  async updateUserStatus(userId: string, status: string, actorUserId?: string) {
+    const nextStatus = this.validUserStatus(status);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { status: nextStatus }
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorUserId,
+        action: "admin.users.status.update",
+        entityType: "User",
+        entityId: userId,
+        metadata: {
+          status: nextStatus
+        }
+      }
+    });
+
+    return updated;
+  }
+
   listRoles() {
     return this.prisma.role.findMany({
       orderBy: { code: "asc" },
@@ -135,10 +197,40 @@ export class AdminService {
     });
   }
 
-  listAuditLogs() {
+  listAuditLogs(filters: ListAuditLogsInput = {}) {
+    const where: Record<string, unknown> = {};
+
+    if (filters.action) {
+      where.action = { contains: filters.action };
+    }
+
+    if (filters.entityType) {
+      where.entityType = filters.entityType;
+    }
+
+    if (filters.actorUserId) {
+      where.actorUserId = filters.actorUserId;
+    }
+
+    const createdAt = this.auditDateRange(filters.from, filters.to);
+    if (createdAt) {
+      where.createdAt = createdAt;
+    }
+
     return this.prisma.auditLog.findMany({
+      where,
       orderBy: { createdAt: "desc" },
-      take: 100
+      take: 100,
+      include: {
+        actor: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            name: true
+          }
+        }
+      }
     });
   }
 
@@ -146,6 +238,38 @@ export class AdminService {
     return roleCodes.filter((roleCode): roleCode is RoleCode =>
       ROLE_CODES.includes(roleCode as RoleCode)
     );
+  }
+
+  private validRoleCode(roleCode?: string): roleCode is RoleCode {
+    return ROLE_CODES.includes(roleCode as RoleCode);
+  }
+
+  private validUserStatus(status: string): UserStatus {
+    if (USER_STATUSES.includes(status as UserStatus)) {
+      return status as UserStatus;
+    }
+
+    throw new BadRequestException("User status is invalid");
+  }
+
+  private auditDateRange(from?: string, to?: string) {
+    const range: { gte?: Date; lte?: Date } = {};
+
+    if (from) {
+      const start = new Date(`${from}T00:00:00.000Z`);
+      if (Number.isFinite(start.getTime())) {
+        range.gte = start;
+      }
+    }
+
+    if (to) {
+      const end = new Date(`${to}T23:59:59.999Z`);
+      if (Number.isFinite(end.getTime())) {
+        range.lte = end;
+      }
+    }
+
+    return range.gte || range.lte ? range : undefined;
   }
 
   private async ensureAdminRemains(

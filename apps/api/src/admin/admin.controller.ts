@@ -12,8 +12,8 @@ export class AdminController {
 
   @Get("users")
   @RequirePermissions("admin.users.view")
-  listUsers(@Query("search") search?: string) {
-    return this.admin.listUsers(search);
+  listUsers(@Query("search") search?: string, @Query("role") role?: string) {
+    return this.admin.listUsers({ search, role });
   }
 
   @Patch("users/:id/roles")
@@ -25,6 +25,17 @@ export class AdminController {
   ) {
     const actor = request as Request & { user?: { sub?: string; id?: string } };
     return this.admin.updateUserRoles(id, body.roles || [], actor.user?.sub || actor.user?.id);
+  }
+
+  @Patch("users/:id/status")
+  @RequirePermissions("admin.users.manage")
+  updateUserStatus(
+    @Param("id") id: string,
+    @Body() body: { status?: string },
+    @Req() request: Request
+  ) {
+    const actor = request as Request & { user?: { sub?: string; id?: string } };
+    return this.admin.updateUserStatus(id, body.status || "", actor.user?.sub || actor.user?.id);
   }
 
   @Get("roles")
@@ -50,7 +61,13 @@ export class AdminController {
 
   @Get("audit-logs")
   @RequirePermissions("admin.logs.view")
-  listAuditLogs() {
-    return this.admin.listAuditLogs();
+  listAuditLogs(
+    @Query("action") action?: string,
+    @Query("entityType") entityType?: string,
+    @Query("actorUserId") actorUserId?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string
+  ) {
+    return this.admin.listAuditLogs({ action, entityType, actorUserId, from, to });
   }
 }
