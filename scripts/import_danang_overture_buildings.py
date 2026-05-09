@@ -1,13 +1,10 @@
-"""Bulk import ward-clipped Da Nang Overture buildings into PostgreSQL.
+"""Bulk import ward-clipped Da Nang Overture buildings into SQLite.
 
 Dry run:
   .venv310\\Scripts\\python.exe scripts\\import_danang_overture_buildings.py --dry-run
 
 Full import:
   .venv310\\Scripts\\python.exe scripts\\import_danang_overture_buildings.py
-
-Resume a staged/upsert import:
-  .venv310\\Scripts\\python.exe scripts\\import_danang_overture_buildings.py --resume
 """
 
 from __future__ import annotations
@@ -25,6 +22,7 @@ from dataclasses import astuple, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator
+import sqlite3
 
 import fiona
 from shapely.geometry import shape
@@ -34,103 +32,10 @@ from shapely.geometry.base import BaseGeometry
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GPKG = ROOT / "geoai_data" / "danang" / "overture_danang.gpkg"
 DEFAULT_WARDS = ROOT / "geoai_data" / "danang" / "gadm41_danang_wards.geojson"
-DEFAULT_BATCH_SIZE = 5000
-IMPORT_LOCK_ID = 2026050401
-IMPORT_STATE_KEY = "danang_overture_buildings"
-
-STAGE_COLUMNS = [
-    "code",
-    "overture_id",
-    "name",
-    "address_line",
-    "street",
-    "ward",
-    "district",
-    "city",
-    "property_type",
-    "status",
-    "source",
-    "source_version",
-    "level",
-    "height",
-    "floors",
-    "area_sqm",
-    "centroid_lat",
-    "centroid_lng",
-    "bbox",
-    "geometry",
-    "attributes",
-    "search_text",
-    "search_text_normalized",
-]
-
-CREATE_STAGE_SQL = """
-CREATE UNLOGGED TABLE IF NOT EXISTS building_property_import_stage (
-  stage_id BIGSERIAL PRIMARY KEY,
-  code TEXT NOT NULL,
-  overture_id TEXT NOT NULL,
-  name TEXT,
-  address_line TEXT,
-  street TEXT,
-  ward TEXT NOT NULL,
-  district TEXT NOT NULL,
-  city TEXT NOT NULL,
-  property_type TEXT NOT NULL,
-  status TEXT NOT NULL,
-  source TEXT NOT NULL,
-  source_version TEXT,
-  level DOUBLE PRECISION,
-  height DOUBLE PRECISION,
-  floors INTEGER,
-  area_sqm DOUBLE PRECISION,
-  centroid_lat DOUBLE PRECISION,
-  centroid_lng DOUBLE PRECISION,
-  bbox JSONB,
-  geometry JSONB,
-  attributes JSONB,
-  search_text TEXT NOT NULL,
-  search_text_normalized TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS building_property_import_stage_overture_id_idx
-  ON building_property_import_stage (overture_id);
-"""
-
-CREATE_STATE_SQL = """
-CREATE TABLE IF NOT EXISTS building_property_import_state (
-  key TEXT PRIMARY KEY,
-  last_stage_id BIGINT NOT NULL DEFAULT 0,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-"""
-
-def stage_placeholders() -> str:
-    placeholders = ["%s"] * len(STAGE_COLUMNS)
-    for index in (18, 19, 20):
-        placeholders[index] = "%s::jsonb"
-    return ", ".join(placeholders)
-
-
-INSERT_STAGE_SQL = f"""
-INSERT INTO building_property_import_stage ({", ".join(STAGE_COLUMNS)})
-VALUES ({stage_placeholders()})
-"""
+DEFAULT_BATCH_SIZE = 1000
 
 UPSERT_SQL = """
-WITH batch AS (
-  SELECT *
-  FROM building_property_import_stage
-  WHERE stage_id > %s
-  ORDER BY stage_id
-  LIMIT %s
-),
-existing AS (
-  SELECT COUNT(*)::INTEGER AS existing_count
-  FROM batch
-  JOIN "BuildingProperty"
-    ON "BuildingProperty"."overtureId" = batch.overture_id
-),
-upserted AS (
-  INSERT INTO "BuildingProperty" (
+INSERT INTO "BuildingProperty" (
     "id",
     "code",
     "overtureId",
@@ -157,36 +62,9 @@ upserted AS (
     "searchTextNormalized",
     "createdAt",
     "updatedAt"
-  )
-  SELECT
-    concat('ovt_', lower(replace(overture_id, '-', ''))),
-    code,
-    overture_id,
-    name,
-    address_line,
-    street,
-    ward,
-    district,
-    city,
-    property_type,
-    status,
-    source,
-    source_version,
-    level,
-    height,
-    floors,
-    area_sqm,
-    centroid_lat,
-    centroid_lng,
-    bbox,
-    geometry,
-    attributes,
-    search_text,
-    search_text_normalized,
-    CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  FROM batch
-  ON CONFLICT ("overtureId") DO UPDATE SET
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT ("overtureId") DO UPDATE SET
     "name" = COALESCE("BuildingProperty"."name", EXCLUDED."name"),
     "addressLine" = COALESCE("BuildingProperty"."addressLine", EXCLUDED."addressLine"),
     "street" = COALESCE("BuildingProperty"."street", EXCLUDED."street"),
@@ -208,22 +86,7 @@ upserted AS (
     "searchText" = EXCLUDED."searchText",
     "searchTextNormalized" = EXCLUDED."searchTextNormalized",
     "updatedAt" = CURRENT_TIMESTAMP
-  RETURNING 1
-),
-progress AS (
-  SELECT
-    COALESCE(MAX(stage_id), %s)::BIGINT AS max_stage_id,
-    COUNT(*)::INTEGER AS rows_seen
-  FROM batch
-)
-SELECT
-  progress.max_stage_id,
-  progress.rows_seen,
-  (SELECT COUNT(*)::INTEGER FROM upserted) AS upserted_count,
-  (SELECT existing_count FROM existing) AS existing_count
-FROM progress;
 """
-
 
 @dataclass(frozen=True)
 class WardBoundary:
@@ -233,7 +96,8 @@ class WardBoundary:
 
 
 @dataclass(frozen=True)
-class BuildingStageRow:
+class BuildingPropertyRow:
+    id: str
     code: str
     overture_id: str
     name: str | None
@@ -252,9 +116,9 @@ class BuildingStageRow:
     area_sqm: float | None
     centroid_lat: float
     centroid_lng: float
-    bbox: dict[str, float]
-    geometry: dict[str, Any]
-    attributes: dict[str, Any]
+    bbox: str
+    geometry: str
+    attributes: str
     search_text: str
     search_text_normalized: str
 
@@ -272,23 +136,10 @@ class DryRunSummary:
 
 @dataclass(frozen=True)
 class ImportResult:
-    staged: int
-    created: int
-    updated: int
     imported: int
     outside_scope: int
     skipped_invalid: int
     source_version: str
-
-
-@dataclass(frozen=True)
-class StorageSnapshot:
-    max_bytes: int | None
-    db_bytes: int
-    property_bytes: int
-    stage_bytes: int
-    property_row_count: int
-    overture_count: int
 
 
 def load_dotenv(path: Path) -> None:
@@ -302,18 +153,6 @@ def load_dotenv(path: Path) -> None:
 
         key, value = text.split("=", 1)
         os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
-
-
-def import_psycopg():
-    try:
-        import psycopg  # type: ignore
-    except ImportError as error:
-        raise RuntimeError(
-            "psycopg is required for direct PostgreSQL import. "
-            "Install with: .venv310\\Scripts\\python.exe -m pip install \"psycopg[binary]\""
-        ) from error
-
-    return psycopg
 
 
 def clean_string(value: Any) -> str | None:
@@ -473,7 +312,7 @@ def stage_row_from_feature(
     feature: dict[str, Any],
     wards: Iterable[WardBoundary],
     source_version: str,
-) -> BuildingStageRow | None:
+) -> BuildingPropertyRow | None:
     properties = dict(feature.get("properties") or {})
     overture_id = clean_string(properties.get("id")) or clean_string(feature.get("id"))
 
@@ -509,8 +348,12 @@ def stage_row_from_feature(
         ]
         if item
     )
+    
+    compact = overture_id.replace("-", "").lower()
+    row_id = f"ovt_{compact}"
 
-    return BuildingStageRow(
+    return BuildingPropertyRow(
+        id=row_id,
         code=code,
         overture_id=overture_id,
         name=None,
@@ -529,20 +372,20 @@ def stage_row_from_feature(
         area_sqm=number_or_none(properties.get("areaSqm") or properties.get("area_sqm")),
         centroid_lat=round(float(centroid.y), 6),
         centroid_lng=round(float(centroid.x), 6),
-        bbox={"xmin": xmin, "ymin": ymin, "xmax": xmax, "ymax": ymax},
-        geometry=json_safe(geometry_payload),
-        attributes={
+        bbox=json.dumps({"xmin": xmin, "ymin": ymin, "xmax": xmax, "ymax": ymax}, ensure_ascii=False),
+        geometry=json.dumps(json_safe(geometry_payload), ensure_ascii=False),
+        attributes=json.dumps({
             "trustedColumnsOnly": True,
             "adminBoundarySource": "GADM 4.1",
             "geometrySource": "Overture Maps buildings",
-        },
+        }, ensure_ascii=False),
         search_text=search_text,
         search_text_normalized=normalize_search_text(search_text),
     )
 
 
 def row_matches_filters(
-    row: BuildingStageRow,
+    row: BuildingPropertyRow,
     districts: set[str] | None = None,
     wards: set[str] | None = None,
 ) -> bool:
@@ -617,156 +460,63 @@ def dry_run_summary(
     )
 
 
-def prepare_database(connection: Any, resume: bool) -> None:
-    with connection.cursor() as cursor:
-        cursor.execute(CREATE_STAGE_SQL)
-        cursor.execute(CREATE_STATE_SQL)
+def connect_database() -> sqlite3.Connection:
+    load_dotenv(ROOT / ".env")
+    database_url = os.getenv("DATABASE_URL")
 
-        if not resume:
-            cursor.execute("TRUNCATE building_property_import_stage RESTART IDENTITY")
-            cursor.execute(
-                """
-                INSERT INTO building_property_import_state (key, last_stage_id)
-                VALUES (%s, 0)
-                ON CONFLICT (key) DO UPDATE SET
-                  last_stage_id = 0,
-                  updated_at = CURRENT_TIMESTAMP
-                """,
-                (IMPORT_STATE_KEY,),
-            )
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is required")
 
-    connection.commit()
+    if database_url.startswith("file:"):
+        # The env var is relative to schema.prisma, so we just use the ROOT resolution.
+        db_path = ROOT / "geoai_data" / "geoai.db"
+    else:
+        db_path = ROOT / "geoai_data" / "geoai.db"
+
+    return sqlite3.connect(db_path)
 
 
-def parse_storage_size_to_bytes(value: str | None) -> int | None:
-    if not value:
-        return None
+def verify_import(connection: sqlite3.Connection, expected_importable_count: int | None = None) -> dict[str, int]:
+    cursor = connection.cursor()
+    cursor.execute("""SELECT COUNT(*) FROM "BuildingProperty" WHERE source = 'overture'""")
+    overture_count = int(cursor.fetchone()[0])
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM (
+          SELECT "overtureId"
+          FROM "BuildingProperty"
+          WHERE source = 'overture'
+          GROUP BY "overtureId"
+          HAVING COUNT(*) > 1
+        )
+        """
+    )
+    duplicate_overture_ids = int(cursor.fetchone()[0])
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM "BuildingProperty"
+        WHERE source = 'overture'
+          AND ("ward" IS NULL OR "district" IS NULL)
+        """
+    )
+    missing_admin = int(cursor.fetchone()[0])
 
-    match = re.match(r"^\s*(\d+(?:\.\d+)?)\s*([KMGT]?B)?\s*$", value, re.IGNORECASE)
-    if not match:
-        return None
-
-    amount = float(match.group(1))
-    unit = (match.group(2) or "B").upper()
-    multipliers = {
-        "B": 1,
-        "KB": 1024,
-        "MB": 1024**2,
-        "GB": 1024**3,
-        "TB": 1024**4,
+    result = {
+        "overtureCount": overture_count,
+        "duplicateOvertureIds": duplicate_overture_ids,
+        "missingAdmin": missing_admin,
     }
 
-    return int(amount * multipliers[unit])
+    if expected_importable_count is not None:
+        result["expectedImportableCount"] = expected_importable_count
+
+    return result
 
 
-def fetch_storage_snapshot(connection: Any) -> StorageSnapshot:
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT
-              current_setting('neon.max_cluster_size', true),
-              pg_database_size(current_database())::BIGINT,
-              CASE
-                WHEN to_regclass('"BuildingProperty"') IS NULL THEN 0
-                ELSE pg_total_relation_size('"BuildingProperty"'::regclass)
-              END::BIGINT,
-              CASE
-                WHEN to_regclass('building_property_import_stage') IS NULL THEN 0
-                ELSE pg_total_relation_size('building_property_import_stage'::regclass)
-              END::BIGINT
-            """
-        )
-        max_size, db_bytes, property_bytes, stage_bytes = cursor.fetchone()
-
-        cursor.execute(
-            """
-            SELECT
-              COUNT(*)::INTEGER,
-              COUNT(*) FILTER (WHERE source = 'overture')::INTEGER
-            FROM "BuildingProperty"
-            """
-        )
-        property_row_count, overture_count = cursor.fetchone()
-
-    return StorageSnapshot(
-        max_bytes=parse_storage_size_to_bytes(max_size),
-        db_bytes=int(db_bytes),
-        property_bytes=int(property_bytes),
-        stage_bytes=int(stage_bytes),
-        property_row_count=int(property_row_count),
-        overture_count=int(overture_count),
-    )
-
-
-def storage_capacity_error(snapshot: StorageSnapshot, target_importable_count: int | None = None) -> str | None:
-    if snapshot.max_bytes is None:
-        return None
-
-    if snapshot.stage_bytes > snapshot.max_bytes * 0.70:
-        return (
-            "Current staging table is too large for this database project. "
-            f"staging table={snapshot.stage_bytes} bytes, limit={snapshot.max_bytes} bytes. "
-            "Drop/truncate staging and import a smaller district or ward subset."
-        )
-
-    if target_importable_count and snapshot.property_row_count > 0 and snapshot.overture_count > 0:
-        average_property_bytes = snapshot.property_bytes / snapshot.property_row_count
-        projected_property_bytes = int(average_property_bytes * target_importable_count)
-        if projected_property_bytes > snapshot.max_bytes * 0.85:
-            return (
-                "The projected BuildingProperty size is too large for this database project. "
-                f"projected BuildingProperty size={projected_property_bytes} bytes, "
-                f"limit={snapshot.max_bytes} bytes, target rows={target_importable_count}. "
-                "Use --district/--ward to import a smaller subset or move to a larger Neon plan."
-            )
-
-    return None
-
-
-def assert_storage_capacity(connection: Any, target_importable_count: int | None = None) -> None:
-    snapshot = fetch_storage_snapshot(connection)
-    message = storage_capacity_error(snapshot, target_importable_count)
-    if message:
-        raise RuntimeError(message)
-
-
-def acquire_advisory_lock(connection: Any) -> None:
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT pg_try_advisory_lock(%s)", (IMPORT_LOCK_ID,))
-        locked = cursor.fetchone()[0]
-
-    if not locked:
-        raise RuntimeError("Another Da Nang Overture building import is already running")
-
-
-def release_advisory_lock(connection: Any) -> None:
-    try:
-        connection.rollback()
-    except Exception:
-        pass
-
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_unlock(%s)", (IMPORT_LOCK_ID,))
-    connection.commit()
-
-
-def stage_rows(connection: Any, rows: list[BuildingStageRow]) -> None:
-    if not rows:
-        return
-
-    params = [
-        tuple(json.dumps(value, ensure_ascii=False) if index in {18, 19, 20} else value for index, value in enumerate(astuple(row)))
-        for row in rows
-    ]
-
-    with connection.cursor() as cursor:
-        cursor.executemany(INSERT_STAGE_SQL, params)
-
-    connection.commit()
-
-
-def stage_features(
-    connection: Any,
+def import_features(
+    connection: sqlite3.Connection,
     features: Iterable[dict[str, Any]],
     wards: list[WardBoundary],
     source_version: str,
@@ -774,10 +524,10 @@ def stage_features(
     districts: set[str] | None = None,
     ward_filters: set[str] | None = None,
 ) -> tuple[int, int, int]:
-    staged = 0
+    imported = 0
     outside_scope = 0
     skipped_invalid = 0
-    batch: list[BuildingStageRow] = []
+    batch: list[BuildingPropertyRow] = []
 
     for feature in features:
         try:
@@ -796,132 +546,26 @@ def stage_features(
 
         batch.append(row)
         if len(batch) >= batch_size:
-            stage_rows(connection, batch)
-            staged += len(batch)
-            print(json.dumps({"stage": "staged", "rows": staged, "outsideScope": outside_scope}), flush=True)
+            insert_batch(connection, batch)
+            imported += len(batch)
+            print(json.dumps({"stage": "imported", "rows": imported, "outsideScope": outside_scope}), flush=True)
             batch.clear()
 
     if batch:
-        stage_rows(connection, batch)
-        staged += len(batch)
-        print(json.dumps({"stage": "staged", "rows": staged, "outsideScope": outside_scope}), flush=True)
+        insert_batch(connection, batch)
+        imported += len(batch)
+        print(json.dumps({"stage": "imported", "rows": imported, "outsideScope": outside_scope}), flush=True)
 
-    return staged, outside_scope, skipped_invalid
-
-
-def last_stage_id(connection: Any) -> int:
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT last_stage_id
-            FROM building_property_import_state
-            WHERE key = %s
-            """,
-            (IMPORT_STATE_KEY,),
-        )
-        row = cursor.fetchone()
-
-    return 0 if row is None else int(row[0])
+    return imported, outside_scope, skipped_invalid
 
 
-def set_last_stage_id(connection: Any, value: int) -> None:
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            INSERT INTO building_property_import_state (key, last_stage_id)
-            VALUES (%s, %s)
-            ON CONFLICT (key) DO UPDATE SET
-              last_stage_id = EXCLUDED.last_stage_id,
-              updated_at = CURRENT_TIMESTAMP
-            """,
-            (IMPORT_STATE_KEY, value),
-        )
+def insert_batch(connection: sqlite3.Connection, rows: list[BuildingPropertyRow]) -> None:
+    if not rows:
+        return
 
-
-def upsert_staged_rows(connection: Any, batch_size: int) -> tuple[int, int]:
-    created = 0
-    updated = 0
-    current_stage_id = last_stage_id(connection)
-
-    while True:
-        with connection.cursor() as cursor:
-            cursor.execute(UPSERT_SQL, (current_stage_id, batch_size, current_stage_id))
-            max_stage_id, rows_seen, upserted_count, existing_count = cursor.fetchone()
-
-        if rows_seen == 0:
-            connection.commit()
-            break
-
-        batch_updated = int(existing_count)
-        batch_created = int(upserted_count) - batch_updated
-        current_stage_id = int(max_stage_id)
-        set_last_stage_id(connection, current_stage_id)
-        connection.commit()
-        created += batch_created
-        updated += batch_updated
-        print(
-            json.dumps(
-                {
-                    "stage": "upserted",
-                    "lastStageId": current_stage_id,
-                    "created": created,
-                    "updated": updated,
-                }
-            ),
-            flush=True,
-        )
-
-    return created, updated
-
-
-def verify_import(connection: Any, expected_importable_count: int | None = None) -> dict[str, int]:
-    with connection.cursor() as cursor:
-        cursor.execute("""SELECT COUNT(*) FROM "BuildingProperty" WHERE source = 'overture'""")
-        overture_count = int(cursor.fetchone()[0])
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM (
-              SELECT "overtureId"
-              FROM "BuildingProperty"
-              WHERE source = 'overture'
-              GROUP BY "overtureId"
-              HAVING COUNT(*) > 1
-            ) duplicates
-            """
-        )
-        duplicate_overture_ids = int(cursor.fetchone()[0])
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM "BuildingProperty"
-            WHERE source = 'overture'
-              AND ("ward" IS NULL OR "district" IS NULL)
-            """
-        )
-        missing_admin = int(cursor.fetchone()[0])
-
-    result = {
-        "overtureCount": overture_count,
-        "duplicateOvertureIds": duplicate_overture_ids,
-        "missingAdmin": missing_admin,
-    }
-
-    if expected_importable_count is not None:
-        result["expectedImportableCount"] = expected_importable_count
-
-    return result
-
-
-def connect_database() -> Any:
-    load_dotenv(ROOT / ".env")
-    database_url = os.getenv("DATABASE_URL")
-
-    if not database_url:
-        raise RuntimeError("DATABASE_URL is required")
-
-    psycopg = import_psycopg()
-    return psycopg.connect(database_url)
+    params = [astuple(row) for row in rows]
+    with connection:
+        connection.executemany(UPSERT_SQL, params)
 
 
 def run_import(args: argparse.Namespace) -> int:
@@ -946,33 +590,21 @@ def run_import(args: argparse.Namespace) -> int:
         return 0
 
     connection = connect_database()
-    acquire_advisory_lock(connection)
 
     try:
-        prepare_database(connection, args.resume)
-        assert_storage_capacity(connection, args.expected_importable_count)
+        imported, outside_scope, skipped_invalid = import_features(
+            connection,
+            features,
+            wards,
+            source_version,
+            args.batch_size,
+            district_filters,
+            ward_filters,
+        )
 
-        staged = 0
-        outside_scope = 0
-        skipped_invalid = 0
-        if not args.resume:
-            staged, outside_scope, skipped_invalid = stage_features(
-                connection,
-                features,
-                wards,
-                source_version,
-                args.batch_size,
-                district_filters,
-                ward_filters,
-            )
-
-        created, updated = upsert_staged_rows(connection, args.batch_size)
-        verification = verify_import(connection, staged if staged > 0 else None)
+        verification = verify_import(connection, imported if imported > 0 else None)
         result = ImportResult(
-            staged=staged,
-            created=created,
-            updated=updated,
-            imported=created + updated,
+            imported=imported,
             outside_scope=outside_scope,
             skipped_invalid=skipped_invalid,
             source_version=source_version,
@@ -980,7 +612,6 @@ def run_import(args: argparse.Namespace) -> int:
         print(json.dumps({**result.__dict__, "verification": verification}, ensure_ascii=False))
         return 0
     finally:
-        release_advisory_lock(connection)
         connection.close()
 
 
@@ -992,7 +623,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--resume", action="store_true")
     parser.add_argument(
         "--district",
         action="append",
@@ -1008,7 +638,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--expected-importable-count",
         type=int,
-        help="Optional storage preflight target from a prior --dry-run.",
+        help="Optional storage preflight target from a prior --dry-run. Ignored for SQLite.",
     )
     return parser.parse_args(argv)
 

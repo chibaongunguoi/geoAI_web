@@ -179,13 +179,23 @@ def embed_texts(texts: Sequence[str], service_url: str, model: str) -> List[List
 
 
 def read_rows(database_url: str) -> List[dict]:
-    import psycopg
-    from psycopg.rows import dict_row
+    import sqlite3
+    from pathlib import Path
 
-    with psycopg.connect(database_url, row_factory=dict_row) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(SELECT_SQL)
-            return list(cursor.fetchall())
+    if database_url.startswith("file:"):
+        db_path = str(Path(__file__).resolve().parents[1] / "geoai_data" / "geoai.db")
+    else:
+        db_path = str(Path(__file__).resolve().parents[1] / "geoai_data" / "geoai.db")
+
+    def dict_factory(cursor, row):
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+        return d
+
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = dict_factory
+        return list(connection.execute(SELECT_SQL))
 
 
 def elasticsearch_client():

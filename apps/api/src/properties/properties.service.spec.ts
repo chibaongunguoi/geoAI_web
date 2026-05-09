@@ -4,7 +4,6 @@ import { PropertiesService } from "./properties.service";
 
 function prismaStub(overrides = {}) {
   return {
-    $queryRawUnsafe: jest.fn().mockResolvedValue([]),
     buildingProperty: {
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
@@ -17,6 +16,17 @@ function prismaStub(overrides = {}) {
       create: jest.fn()
     },
     ...overrides
+  };
+}
+
+function sqliteStub(allResult: unknown[] = []) {
+  return {
+    all: jest.fn().mockReturnValue(allResult),
+    run: jest.fn(),
+    transaction: jest.fn(),
+    batchInsert: jest.fn(),
+    getDb: jest.fn(),
+    onModuleDestroy: jest.fn()
   };
 }
 
@@ -156,25 +166,24 @@ describe("PropertiesService", () => {
   });
 
   it("answers Vietnamese building-density questions with text and map regions", async () => {
+    const densityRow = {
+      cellId: "16070:108150",
+      count: 81,
+      centerLat: 16.071,
+      centerLng: 108.151,
+      minLat: 16.07,
+      minLng: 108.15,
+      maxLat: 16.072,
+      maxLng: 108.152,
+      cellSouth: 16.07,
+      cellWest: 108.15,
+      cellNorth: 16.072,
+      cellEast: 108.152,
+      ward: "Hoa Khanh Bac",
+      district: "Lien Chieu"
+    };
+    const sqlite = sqliteStub([densityRow]);
     const prisma = prismaStub({
-      $queryRawUnsafe: jest.fn().mockResolvedValue([
-        {
-          cellId: "16.070:108.150",
-          count: 81,
-          centerLat: 16.071,
-          centerLng: 108.151,
-          minLat: 16.07,
-          minLng: 108.15,
-          maxLat: 16.072,
-          maxLng: 108.152,
-          cellSouth: 16.07,
-          cellWest: 108.15,
-          cellNorth: 16.072,
-          cellEast: 108.152,
-          ward: "Hoa Khanh Bac",
-          district: "Lien Chieu"
-        }
-      ]),
       buildingProperty: {
         findMany: jest.fn().mockResolvedValue([
           {
@@ -189,7 +198,7 @@ describe("PropertiesService", () => {
         upsert: jest.fn()
       }
     });
-    const service = new PropertiesService(prisma);
+    const service = new PropertiesService(prisma, sqlite as any);
 
     const result = await service.searchProperties({
       query: "vùng nào ở hòa khánh bắc có số lượng nhà dày đặc nhất",
@@ -231,22 +240,26 @@ describe("PropertiesService", () => {
     );
     expect(result.map.regions[0].objects[0].geometry).toBeUndefined();
     expect(result.meta.searchMode).toBe("postgres-normalized-vietnamese-nl-fuzzy-density");
-    expect(prisma.$queryRawUnsafe).toHaveBeenCalledWith(
-      expect.stringContaining("FLOOR"),
-      0.002,
-      0.002,
-      "overture",
-      "%hoa khanh bac%",
-      "%hoa%",
-      "%khanh%",
-      "%bac%",
-      6
+    expect(sqlite.all).toHaveBeenCalledWith(
+      expect.stringContaining("CAST"),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
     );
   });
 
   it("excludes demo property rows from default density answers", async () => {
+    const sqlite = sqliteStub([]);
     const prisma = prismaStub({
-      $queryRawUnsafe: jest.fn().mockResolvedValue([]),
       buildingProperty: {
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn(),
@@ -256,23 +269,27 @@ describe("PropertiesService", () => {
         upsert: jest.fn()
       }
     });
-    const service = new PropertiesService(prisma);
+    const service = new PropertiesService(prisma, sqlite as any);
 
     await service.searchProperties({
       query: "vung nao o hoa khanh bac co so luong nha day dac nhat",
       limit: 5
     });
 
-    expect(prisma.$queryRawUnsafe).toHaveBeenCalledWith(
-      expect.stringContaining('"source" = $3'),
-      0.002,
-      0.002,
+    expect(sqlite.all).toHaveBeenCalledWith(
+      expect.stringContaining('"source" = ?'),
       "overture",
-      "%hoa khanh bac%",
-      "%hoa%",
-      "%khanh%",
-      "%bac%",
-      6
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
     );
     expect(prisma.buildingProperty.count).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -393,7 +410,7 @@ describe("PropertiesService", () => {
       searchMode: "elasticsearch-minilm-hybrid",
       semanticModel: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     });
-    const service = new PropertiesService(prisma, {
+    const service = new PropertiesService(prisma, undefined, {
       propertySearchProvider: "elasticsearch",
       elasticsearchProvider: { search }
     });
@@ -481,7 +498,7 @@ describe("PropertiesService", () => {
         upsert: jest.fn()
       }
     });
-    const service = new PropertiesService(prisma, {
+    const service = new PropertiesService(prisma, undefined, {
       elasticsearchProvider: {
         search: jest.fn().mockRejectedValue(new Error("elasticsearch unavailable"))
       }

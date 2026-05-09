@@ -65,13 +65,14 @@ async function main() {
     });
 
     await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
-    await prisma.rolePermission.createMany({
-      data: keys.map((key) => ({
-        roleId: role.id,
-        permissionId: permissionByKey.get(key)!.id
-      })),
-      skipDuplicates: true
-    });
+    for (const key of keys) {
+      const permId = permissionByKey.get(key)!.id;
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: role.id, permissionId: permId } },
+        update: {},
+        create: { roleId: role.id, permissionId: permId }
+      });
+    }
   }
 
   const adminRole = await prisma.role.findUniqueOrThrow({

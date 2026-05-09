@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Optional
 } from "@nestjs/common";
+import { BetterSqliteService } from "../prisma/better-sqlite.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
 import { PropertySearchProvider } from "./property-search-provider";
@@ -19,7 +20,6 @@ type Delegate = {
 };
 
 type PropertiesPrisma = {
-  $queryRawUnsafe?: <T = unknown>(query: string, ...values: unknown[]) => Promise<T>;
   buildingProperty: Required<
     Pick<Delegate, "findMany" | "findUnique" | "count" | "create" | "update" | "upsert">
   >;
@@ -268,12 +268,13 @@ export class PropertiesService {
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PropertiesPrisma,
+    @Optional() @Inject(BetterSqliteService) private readonly sqlite?: BetterSqliteService,
     @Optional()
     @Inject(PROPERTIES_SERVICE_OPTIONS)
     options: PropertiesServiceOptions = {}
   ) {
-    this.configuredElasticsearchProvider = options.elasticsearchProvider;
-    this.propertySearchProvider = options.propertySearchProvider;
+    this.configuredElasticsearchProvider = options?.elasticsearchProvider;
+    this.propertySearchProvider = options?.propertySearchProvider;
   }
 
   async searchProperties(input: PropertySearchInput = {}): Promise<any> {
@@ -731,13 +732,12 @@ export class PropertiesService {
     limit: number,
     source: string
   ): Promise<PropertyDensityRegion[]> {
-    if (!this.prisma.$queryRawUnsafe) {
+    if (!this.sqlite) {
       return [];
     }
 
     const terms = this.densitySearchTerms(intent, tokens);
-    const filters = terms.map((_, index) => `"searchTextNormalized" LIKE $${index + 4}`);
-    const whereSql = filters.length > 0 ? `AND ${filters.join(" AND ")}` : "";
+    const termFilters = terms.map(() => `AND "searchTextNormalized" LIKE ?`).join(" ");
     const sql = `
       WITH filtered AS (
         SELECT
@@ -747,54 +747,58 @@ export class PropertiesService {
           "district"
         FROM "BuildingProperty"
         WHERE "deletedAt" IS NULL
-          AND "source" = $3
+          AND "source" = ?
           AND "centroidLat" IS NOT NULL
           AND "centroidLng" IS NOT NULL
-          ${whereSql}
+          ${termFilters}
       ),
       cells AS (
         SELECT
-          FLOOR("centroidLat" / $1)::INTEGER AS lat_cell,
-          FLOOR("centroidLng" / $2)::INTEGER AS lng_cell,
-          COUNT(*)::INTEGER AS count,
-          AVG("centroidLat")::DOUBLE PRECISION AS center_lat,
-          AVG("centroidLng")::DOUBLE PRECISION AS center_lng,
-          MIN("centroidLat")::DOUBLE PRECISION AS min_lat,
-          MIN("centroidLng")::DOUBLE PRECISION AS min_lng,
-          MAX("centroidLat")::DOUBLE PRECISION AS max_lat,
-          MAX("centroidLng")::DOUBLE PRECISION AS max_lng,
+          CAST("centroidLat" / ? AS INTEGER) AS lat_cell,
+          CAST("centroidLng" / ? AS INTEGER) AS lng_cell,
+          COUNT(*) AS count,
+          AVG("centroidLat") AS center_lat,
+          AVG("centroidLng") AS center_lng,
+          MIN("centroidLat") AS min_lat,
+          MIN("centroidLng") AS min_lng,
+          MAX("centroidLat") AS max_lat,
+          MAX("centroidLng") AS max_lng,
           MIN("ward") AS ward,
           MIN("district") AS district
         FROM filtered
         GROUP BY lat_cell, lng_cell
       )
       SELECT
-        concat(lat_cell, ':', lng_cell) AS "cellId",
+        (lat_cell || ':' || lng_cell) AS cellId,
         count,
-        center_lat AS "centerLat",
-        center_lng AS "centerLng",
-        min_lat AS "minLat",
-        min_lng AS "minLng",
-        max_lat AS "maxLat",
-        max_lng AS "maxLng",
-        (lat_cell * $1)::DOUBLE PRECISION AS "cellSouth",
-        (lng_cell * $2)::DOUBLE PRECISION AS "cellWest",
-        ((lat_cell + 1) * $1)::DOUBLE PRECISION AS "cellNorth",
-        ((lng_cell + 1) * $2)::DOUBLE PRECISION AS "cellEast",
+        center_lat AS centerLat,
+        center_lng AS centerLng,
+        min_lat AS minLat,
+        min_lng AS minLng,
+        max_lat AS maxLat,
+        max_lng AS maxLng,
+        (lat_cell * ?) AS cellSouth,
+        (lng_cell * ?) AS cellWest,
+        ((lat_cell + 1) * ?) AS cellNorth,
+        ((lng_cell + 1) * ?) AS cellEast,
         ward,
         district
       FROM cells
       ORDER BY count DESC, center_lat ASC, center_lng ASC
-      LIMIT $${terms.length + 4}
+      LIMIT ?
     `;
-    const rows = await this.prisma.$queryRawUnsafe<DensityRegionRow[]>(
-      sql,
-      DEFAULT_DENSITY_GRID_SIZE,
-      DEFAULT_DENSITY_GRID_SIZE,
+    const params = [
       source,
       ...terms.map((term) => `%${term}%`),
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
       limit
-    );
+    ];
+    const rows = this.sqlite.all<DensityRegionRow>(sql, ...params);
 
     const regions = rows.map((row, index) => this.densityRegion(row, index));
     await this.attachDensityObjects(regions, terms, source);

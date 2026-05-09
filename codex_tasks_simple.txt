@@ -1,0 +1,511 @@
+## NGƯỜI DÙNG
+----------------------------------------
+
+1. [EP01-001] Là người dùng, tôi muốn xem bản đồ nền mặc định khi đăng nhập để bắt đầu làm việc ngay.
+2. [EP01-002] Là người dùng, tôi muốn chuyển đổi giữa OSM, vệ tinh và địa hình để lựa chọn nền phù hợp với ngữ cảnh.
+3. [EP01-003] Là người dùng, tôi muốn phóng to/thu nhỏ bản đồ mượt ở nhiều mức zoom để quan sát đúng khu vực cần xem.
+4. [EP01-004] Là người dùng, tôi muốn di chuyển bản đồ bằng kéo thả để khám phá khu vực làm việc thuận tiện.
+5. [EP01-005] Là người dùng, tôi muốn hệ thống ghi nhớ lớp nền đã chọn ở lần truy cập trước để tiết kiệm thao tác.
+6. [EP01-006] Là người dùng, tôi muốn xem chú giải hoặc thông tin nguồn dữ liệu của lớp nền để hiểu độ tin cậy bản đồ.
+7. [EP01-007] Là người dùng, tôi muốn đặt lớp nền mặc định theo đơn vị hoặc nhóm người dùng để phù hợp nghiệp vụ.
+8. [EP01-008] Là người dùng, tôi muốn giới hạn mức zoom theo từng lớp nền để tránh hiển thị sai hoặc mờ dữ liệu.
+9. [EP01-009] Là người dùng, tôi muốn hệ thống tự chuyển lớp nền khi một nguồn tạm thời không khả dụng để không gián đoạn công việc.
+10. [EP01-010] Là người dùng, tôi muốn xem tọa độ con trỏ khi rê chuột trên bản đồ nền để định vị chính xác.
+11. [EP01-011] Là người dùng, tôi muốn hiển thị tỷ lệ bản đồ và thước tỷ lệ để ước lượng khoảng cách trực quan.
+12. [EP01-012] Là người dùng, tôi muốn tải lại các tile bản đồ nền khi mạng chập chờn để bảo đảm màn hình luôn đầy đủ.
+13. [EP01-013] Là người dùng, tôi muốn cấu hình domain tile hoặc khóa dịch vụ nền để quản trị tích hợp linh hoạt.
+14. [EP01-014] Là người dùng, tôi muốn bật chế độ toàn màn hình khi xem bản đồ nền để có không gian quan sát lớn hơn.
+15. [EP01-015] Là người dùng, tôi muốn hỗ trợ bản đồ nền tiếng Việt để đọc tên đường và địa danh dễ dàng hơn.
+16. [EP01-016] Là người dùng, tôi muốn theo dõi trạng thái kết nối từng nguồn bản đồ nền để chủ động xử lý lỗi tích hợp.
+17. [EP01-017] Là người dùng, tôi muốn cache bản đồ nền của khu vực thường dùng để tăng tốc độ hiển thị.
+18. [EP01-018] Là người dùng, tôi muốn xem danh sách lớp dữ liệu hiện có để lựa chọn lớp cần hiển thị.
+19. [EP01-019] Là người dùng, tôi muốn bật/tắt từng lớp dữ liệu trên bản đồ để tập trung vào thông tin cần thiết.
+20. [EP01-020] Là người dùng, tôi muốn kéo thả thay đổi thứ tự lớp dữ liệu để ưu tiên lớp quan trọng ở phía trên.
+21. [EP01-053] Là người dùng, tôi muốn tìm kiếm vị trí theo tọa độ để di chuyển bản đồ chính xác tới điểm cần kiểm tra.
+22. [EP01-054] Là người dùng, tôi muốn tìm kiếm tài sản theo mã để truy xuất đúng đối tượng cần xử lý.
+23. [EP01-055] Là người dùng, tôi muốn tìm kiếm tài sản theo tên để hỗ trợ người dùng không nhớ mã kỹ thuật.
+24. [EP01-056] Là người dùng, tôi muốn xem gợi ý khi gõ từ khóa tìm kiếm để nhập liệu nhanh hơn.
+25. [EP01-057] Là người dùng, tôi muốn tự động zoom và focus đến kết quả tìm kiếm để giảm thao tác điều hướng.
+26. [EP01-058] Là người dùng, tôi muốn làm nổi bật kết quả tìm kiếm trên bản đồ để dễ phân biệt với các đối tượng khác.
+27. [EP01-059] Là người dùng, tôi muốn xem danh sách nhiều kết quả trùng khớp để lựa chọn đúng tài sản hoặc địa chỉ.
+28. [EP01-060] Là người dùng, tôi muốn lưu lịch sử tìm kiếm gần đây để quay lại các vị trí thường dùng.
+29. [EP01-061] Là người dùng, tôi muốn lọc nguồn tìm kiếm theo địa chỉ hoặc tài sản để có kết quả chính xác hơn.
+30. [EP01-062] Là người dùng, tôi muốn chấp nhận từ khóa không dấu khi tìm kiếm để tăng khả năng tìm thấy dữ liệu.
+31. [EP01-063] Là người dùng, tôi muốn xem lỗi rõ ràng khi không tìm thấy kết quả để biết cần điều chỉnh từ khóa.
+32. [EP01-064] Là người dùng, tôi muốn lưu cấu hình sử dụng gần nhất của Tìm kiếm địa chỉ/vị trí/tài sản để làm việc nhanh hơn trong lần sau.
+33. [EP01-065] Là người dùng, tôi muốn xem lịch sử thao tác trong Tìm kiếm địa chỉ/vị trí/tài sản để truy vết thay đổi khi cần.
+34. [EP01-066] Là người dùng, tôi muốn export dữ liệu/kết quả từ Tìm kiếm địa chỉ/vị trí/tài sản để chia sẻ cho bên liên quan.
+35. [EP01-067] Là người dùng, tôi muốn phân quyền sử dụng Tìm kiếm địa chỉ/vị trí/tài sản theo vai trò để đảm bảo an toàn dữ liệu.
+36. [EP01-068] Là người dùng, tôi muốn nhận cảnh báo khi Tìm kiếm địa chỉ/vị trí/tài sản phát sinh lỗi để xử lý kịp thời.
+37. [EP01-069] Là người dùng, tôi muốn lọc tài sản theo loại để tập trung vào nhóm đối tượng đang quan tâm.
+38. [EP01-070] Là người dùng, tôi muốn lọc tài sản theo trạng thái vận hành để nhận diện nhanh đối tượng bất thường.
+39. [EP01-071] Là người dùng, tôi muốn lọc theo quận/phường để khoanh vùng phạm vi quản lý địa bàn.
+40. [EP01-072] Là người dùng, tôi muốn lọc theo ngày cập nhật để xem các tài sản vừa thay đổi gần đây.
+41. [EP01-073] Là người dùng, tôi muốn kết hợp nhiều điều kiện lọc đồng thời để thu hẹp danh sách đúng nhu cầu.
+42. [EP01-074] Là người dùng, tôi muốn lưu bộ lọc thường dùng thành mẫu để sử dụng lại nhanh chóng.
+43. [EP01-075] Là người dùng, tôi muốn xóa toàn bộ bộ lọc chỉ với một thao tác để quay về trạng thái mặc định.
+44. [EP01-076] Là người dùng, tôi muốn hiển thị số lượng tài sản còn lại sau khi lọc để đánh giá quy mô dữ liệu.
+45. [EP01-077] Là người dùng, tôi muốn đồng bộ bộ lọc giữa bản đồ và bảng dữ liệu để tránh lệch kết quả.
+46. [EP01-078] Là người dùng, tôi muốn lọc nhanh bằng cách bấm vào chú giải hoặc icon trên bản đồ.
+47. [EP01-080] Là người dùng, tôi muốn xem cảnh báo khi bộ lọc quá rộng hoặc quá hẹp để điều chỉnh truy vấn phù hợp.
+48. [EP01-081] Là người dùng, tôi muốn lưu cấu hình sử dụng gần nhất của Lọc hiển thị tài sản để làm việc nhanh hơn trong lần sau.
+49. [EP01-082] Là người dùng, tôi muốn xem lịch sử thao tác trong Lọc hiển thị tài sản để truy vết thay đổi khi cần.
+50. [EP01-083] Là người dùng, tôi muốn export dữ liệu/kết quả từ Lọc hiển thị tài sản để chia sẻ cho bên liên quan.
+51. [EP01-084] Là người dùng, tôi muốn phân quyền sử dụng Lọc hiển thị tài sản theo vai trò để đảm bảo an toàn dữ liệu.
+52. [EP04-001] Là người dùng, tôi muốn đặt câu hỏi tiếng Việt về tài sản để không cần biết cú pháp kỹ thuật vẫn tra cứu được dữ liệu.
+53. [EP04-002] Là người dùng, tôi muốn nhận kết quả câu hỏi trên bản đồ để hiểu vị trí của dữ liệu được truy vấn.
+54. [EP04-003] Là người dùng, tôi muốn nhận kết quả đồng thời trên bảng dữ liệu để có thể tiếp tục phân tích.
+55. [EP04-004] Là người dùng, tôi muốn xem gợi ý câu hỏi mẫu bằng tiếng Việt để bắt đầu sử dụng AI nhanh hơn.
+56. [EP04-005] Là người dùng, tôi muốn AI hiểu câu hỏi có dấu và không dấu để tăng khả năng sử dụng thực tế.
+57. [EP04-006] Là người dùng, tôi muốn AI xử lý các điều kiện như loại, trạng thái, địa bàn và thời gian trong cùng một câu hỏi.
+58. [EP04-007] Là người dùng, tôi muốn xem lịch sử các câu hỏi gần đây để tái sử dụng truy vấn hay dùng.
+59. [EP04-008] Là người dùng, tôi muốn lưu câu hỏi yêu thích để tạo thư viện truy vấn dùng chung.
+60. [EP04-009] Là người dùng, tôi muốn AI thông báo khi câu hỏi mơ hồ và gợi ý cách diễn đạt rõ hơn.
+61. [EP04-010] Là người dùng, tôi muốn giới hạn phạm vi dữ liệu AI được truy vấn theo quyền hiện có để bảo vệ thông tin.
+62. [EP04-011] Là người dùng, tôi muốn tải kết quả truy vấn AI ra Excel để chia sẻ cho đồng nghiệp.
+63. [EP04-012] Là người dùng, tôi muốn lưu cấu hình sử dụng gần nhất của Truy vấn ngôn ngữ tự nhiên để làm việc nhanh hơn trong lần sau.
+64. [EP04-013] Là người dùng, tôi muốn xem lịch sử thao tác trong Truy vấn ngôn ngữ tự nhiên để truy vết thay đổi khi cần.
+65. [EP04-014] Là người dùng, tôi muốn export dữ liệu/kết quả từ Truy vấn ngôn ngữ tự nhiên để chia sẻ cho bên liên quan.
+66. [EP04-015] Là người dùng, tôi muốn phân quyền sử dụng Truy vấn ngôn ngữ tự nhiên theo vai trò để đảm bảo an toàn dữ liệu.
+67. [EP04-016] Là người dùng, tôi muốn nhận cảnh báo khi Truy vấn ngôn ngữ tự nhiên phát sinh lỗi để xử lý kịp thời.
+68. [EP01-085] Là người dùng, tôi muốn nhận cảnh báo khi Lọc hiển thị tài sản phát sinh lỗi để xử lý kịp thời.
+69. [EP01-103] Là người dùng, tôi muốn đo khoảng cách giữa nhiều điểm trên bản đồ để ước lượng phạm vi triển khai.
+70. [EP01-104] Là người dùng, tôi muốn đo diện tích của một vùng để đánh giá quy mô khu vực quản lý.
+71. [EP01-105] Là người dùng, tôi muốn xem kết quả đo theo mét, kilômét, mét vuông hoặc hecta để thuận tiện sử dụng.
+72. [EP01-106] Là người dùng, tôi muốn đo liên tục nhiều đoạn và hiển thị tổng chiều dài để tính toán nhanh trên hiện trường.
+73. [EP01-107] Là người dùng, tôi muốn chỉnh sửa điểm đo sau khi đã đặt để cải thiện độ chính xác.
+74. [EP01-108] Là người dùng, tôi muốn xóa kết quả đo chỉ với một thao tác để bắt đầu phép đo mới.
+75. [EP01-109] Là người dùng, tôi muốn bật chế độ bắt dính khi đo để kết quả sát với đối tượng bản đồ.
+76. [EP01-110] Là người dùng, tôi muốn lưu kết quả đo vào phiên làm việc để tham chiếu lại trong quá trình xử lý.
+77. [EP01-111] Là người dùng, tôi muốn xuất kết quả đo kèm hình ảnh bản đồ để đưa vào báo cáo.
+78. [EP01-112] Là người dùng, tôi muốn hiển thị nhãn khoảng cách/diện tích trực tiếp trên bản đồ để dễ theo dõi.
+79. [EP01-113] Là người dùng, tôi muốn sao chép nhanh giá trị đo để dùng trong biểu mẫu nghiệp vụ khác.
+80. [EP01-114] Là người dùng, tôi muốn lưu cấu hình sử dụng gần nhất của Đo khoảng cách & diện tích để làm việc nhanh hơn trong lần sau.
+81. [EP01-115] Là người dùng, tôi muốn xem lịch sử thao tác trong Đo khoảng cách & diện tích để truy vết thay đổi khi cần.
+82. [EP01-116] Là người dùng, tôi muốn export dữ liệu/kết quả từ Đo khoảng cách & diện tích để chia sẻ cho bên liên quan.
+83. [EP01-117] Là người dùng, tôi muốn phân quyền sử dụng Đo khoảng cách & diện tích theo vai trò để đảm bảo an toàn dữ liệu.
+84. [EP01-118] Là người dùng, tôi muốn nhận cảnh báo khi Đo khoảng cách & diện tích phát sinh lỗi để xử lý kịp thời.
+85. [EP01-021] Là người dùng, tôi muốn điều chỉnh độ trong suốt của lớp dữ liệu để xem chồng lấp với lớp khác rõ hơn.
+86. [EP01-022] Là người dùng, tôi muốn bật/tắt đồng thời theo nhóm lớp để thao tác nhanh trên nhiều lớp liên quan.
+87. [EP01-023] Là người dùng, tôi muốn tìm kiếm lớp dữ liệu theo tên để truy xuất nhanh trong danh sách dài.
+88. [EP01-024] Là người dùng, tôi muốn xem chú giải và kiểu hiển thị của từng lớp để hiểu ý nghĩa dữ liệu trên bản đồ.
+89. [EP01-025] Là người dùng, tôi muốn lưu bộ lớp thường dùng thành preset để mở lại nhanh cho từng nghiệp vụ.
+90. [EP01-026] Là người dùng, tôi muốn đặt ngưỡng zoom hiển thị cho từng lớp để tránh bản đồ bị rối.
+91. [EP01-027] Là người dùng, tôi muốn xem trạng thái tải của từng lớp để biết lớp nào đang lỗi hoặc tải chậm.
+92. [EP01-028] Là người dùng, tôi muốn nạp dữ liệu lớp từ dịch vụ WMS/WMTS/GeoJSON để mở rộng nguồn hiển thị.
+93. [EP01-029] Là người dùng, tôi muốn refresh lớp dữ liệu khi nguồn thay đổi để luôn xem thông tin mới nhất.
+94. [EP01-030] Là người dùng, tôi muốn lưu cấu hình sử dụng gần nhất của Quản lý lớp dữ liệu để làm việc nhanh hơn trong lần sau.
+95. [EP01-031] Là người dùng, tôi muốn xem lịch sử thao tác trong Quản lý lớp dữ liệu để truy vết thay đổi khi cần.
+96. [EP01-032] Là người dùng, tôi muốn export dữ liệu/kết quả từ Quản lý lớp dữ liệu để chia sẻ cho bên liên quan.
+97. [EP01-033] Là người dùng, tôi muốn phân quyền sử dụng Quản lý lớp dữ liệu theo vai trò để đảm bảo an toàn dữ liệu.
+98. [EP01-034] Là người dùng, tôi muốn nhận cảnh báo khi Quản lý lớp dữ liệu phát sinh lỗi để xử lý kịp thời.
+99. [EP01-035] Là người dùng, tôi muốn hiển thị tài sản bằng icon phân loại trên bản đồ để dễ nhận biết loại đối tượng.
+100. [EP01-036] Là người dùng, tôi muốn click vào tài sản để xem popup thông tin tóm tắt ngay trên bản đồ.
+101. [EP01-037] Là người dùng, tôi muốn mở trang chi tiết từ popup tài sản để xem đầy đủ hồ sơ liên quan.
+102. [EP01-038] Là người dùng, tôi muốn thay đổi biểu tượng theo trạng thái tài sản để nhận diện nhanh đối tượng cần chú ý.
+103. [EP01-039] Là người dùng, tôi muốn gom cụm tài sản khi zoom nhỏ để bản đồ không bị quá dày.
+104. [EP01-040] Là người dùng, tôi muốn hiển thị nhãn tên hoặc mã tài sản khi cần để hỗ trợ kiểm tra hiện trường.
+105. [EP01-041] Là người dùng, tôi muốn xem ảnh đại diện của tài sản trong popup để nhận diện nhanh đối tượng thực tế.
+106. [EP01-042] Là người dùng, tôi muốn tô màu tài sản theo loại hoặc mức độ ưu tiên để hỗ trợ giám sát trực quan.
+107. [EP01-044] Là người dùng, tôi muốn xem tài sản mới cập nhật nổi bật trên bản đồ để theo dõi biến động.
+108. [EP01-045] Là người dùng, tôi muốn cấu hình các trường xuất hiện trên popup tài sản để phù hợp từng vai trò sử dụng.
+109. [EP01-046] Là người dùng, tôi muốn tải dữ liệu tài sản theo khu vực đang xem để tăng tốc hiển thị.
+110. [EP01-047] Là người dùng, tôi muốn lưu cấu hình sử dụng gần nhất của Hiển thị tài sản trên bản đồ để làm việc nhanh hơn trong lần sau.
+111. [EP01-048] Là người dùng, tôi muốn xem lịch sử thao tác trong Hiển thị tài sản trên bản đồ để truy vết thay đổi khi cần.
+112. [EP01-049] Là người dùng, tôi muốn export dữ liệu/kết quả từ Hiển thị tài sản trên bản đồ để chia sẻ cho bên liên quan.
+113. [EP01-050] Là người dùng, tôi muốn phân quyền sử dụng Hiển thị tài sản trên bản đồ theo vai trò để đảm bảo an toàn dữ liệu.
+114. [EP01-051] Là người dùng, tôi muốn nhận cảnh báo khi Hiển thị tài sản trên bản đồ phát sinh lỗi để xử lý kịp thời.
+115. [EP01-052] Là người dùng, tôi muốn tìm kiếm địa chỉ theo từ khóa để định vị nhanh khu vực cần xem.
+
+## CÁN BỘ QUẢN LÝ
+----------------------------------------
+
+116. [EP05-033] Là Cán bộ quản lý, tôi muốn chọn danh sách tài sản cần xử lý để hệ thống tính tuyến bảo trì tối ưu.
+117. [EP01-119] Là Cán bộ quản lý, tôi muốn xuất bản đồ hiện tại sang PNG để chèn vào tài liệu báo cáo.
+118. [EP01-120] Là Cán bộ quản lý, tôi muốn xuất bản đồ sang PDF để lưu trữ và in ấn theo chuẩn văn bản.
+119. [EP01-121] Là Cán bộ quản lý, tôi muốn kèm legend khi xuất bản đồ để người nhận hiểu ý nghĩa ký hiệu.
+120. [EP01-122] Là Cán bộ quản lý, tôi muốn kèm tỷ lệ bản đồ trong file xuất để đảm bảo khả năng tham chiếu.
+121. [EP01-123] Là Cán bộ quản lý, tôi muốn chèn tiêu đề, đơn vị và thời gian xuất lên bản đồ để chuẩn hóa mẫu báo cáo.
+122. [EP01-124] Là Cán bộ quản lý, tôi muốn chọn khổ giấy và hướng trang trước khi xuất để phù hợp mục đích sử dụng.
+123. [EP01-125] Là Cán bộ quản lý, tôi muốn tạo link URL chia sẻ trạng thái bản đồ hiện tại để đồng nghiệp xem cùng một bối cảnh.
+124. [EP01-126] Là Cán bộ quản lý, tôi muốn giới hạn thời hạn hiệu lực của link chia sẻ để tăng an toàn thông tin.
+125. [EP01-127] Là Cán bộ quản lý, tôi muốn chia sẻ kèm bộ lọc, tâm bản đồ và mức zoom hiện tại để tái hiện đúng màn hình.
+126. [EP01-128] Là Cán bộ quản lý, tôi muốn bật watermark trên file xuất để nhận diện nguồn phát hành nội bộ.
+127. [EP01-129] Là Cán bộ quản lý, tôi muốn xem trước file xuất trước khi tải về để giảm thao tác làm lại.
+128. [EP01-130] Là Cán bộ quản lý, tôi muốn lưu mẫu cấu hình xuất bản đồ để tái sử dụng cho các báo cáo định kỳ.
+129. [EP01-131] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Xuất & chia sẻ bản đồ để làm việc nhanh hơn trong lần sau.
+130. [EP01-133] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Xuất & chia sẻ bản đồ để chia sẻ cho bên liên quan.
+131. [EP01-134] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Xuất & chia sẻ bản đồ theo vai trò để đảm bảo an toàn dữ liệu.
+132. [EP01-135] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Xuất & chia sẻ bản đồ phát sinh lỗi để xử lý kịp thời.
+133. [EP05-001] Là Cán bộ quản lý, tôi muốn tạo heatmap mật độ tài sản để nhìn nhanh khu vực tập trung đối tượng.
+134. [EP04-050] Là Cán bộ quản lý, tôi muốn AI phát hiện các dấu hiệu như hỏng hóc, vết nứt hoặc gỉ sét từ ảnh chụp để giảm thời gian kiểm tra.
+135. [EP04-051] Là Cán bộ quản lý, tôi muốn xem vùng ảnh được AI đánh dấu bất thường để kiểm chứng kết quả trực quan.
+136. [EP04-052] Là Cán bộ quản lý, tôi muốn nhận mức độ tin cậy của từng nhận dạng để quyết định có cần kiểm tra thủ công hay không.
+137. [EP04-053] Là Cán bộ quản lý, tôi muốn đính kèm kết quả nhận dạng vào hồ sơ tài sản để lưu trữ bằng chứng.
+138. [EP04-054] Là Cán bộ quản lý, tôi muốn chụp nhiều ảnh cho cùng một tài sản và tổng hợp kết quả AI để đánh giá toàn diện.
+139. [EP04-055] Là Cán bộ quản lý, tôi muốn sửa nhãn nhận dạng nếu AI chưa chính xác để cải thiện chất lượng dữ liệu huấn luyện.
+140. [EP04-056] Là Cán bộ quản lý, tôi muốn lọc danh sách ảnh theo trạng thái đã phân tích hoặc chưa phân tích để quản lý quy trình.
+141. [EP04-057] Là Cán bộ quản lý, tôi muốn cảnh báo khi ảnh không đạt chất lượng tối thiểu để người dùng chụp lại.
+142. [EP04-058] Là Cán bộ quản lý, tôi muốn liên kết vị trí ảnh với bản đồ để biết chính xác nơi phát sinh hỏng hóc.
+143. [EP04-059] Là Cán bộ quản lý, tôi muốn xuất báo cáo nhận dạng theo lô ảnh để chia sẻ với đội bảo trì.
+144. [EP04-060] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Nhận dạng tình trạng từ ảnh để làm việc nhanh hơn trong lần sau.
+145. [EP04-061] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Nhận dạng tình trạng từ ảnh để truy vết thay đổi khi cần.
+146. [EP04-062] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Nhận dạng tình trạng từ ảnh để chia sẻ cho bên liên quan.
+147. [EP04-063] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Nhận dạng tình trạng từ ảnh theo vai trò để đảm bảo an toàn dữ liệu.
+148. [EP04-064] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Nhận dạng tình trạng từ ảnh phát sinh lỗi để xử lý kịp thời.
+149. [EP04-065] Là Cán bộ quản lý, tôi muốn AI tự động sinh báo cáo tình trạng tài sản bằng tiếng Việt để tiết kiệm thời gian soạn thảo.
+150. [EP04-066] Là Cán bộ quản lý, tôi muốn chọn phạm vi dữ liệu đầu vào cho báo cáo AI theo khu vực, loại tài sản và thời gian.
+151. [EP04-067] Là Cán bộ quản lý, tôi muốn AI tóm tắt các điểm nổi bật, bất thường và khuyến nghị xử lý trong báo cáo.
+152. [EP04-068] Là Cán bộ quản lý, tôi muốn chỉnh sửa nội dung báo cáo trước khi phát hành để phù hợp văn phong đơn vị.
+153. [EP04-069] Là Cán bộ quản lý, tôi muốn chèn biểu đồ và bản đồ minh họa tự động vào báo cáo để nội dung trực quan hơn.
+154. [EP04-070] Là Cán bộ quản lý, tôi muốn xuất báo cáo AI sang PDF để gửi lãnh đạo và lưu trữ hồ sơ.
+155. [EP04-071] Là Cán bộ quản lý, tôi muốn lưu mẫu prompt hoặc mẫu báo cáo để tái sử dụng cho các kỳ báo cáo tiếp theo.
+156. [EP04-072] Là Cán bộ quản lý, tôi muốn theo dõi lịch sử các báo cáo AI đã sinh để đối chiếu giữa các kỳ.
+157. [EP04-073] Là Cán bộ quản lý, tôi muốn chọn mức độ chi tiết của báo cáo để phù hợp người nhận khác nhau.
+158. [EP04-074] Là Cán bộ quản lý, tôi muốn xem nguồn dữ liệu được AI sử dụng trong báo cáo để kiểm chứng tính minh bạch.
+159. [EP04-075] Là Cán bộ quản lý, tôi muốn chia sẻ báo cáo AI qua link nội bộ có kiểm soát quyền truy cập.
+160. [EP04-076] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Sinh báo cáo AI để làm việc nhanh hơn trong lần sau.
+161. [EP04-077] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Sinh báo cáo AI để truy vết thay đổi khi cần.
+162. [EP04-078] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Sinh báo cáo AI để chia sẻ cho bên liên quan.
+163. [EP04-079] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Sinh báo cáo AI theo vai trò để đảm bảo an toàn dữ liệu.
+164. [EP04-080] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Sinh báo cáo AI phát sinh lỗi để xử lý kịp thời.
+165. [EP05-057] Là Cán bộ quản lý, tôi muốn export bản đồ choropleth và bảng thống kê để phục vụ báo cáo lãnh đạo.
+166. [EP04-018] Là Cán bộ quản lý, tôi muốn chỉnh sửa câu SQL trước khi chạy để tinh chỉnh kết quả theo chuyên môn nghiệp vụ.
+167. [EP04-019] Là Cán bộ quản lý, tôi muốn hệ thống highlight cú pháp SQL để đọc và sửa dễ hơn.
+168. [EP04-020] Là Cán bộ quản lý, tôi muốn chạy thử SQL đã chỉnh sửa và xem trước kết quả mà không ảnh hưởng dữ liệu gốc.
+169. [EP04-021] Là Cán bộ quản lý, tôi muốn lưu các câu SQL thường dùng thành mẫu để tái sử dụng.
+170. [EP04-022] Là Cán bộ quản lý, tôi muốn xem thông báo lỗi cú pháp hoặc lỗi truy cập dữ liệu một cách rõ ràng khi chạy SQL.
+171. [EP04-023] Là Cán bộ quản lý, tôi muốn so sánh SQL gốc do AI sinh với SQL đã chỉnh sửa để đối chiếu thay đổi.
+172. [EP04-024] Là Cán bộ quản lý, tôi muốn phân quyền chỉ người có thẩm quyền mới được sửa SQL để tránh truy vấn rủi ro.
+173. [EP04-025] Là Cán bộ quản lý, tôi muốn giới hạn SQL chỉ đọc dữ liệu để bảo vệ cơ sở dữ liệu sản xuất.
+174. [EP04-026] Là Cán bộ quản lý, tôi muốn tải câu SQL ra file để phục vụ rà soát kỹ thuật hoặc audit.
+175. [EP04-027] Là Cán bộ quản lý, tôi muốn xem thời gian thực thi và số bản ghi trả về của từng câu SQL để đánh giá hiệu năng.
+176. [EP04-028] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Hiển thị & chỉnh sửa SQL để làm việc nhanh hơn trong lần sau.
+177. [EP04-029] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Hiển thị & chỉnh sửa SQL để truy vết thay đổi khi cần.
+178. [EP04-030] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Hiển thị & chỉnh sửa SQL để chia sẻ cho bên liên quan.
+179. [EP04-031] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Hiển thị & chỉnh sửa SQL theo vai trò để đảm bảo an toàn dữ liệu.
+180. [EP04-032] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Hiển thị & chỉnh sửa SQL phát sinh lỗi để xử lý kịp thời.
+181. [EP04-033] Là Cán bộ quản lý, tôi muốn AI đề xuất tài sản có nguy cơ cần bảo trì sớm dựa trên lịch sử để ưu tiên nguồn lực.
+182. [EP04-034] Là Cán bộ quản lý, tôi muốn AI tính điểm rủi ro cho từng tài sản để xếp hạng ưu tiên xử lý.
+183. [EP04-035] Là Cán bộ quản lý, tôi muốn xem các yếu tố ảnh hưởng đến đề xuất bảo trì để hiểu lý do AI đưa ra kết quả.
+184. [EP04-036] Là Cán bộ quản lý, tôi muốn cấu hình ngưỡng cảnh báo dự đoán theo từng loại tài sản để phù hợp nghiệp vụ.
+185. [EP04-037] Là Cán bộ quản lý, tôi muốn xem danh sách đề xuất bảo trì trên bản đồ để biết phân bố không gian của rủi ro.
+186. [EP04-038] Là Cán bộ quản lý, tôi muốn chuyển đề xuất AI thành kế hoạch bảo trì thực tế chỉ với vài thao tác.
+187. [EP04-039] Là Cán bộ quản lý, tôi muốn so sánh dự đoán AI với lịch bảo trì hiện có để phát hiện chênh lệch.
+188. [EP04-040] Là Cán bộ quản lý, tôi muốn ghi nhận phản hồi đúng/sai cho đề xuất AI để cải thiện mô hình về sau.
+189. [EP04-041] Là Cán bộ quản lý, tôi muốn lọc đề xuất theo mức độ rủi ro, địa bàn và loại tài sản để lập kế hoạch cụ thể.
+190. [EP04-042] Là Cán bộ quản lý, tôi muốn export danh sách đề xuất bảo trì dự đoán ra Excel/PDF để trình phê duyệt.
+191. [EP04-043] Là Cán bộ quản lý, tôi muốn xem lịch sử các lần dự đoán để đánh giá độ ổn định của hệ thống AI.
+192. [EP04-044] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Kế hoạch bảo trì dự đoán để làm việc nhanh hơn trong lần sau.
+193. [EP04-045] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Kế hoạch bảo trì dự đoán để truy vết thay đổi khi cần.
+194. [EP04-046] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Kế hoạch bảo trì dự đoán để chia sẻ cho bên liên quan.
+195. [EP04-047] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Kế hoạch bảo trì dự đoán theo vai trò để đảm bảo an toàn dữ liệu.
+196. [EP04-048] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Kế hoạch bảo trì dự đoán phát sinh lỗi để xử lý kịp thời.
+197. [EP04-049] Là Cán bộ quản lý, tôi muốn tải ảnh hiện trường lên hệ thống để AI nhận dạng tình trạng tài sản.
+198. [EP03-071] Là Cán bộ quản lý, tôi muốn xem dashboard theo đơn vị hành chính để so sánh giữa các khu vực quản lý.
+199. [EP03-072] Là Cán bộ quản lý, tôi muốn click vào biểu đồ để drill-down xuống danh sách tài sản chi tiết.
+200. [EP03-073] Là Cán bộ quản lý, tôi muốn lọc dashboard theo thời gian cập nhật để xem biến động trong từng giai đoạn.
+201. [EP03-074] Là Cán bộ quản lý, tôi muốn hiển thị KPI nổi bật như quá hạn bảo trì, hỏng hóc và tài sản mới cập nhật.
+202. [EP03-075] Là Cán bộ quản lý, tôi muốn xem dashboard đồng bộ với bản đồ để kiểm chứng trực quan theo không gian.
+203. [EP03-076] Là Cán bộ quản lý, tôi muốn xuất dashboard ra PDF hoặc ảnh để gửi báo cáo lãnh đạo.
+204. [EP03-077] Là Cán bộ quản lý, tôi muốn lưu bộ lọc dashboard cá nhân để sử dụng lại nhanh.
+205. [EP03-078] Là Cán bộ quản lý, tôi muốn tự động làm mới dashboard theo chu kỳ để số liệu luôn cập nhật.
+206. [EP03-079] Là Cán bộ quản lý, tôi muốn xem xu hướng biến động tài sản theo thời gian để hỗ trợ ra quyết định đầu tư.
+207. [EP03-080] Là Cán bộ quản lý, tôi muốn cấu hình quyền xem các chỉ số nhạy cảm trên dashboard để bảo vệ thông tin quản trị.
+208. [EP03-081] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Dashboard tổng quan tài sản để làm việc nhanh hơn trong lần sau.
+209. [EP03-082] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Dashboard tổng quan tài sản để truy vết thay đổi khi cần.
+210. [EP03-083] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Dashboard tổng quan tài sản để chia sẻ cho bên liên quan.
+211. [EP03-084] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Dashboard tổng quan tài sản theo vai trò để đảm bảo an toàn dữ liệu.
+212. [EP03-085] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Dashboard tổng quan tài sản phát sinh lỗi để xử lý kịp thời.
+213. [EP01-100] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Vẽ & chỉnh sửa đối tượng không gian để chia sẻ cho bên liên quan.
+214. [EP01-086] Là Cán bộ quản lý, tôi muốn vẽ điểm trực tiếp trên bản đồ để đánh dấu vị trí tài sản hoặc sự kiện.
+215. [EP01-087] Là Cán bộ quản lý, tôi muốn vẽ đường trên bản đồ để biểu diễn tuyến hạ tầng hoặc phạm vi kiểm tra.
+216. [EP01-088] Là Cán bộ quản lý, tôi muốn vẽ vùng trên bản đồ để xác định khu vực quản lý hoặc tác động.
+217. [EP01-089] Là Cán bộ quản lý, tôi muốn chỉnh sửa hình học đã vẽ bằng kéo đỉnh để hiệu chỉnh vị trí chính xác.
+218. [EP01-090] Là Cán bộ quản lý, tôi muốn thêm/xóa đỉnh của đối tượng không gian để cập nhật hình dạng theo thực tế.
+219. [EP01-091] Là Cán bộ quản lý, tôi muốn snap theo đối tượng lân cận khi biên tập để tránh sai lệch topology.
+220. [EP01-092] Là Cán bộ quản lý, tôi muốn nhập tọa độ thủ công khi vẽ để đảm bảo độ chính xác cao.
+221. [EP01-102] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Vẽ & chỉnh sửa đối tượng không gian phát sinh lỗi để xử lý kịp thời.
+222. [EP01-093] Là Cán bộ quản lý, tôi muốn gắn thuộc tính mô tả cho đối tượng vừa vẽ để lưu đầy đủ ngữ cảnh nghiệp vụ.
+223. [EP01-094] Là Cán bộ quản lý, tôi muốn hoàn tác/làm lại các bước biên tập để thao tác an toàn hơn.
+224. [EP01-095] Là Cán bộ quản lý, tôi muốn lưu bản nháp đối tượng đang vẽ để tiếp tục chỉnh sửa sau.
+225. [EP01-096] Là Cán bộ quản lý, tôi muốn kiểm tra hợp lệ hình học trước khi lưu để tránh dữ liệu lỗi.
+226. [EP01-097] Là Cán bộ quản lý, tôi muốn sao chép hình học từ đối tượng hiện có để giảm thời gian số hóa.
+227. [EP01-098] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Vẽ & chỉnh sửa đối tượng không gian để làm việc nhanh hơn trong lần sau.
+228. [EP01-099] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Vẽ & chỉnh sửa đối tượng không gian để truy vết thay đổi khi cần.
+229. [EP04-017] Là Cán bộ quản lý, tôi muốn xem câu SQL được sinh ra từ câu hỏi tự nhiên để kiểm tra logic truy vấn.
+230. [EP03-040] Là Cán bộ quản lý, tôi muốn đính kèm hình ảnh và biên bản sau bảo trì để minh chứng kết quả công việc.
+231. [EP03-041] Là Cán bộ quản lý, tôi muốn cập nhật trạng thái hoàn thành, hoãn hoặc hủy lịch bảo trì để theo dõi tiến độ.
+232. [EP03-042] Là Cán bộ quản lý, tôi muốn giao việc bảo trì cho cán bộ phụ trách để rõ trách nhiệm thực hiện.
+233. [EP03-043] Là Cán bộ quản lý, tôi muốn xem danh sách công việc quá hạn để ưu tiên xử lý rủi ro cao.
+234. [EP03-044] Là Cán bộ quản lý, tôi muốn lặp lịch bảo trì tự động sau khi hoàn thành kỳ trước để giảm thao tác quản trị.
+235. [EP03-045] Là Cán bộ quản lý, tôi muốn thống kê chi phí bảo trì theo tài sản và thời gian để đánh giá hiệu quả đầu tư.
+236. [EP01-101] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Vẽ & chỉnh sửa đối tượng không gian theo vai trò để đảm bảo an toàn dữ liệu.
+237. [EP03-047] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Lịch bảo trì định kỳ để làm việc nhanh hơn trong lần sau.
+238. [EP03-048] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Lịch bảo trì định kỳ để truy vết thay đổi khi cần.
+239. [EP03-049] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Lịch bảo trì định kỳ để chia sẻ cho bên liên quan.
+240. [EP03-050] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Lịch bảo trì định kỳ theo vai trò để đảm bảo an toàn dữ liệu.
+241. [EP03-051] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Lịch bảo trì định kỳ phát sinh lỗi để xử lý kịp thời.
+242. [EP03-038] Là Cán bộ quản lý, tôi muốn nhận cảnh báo đến hạn bảo trì để không bỏ sót công việc quan trọng.
+243. [EP03-046] Là Cán bộ quản lý, tôi muốn tích hợp gửi thông báo email/SMS khi đến hạn để nhắc việc đa kênh.
+244. [EP03-069] Là Cán bộ quản lý, tôi muốn xem dashboard tổng quan số lượng tài sản theo loại để nắm nhanh hiện trạng toàn hệ thống.
+245. [EP03-070] Là Cán bộ quản lý, tôi muốn xem dashboard theo trạng thái vận hành để nhận diện nhóm tài sản có rủi ro.
+246. [EP03-030] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Hồ sơ tài sản để làm việc nhanh hơn trong lần sau.
+247. [EP03-001] Là Cán bộ quản lý, tôi muốn thêm mới tài sản với đầy đủ thông tin thuộc tính để cập nhật dữ liệu quản lý.
+248. [EP03-002] Là Cán bộ quản lý, tôi muốn cập nhật thông tin tài sản hiện có để phản ánh đúng tình trạng thực tế.
+249. [EP03-003] Là Cán bộ quản lý, tôi muốn xóa mềm tài sản không còn sử dụng để tránh mất lịch sử dữ liệu.
+250. [EP03-004] Là Cán bộ quản lý, tôi muốn xem danh sách tài sản theo nhiều tiêu chí để tra cứu nhanh đối tượng cần xử lý.
+251. [EP03-005] Là Cán bộ quản lý, tôi muốn xem chi tiết một tài sản cùng tọa độ và hình ảnh để có đầy đủ ngữ cảnh quản lý.
+252. [EP03-007] Là Cán bộ quản lý, tôi muốn nhập tọa độ hoặc chọn vị trí trên bản đồ khi tạo tài sản để bảo đảm chính xác vị trí.
+253. [EP03-008] Là Cán bộ quản lý, tôi muốn kiểm tra trùng mã tài sản khi lưu để đảm bảo tính duy nhất hệ thống.
+254. [EP03-009] Là Cán bộ quản lý, tôi muốn thay đổi trạng thái tài sản hàng loạt để xử lý nhanh nhiều đối tượng.
+255. [EP03-010] Là Cán bộ quản lý, tôi muốn đính kèm tài liệu liên quan ngay tại màn hình tài sản để không thất lạc hồ sơ.
+256. [EP03-011] Là Cán bộ quản lý, tôi muốn lưu lịch sử chỉnh sửa thông tin tài sản để có thể truy vết thay đổi.
+257. [EP03-012] Là Cán bộ quản lý, tôi muốn phân quyền trường thông tin nhạy cảm của tài sản để chỉ người phù hợp mới được sửa.
+258. [EP03-013] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Thêm/Sửa/Xóa tài sản để làm việc nhanh hơn trong lần sau.
+259. [EP03-015] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Thêm/Sửa/Xóa tài sản để chia sẻ cho bên liên quan.
+260. [EP03-016] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Thêm/Sửa/Xóa tài sản theo vai trò để đảm bảo an toàn dữ liệu.
+261. [EP03-017] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Thêm/Sửa/Xóa tài sản phát sinh lỗi để xử lý kịp thời.
+262. [EP03-018] Là Cán bộ quản lý, tôi muốn xem hồ sơ tổng hợp của tài sản để nắm toàn bộ vòng đời đối tượng.
+263. [EP03-019] Là Cán bộ quản lý, tôi muốn xem lịch sử bảo trì của tài sản theo thứ tự thời gian để đánh giá mức độ hao mòn.
+264. [EP03-020] Là Cán bộ quản lý, tôi muốn lưu tài liệu kỹ thuật trong hồ sơ tài sản để thuận tiện tra cứu khi vận hành.
+265. [EP03-021] Là Cán bộ quản lý, tôi muốn cập nhật trạng thái hiện tại của tài sản trong hồ sơ để phản ánh đúng tình hình sử dụng.
+266. [EP03-006] Là Cán bộ quản lý, tôi muốn gắn nhiều hình ảnh cho một tài sản để lưu bằng chứng hiện trường.
+267. [EP03-023] Là Cán bộ quản lý, tôi muốn xem danh sách tài liệu đính kèm theo loại để tra cứu đúng hồ sơ cần thiết.
+268. [EP03-024] Là Cán bộ quản lý, tôi muốn ghi nhận biên bản kiểm tra hiện trường vào hồ sơ tài sản để tập trung toàn bộ bằng chứng.
+269. [EP03-025] Là Cán bộ quản lý, tôi muốn xem timeline sự kiện của tài sản gồm lắp đặt, bảo trì, sự cố và thay thế.
+270. [EP03-026] Là Cán bộ quản lý, tôi muốn tìm kiếm nhanh trong hồ sơ tài sản theo từ khóa tài liệu hoặc ghi chú kỹ thuật.
+271. [EP03-027] Là Cán bộ quản lý, tôi muốn tải xuống toàn bộ hồ sơ tài sản dưới dạng gói tài liệu để chia sẻ cho đơn vị liên quan.
+272. [EP03-028] Là Cán bộ quản lý, tôi muốn liên kết hồ sơ tài sản với nhà cung cấp hoặc hợp đồng để tiện theo dõi trách nhiệm bảo hành.
+273. [EP03-029] Là Cán bộ quản lý, tôi muốn xem cảnh báo hồ sơ thiếu tài liệu bắt buộc để bổ sung kịp thời.
+274. [EP03-014] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Thêm/Sửa/Xóa tài sản để truy vết thay đổi khi cần.
+275. [EP03-031] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Hồ sơ tài sản để truy vết thay đổi khi cần.
+276. [EP03-032] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Hồ sơ tài sản để chia sẻ cho bên liên quan.
+277. [EP03-033] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Hồ sơ tài sản theo vai trò để đảm bảo an toàn dữ liệu.
+278. [EP03-034] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Hồ sơ tài sản phát sinh lỗi để xử lý kịp thời.
+279. [EP03-035] Là Cán bộ quản lý, tôi muốn tạo kế hoạch bảo trì định kỳ cho tài sản để hệ thống nhắc việc đúng hạn.
+280. [EP03-036] Là Cán bộ quản lý, tôi muốn cấu hình chu kỳ bảo trì theo loại tài sản để áp dụng đúng quy trình.
+281. [EP03-037] Là Cán bộ quản lý, tôi muốn xem lịch bảo trì theo ngày/tuần/tháng để sắp xếp nguồn lực phù hợp.
+282. [EP03-022] Là Cán bộ quản lý, tôi muốn lưu giá trị tài sản và biến động giá trị theo thời gian để phục vụ quản lý đầu tư.
+283. [EP03-039] Là Cán bộ quản lý, tôi muốn ghi nhận kết quả thực hiện bảo trì để lưu lịch sử vận hành thực tế.
+284. [EP05-034] Là Cán bộ quản lý, tôi muốn nhập điểm xuất phát và điểm kết thúc của đội bảo trì để tính lộ trình phù hợp.
+285. [EP05-035] Là Cán bộ quản lý, tôi muốn hệ thống tính đường đi ngắn nhất giữa nhiều điểm tài sản để tiết kiệm thời gian và chi phí.
+286. [EP05-036] Là Cán bộ quản lý, tôi muốn xem tổng quãng đường và thời gian dự kiến của tuyến để lên kế hoạch nhân sự.
+287. [EP05-037] Là Cán bộ quản lý, tôi muốn ưu tiên một số tài sản khẩn cấp trong quá trình tối ưu tuyến để đáp ứng SLA.
+288. [EP05-038] Là Cán bộ quản lý, tôi muốn loại trừ các tuyến đường cấm hoặc không phù hợp phương tiện để lộ trình khả thi.
+289. [EP05-039] Là Cán bộ quản lý, tôi muốn xem lộ trình tối ưu hiển thị trực tiếp trên bản đồ để dễ kiểm tra.
+290. [EP05-040] Là Cán bộ quản lý, tôi muốn thay đổi thứ tự một vài điểm dừng thủ công sau khi tối ưu để phù hợp thực tế vận hành.
+291. [EP05-041] Là Cán bộ quản lý, tôi muốn export lộ trình và danh sách điểm dừng để gửi cho đội hiện trường.
+292. [EP05-042] Là Cán bộ quản lý, tôi muốn lưu kịch bản tuyến đường để tái sử dụng cho các đợt bảo trì tương tự.
+293. [EP05-043] Là Cán bộ quản lý, tôi muốn so sánh nhiều phương án tuyến theo quãng đường và thời gian để chọn phương án tốt nhất.
+294. [EP05-044] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Tối ưu tuyến đường bảo trì để làm việc nhanh hơn trong lần sau.
+295. [EP05-045] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Tối ưu tuyến đường bảo trì để truy vết thay đổi khi cần.
+296. [EP05-046] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Tối ưu tuyến đường bảo trì để chia sẻ cho bên liên quan.
+297. [EP05-047] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Tối ưu tuyến đường bảo trì theo vai trò để đảm bảo an toàn dữ liệu.
+298. [EP05-048] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Tối ưu tuyến đường bảo trì phát sinh lỗi để xử lý kịp thời.
+299. [EP05-049] Là Cán bộ quản lý, tôi muốn thống kê số lượng tài sản theo phường để nắm phân bố chi tiết.
+300. [EP05-050] Là Cán bộ quản lý, tôi muốn thống kê số lượng tài sản theo quận để tổng hợp ở cấp quản lý trung gian.
+301. [EP05-051] Là Cán bộ quản lý, tôi muốn thống kê số lượng tài sản theo thành phố để có bức tranh tổng quan toàn hệ thống.
+302. [EP05-052] Là Cán bộ quản lý, tôi muốn hiển thị kết quả thống kê dưới dạng bản đồ choropleth để trực quan hóa cường độ phân bố.
+303. [EP05-053] Là Cán bộ quản lý, tôi muốn chọn chỉ số hiển thị như số lượng, giá trị hoặc tỷ lệ hỏng hóc trên choropleth.
+304. [EP05-054] Là Cán bộ quản lý, tôi muốn phân lớp màu theo ngưỡng tùy chỉnh để phù hợp mục tiêu phân tích.
+305. [EP05-055] Là Cán bộ quản lý, tôi muốn click vào một đơn vị hành chính để xem danh sách tài sản chi tiết bên trong.
+306. [EP05-056] Là Cán bộ quản lý, tôi muốn lọc thống kê theo loại tài sản và thời gian để so sánh chuyên sâu hơn.
+307. [EP01-079] Là Cán bộ quản lý, tôi muốn chia sẻ bộ lọc qua URL để đồng nghiệp mở cùng một ngữ cảnh dữ liệu.
+308. [EP05-058] Là Cán bộ quản lý, tôi muốn so sánh giữa nhiều đơn vị hành chính trên cùng biểu đồ để đánh giá chênh lệch.
+309. [EP05-059] Là Cán bộ quản lý, tôi muốn sử dụng ranh giới hành chính chuẩn làm dữ liệu nền cho thống kê.
+310. [EP05-060] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Thống kê theo đơn vị hành chính để làm việc nhanh hơn trong lần sau.
+311. [EP05-061] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Thống kê theo đơn vị hành chính để truy vết thay đổi khi cần.
+312. [EP05-062] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Thống kê theo đơn vị hành chính để chia sẻ cho bên liên quan.
+313. [EP05-063] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Thống kê theo đơn vị hành chính theo vai trò để đảm bảo an toàn dữ liệu.
+314. [EP05-064] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Thống kê theo đơn vị hành chính phát sinh lỗi để xử lý kịp thời.
+315. [EP01-132] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Xuất & chia sẻ bản đồ để truy vết thay đổi khi cần.
+316. [EP05-002] Là Cán bộ quản lý, tôi muốn chọn loại tài sản đưa vào heatmap để phân tích đúng nhóm quan tâm.
+317. [EP05-003] Là Cán bộ quản lý, tôi muốn điều chỉnh bán kính và cường độ heatmap để hình ảnh phản ánh đúng thực tế.
+318. [EP05-004] Là Cán bộ quản lý, tôi muốn lọc heatmap theo thời gian hoặc trạng thái tài sản để so sánh các kịch bản.
+319. [EP05-005] Là Cán bộ quản lý, tôi muốn xem số liệu tổng hợp phía sau heatmap để đối chiếu với biểu diễn trực quan.
+320. [EP05-006] Là Cán bộ quản lý, tôi muốn lưu cấu hình heatmap thành mẫu để tái sử dụng cho phân tích định kỳ.
+321. [EP05-007] Là Cán bộ quản lý, tôi muốn xuất heatmap ra ảnh/PDF để chèn vào báo cáo chuyên đề.
+322. [EP05-008] Là Cán bộ quản lý, tôi muốn so sánh heatmap giữa hai thời kỳ để đánh giá biến động phân bố tài sản.
+323. [EP05-009] Là Cán bộ quản lý, tôi muốn click vào vùng nóng để mở danh sách tài sản liên quan.
+324. [EP05-010] Là Cán bộ quản lý, tôi muốn kết hợp heatmap với ranh giới hành chính để phân tích sâu hơn theo khu vực.
+325. [EP05-011] Là Cán bộ quản lý, tôi muốn xem cảnh báo khi dữ liệu quá ít để heatmap không gây hiểu nhầm.
+326. [EP05-012] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Heatmap mật độ tài sản để làm việc nhanh hơn trong lần sau.
+327. [EP05-013] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Heatmap mật độ tài sản để truy vết thay đổi khi cần.
+328. [EP05-014] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Heatmap mật độ tài sản để chia sẻ cho bên liên quan.
+329. [EP05-015] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Heatmap mật độ tài sản theo vai trò để đảm bảo an toàn dữ liệu.
+330. [EP05-016] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Heatmap mật độ tài sản phát sinh lỗi để xử lý kịp thời.
+331. [EP05-017] Là Cán bộ quản lý, tôi muốn tạo vùng đệm quanh tài sản với bán kính tùy chọn để đánh giá ảnh hưởng không gian.
+332. [EP05-018] Là Cán bộ quản lý, tôi muốn chọn đơn vị mét/kilômét cho vùng đệm để phù hợp ngữ cảnh phân tích.
+333. [EP05-019] Là Cán bộ quản lý, tôi muốn thống kê số lượng tài sản nằm trong vùng đệm để xác định mật độ lân cận.
+334. [EP05-020] Là Cán bộ quản lý, tôi muốn chọn nhiều tài sản nguồn để phân tích vùng đệm đồng thời.
+335. [EP05-021] Là Cán bộ quản lý, tôi muốn xem giao cắt vùng đệm với lớp ranh giới hành chính hoặc hạ tầng khác.
+336. [EP05-022] Là Cán bộ quản lý, tôi muốn lưu kết quả vùng đệm thành lớp tạm thời để tiếp tục phân tích.
+337. [EP05-023] Là Cán bộ quản lý, tôi muốn xóa hoặc chỉnh bán kính vùng đệm nhanh chóng để thử nhiều kịch bản.
+338. [EP05-024] Là Cán bộ quản lý, tôi muốn export kết quả vùng đệm và bảng thống kê để chia sẻ với đồng nghiệp.
+339. [EP05-025] Là Cán bộ quản lý, tôi muốn lọc tài sản được thống kê trong vùng đệm theo loại và trạng thái để kết quả hữu ích hơn.
+340. [EP05-026] Là Cán bộ quản lý, tôi muốn xem diện tích vùng đệm và phạm vi phủ để đánh giá tác động.
+341. [EP05-027] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi vùng đệm vượt quá phạm vi dữ liệu hiện có để điều chỉnh kịp thời.
+342. [EP05-028] Là Cán bộ quản lý, tôi muốn lưu cấu hình sử dụng gần nhất của Phân tích vùng đệm để làm việc nhanh hơn trong lần sau.
+343. [EP05-029] Là Cán bộ quản lý, tôi muốn xem lịch sử thao tác trong Phân tích vùng đệm để truy vết thay đổi khi cần.
+344. [EP05-030] Là Cán bộ quản lý, tôi muốn export dữ liệu/kết quả từ Phân tích vùng đệm để chia sẻ cho bên liên quan.
+345. [EP05-031] Là Cán bộ quản lý, tôi muốn phân quyền sử dụng Phân tích vùng đệm theo vai trò để đảm bảo an toàn dữ liệu.
+346. [EP05-032] Là Cán bộ quản lý, tôi muốn nhận cảnh báo khi Phân tích vùng đệm phát sinh lỗi để xử lý kịp thời.
+347. [EP01-043] Là Cán bộ quản lý, tôi muốn chọn nhiều tài sản trên bản đồ để thực hiện xử lý hàng loạt.
+
+## ADMIN
+----------------------------------------
+
+348. [EP03-062] Là Admin, tôi muốn xem nhật ký import/export để đối soát các lần trao đổi dữ liệu.
+349. [EP02-136] Là Admin, tôi muốn kiểm tra quyền hiệu lực thực tế của một người dùng trước khi hỗ trợ vận hành.
+350. [EP02-126] Là Admin, tôi muốn xem ma trận phân quyền để rà soát quyền xem/thêm/sửa/xóa của toàn hệ thống.
+351. [EP02-128] Là Admin, tôi muốn ghi nhận lịch sử thay đổi phân quyền để truy vết trách nhiệm quản trị.
+352. [EP02-129] Là Admin, tôi muốn đặt thời hạn hiệu lực cho quyền tạm thời để hệ thống tự động thu hồi khi hết hạn.
+353. [EP02-130] Là Admin, tôi muốn khóa tài khoản hoặc tạm dừng quyền truy cập khi phát hiện rủi ro bảo mật.
+354. [EP02-131] Là Admin, tôi muốn import danh sách phân quyền từ file mẫu để triển khai hàng loạt.
+355. [EP02-132] Là Admin, tôi muốn export cấu hình phân quyền hiện tại để đối chiếu với chính sách nội bộ.
+356. [EP02-133] Là Admin, tôi muốn xem cảnh báo khi người dùng được cấp quyền xung đột để tránh sai sót cấu hình.
+357. [EP02-118] Là Admin, tôi muốn sao lưu riêng dữ liệu không gian và dữ liệu thuộc tính để có phương án khôi phục linh hoạt.
+358. [EP02-135] Là Admin, tôi muốn áp dụng xác thực nhiều lớp cho tài khoản có quyền cao để tăng an toàn.
+359. [EP02-120] Là Admin, tôi muốn xem danh sách người dùng và vai trò hiện có để quản trị quyền truy cập tập trung.
+360. [EP02-121] Là Admin, tôi muốn gán nhóm quyền cho người dùng để kiểm soát phạm vi chức năng được sử dụng.
+361. [EP02-122] Là Admin, tôi muốn thu hồi quyền của người dùng khi thay đổi vị trí công tác để giảm rủi ro truy cập trái phép.
+362. [EP02-123] Là Admin, tôi muốn gán quyền theo từng chức năng, từng module và từng hành động để mô hình phân quyền đủ chi tiết.
+363. [EP02-124] Là Admin, tôi muốn phân quyền theo đơn vị hành chính hoặc phạm vi dữ liệu tài sản để giới hạn dữ liệu được xem.
+364. [EP02-125] Là Admin, tôi muốn sao chép bộ quyền từ một người dùng mẫu để cấu hình nhanh cho người dùng mới.
+365. [EP02-110] Là Admin, tôi muốn xác nhận nhiều bước trước khi khôi phục để tránh thao tác nhầm gây ảnh hưởng hệ thống.
+366. [EP02-127] Là Admin, tôi muốn tìm kiếm người dùng theo tên, tài khoản hoặc đơn vị để chỉnh quyền nhanh hơn.
+367. [EP02-112] Là Admin, tôi muốn nhận thông báo khi sao lưu thất bại để có thể xử lý ngay.
+368. [EP02-113] Là Admin, tôi muốn đặt chính sách lưu giữ số lượng phiên sao lưu để tối ưu chi phí lưu trữ.
+369. [EP02-114] Là Admin, tôi muốn mã hóa file sao lưu để bảo vệ dữ liệu nhạy cảm của hệ thống.
+370. [EP02-115] Là Admin, tôi muốn ghi nhận lịch sử sao lưu/khôi phục để phục vụ kiểm toán vận hành.
+371. [EP02-116] Là Admin, tôi muốn gửi bản sao lưu tới kho lưu trữ ngoài hệ thống để tăng khả năng phục hồi thảm họa.
+372. [EP02-117] Là Admin, tôi muốn xem cảnh báo khi dung lượng sao lưu vượt ngưỡng để chủ động mở rộng hạ tầng.
+373. [EP02-119] Là Admin, tôi muốn lọc lịch sử sao lưu theo trạng thái và khoảng thời gian để tra cứu thuận tiện hơn.
+374. [EP03-064] Là Admin, tôi muốn lưu cấu hình sử dụng gần nhất của Import/Export dữ liệu tài sản để làm việc nhanh hơn trong lần sau.
+375. [EP03-065] Là Admin, tôi muốn xem lịch sử thao tác trong Import/Export dữ liệu tài sản để truy vết thay đổi khi cần.
+376. [EP03-066] Là Admin, tôi muốn export dữ liệu/kết quả từ Import/Export dữ liệu tài sản để chia sẻ cho bên liên quan.
+377. [EP03-067] Là Admin, tôi muốn phân quyền sử dụng Import/Export dữ liệu tài sản theo vai trò để đảm bảo an toàn dữ liệu.
+378. [EP03-068] Là Admin, tôi muốn nhận cảnh báo khi Import/Export dữ liệu tài sản phát sinh lỗi để xử lý kịp thời.
+379. [EP03-054] Là Admin, tôi muốn import tài sản từ Shapefile để đưa dữ liệu không gian vào hệ thống.
+380. [EP03-056] Là Admin, tôi muốn kiểm tra trùng lặp và dữ liệu sai định dạng trong file import để bảo đảm chất lượng dữ liệu.
+381. [EP03-057] Là Admin, tôi muốn export dữ liệu tài sản sang Excel để phục vụ báo cáo và chỉnh sửa ngoại tuyến.
+382. [EP03-058] Là Admin, tôi muốn export dữ liệu tài sản sang GeoJSON để chia sẻ cho các công cụ bản đồ hiện đại.
+383. [EP03-059] Là Admin, tôi muốn export dữ liệu tài sản sang Shapefile để tương thích với phần mềm GIS truyền thống.
+384. [EP03-060] Là Admin, tôi muốn chỉ định phạm vi dữ liệu export theo bộ lọc hiện tại để lấy đúng tập dữ liệu cần dùng.
+385. [EP03-061] Là Admin, tôi muốn tải file mẫu import để chuẩn hóa dữ liệu đầu vào trước khi nạp.
+386. [EP03-063] Là Admin, tôi muốn tiếp tục import từ dòng lỗi sau khi chỉnh sửa để không phải nạp lại toàn bộ file.
+387. [EP03-052] Là Admin, tôi muốn import tài sản từ Excel để nạp dữ liệu nhanh từ biểu mẫu hiện có.
+388. [EP03-053] Là Admin, tôi muốn import tài sản từ CSV để hỗ trợ trao đổi dữ liệu với hệ thống khác.
+389. [EP03-055] Là Admin, tôi muốn xem trước dữ liệu import và ánh xạ cột trước khi nạp để giảm lỗi.
+390. [EP02-104] Là Admin, tôi muốn tạo sao lưu thủ công ngay lập tức để bảo vệ dữ liệu trước khi nâng cấp hệ thống.
+391. [EP02-105] Là Admin, tôi muốn cấu hình lịch sao lưu định kỳ để dữ liệu luôn được bảo vệ tự động.
+392. [EP02-106] Là Admin, tôi muốn chọn phạm vi sao lưu (toàn bộ, dữ liệu tài sản, cấu hình) để phù hợp từng nhu cầu vận hành.
+393. [EP02-107] Là Admin, tôi muốn tải xuống file sao lưu để lưu trữ ở môi trường an toàn khác.
+394. [EP02-108] Là Admin, tôi muốn xem dung lượng và thời gian hoàn thành của từng phiên sao lưu để đánh giá hiệu năng.
+395. [EP02-109] Là Admin, tôi muốn khôi phục dữ liệu từ một bản sao lưu để xử lý sự cố mất mát dữ liệu.
+396. [EP02-094] Là Admin, tôi muốn xóa hoặc lưu trữ lạnh dữ liệu cũ của Nhật ký sử dụng hệ thống theo chính sách retention.
+397. [EP02-111] Là Admin, tôi muốn kiểm tra tính toàn vẹn của file sao lưu trước khi khôi phục để đảm bảo an toàn dữ liệu.
+398. [EP02-096] Là Admin, tôi muốn nhận cảnh báo khi Nhật ký sử dụng hệ thống vượt ngưỡng lỗi cho phép để phản ứng kịp thời.
+399. [EP02-097] Là Admin, tôi muốn đối chiếu Nhật ký sử dụng hệ thống với người dùng hoặc API key liên quan để truy nguyên nguồn phát sinh.
+400. [EP02-098] Là Admin, tôi muốn xem địa chỉ IP, thiết bị hoặc hệ thống gọi trong Nhật ký sử dụng hệ thống để phục vụ kiểm tra an toàn thông tin.
+401. [EP02-099] Là Admin, tôi muốn phân quyền truy cập vào Nhật ký sử dụng hệ thống vì đây là dữ liệu nhạy cảm của hệ thống.
+402. [EP02-100] Là Admin, tôi muốn gom nhóm bản ghi trong Nhật ký sử dụng hệ thống theo loại lỗi để xác định nguyên nhân phổ biến.
+403. [EP02-101] Là Admin, tôi muốn xem nhật ký thao tác liên quan trước và sau một bản ghi của Nhật ký sử dụng hệ thống để phân tích chuỗi sự kiện.
+404. [EP02-086] Là Admin, tôi muốn xem danh sách bản ghi của Nhật ký sử dụng hệ thống để giám sát hoạt động hệ thống.
+405. [EP02-103] Là Admin, tôi muốn xem danh sách phiên sao lưu để biết hệ thống đã backup vào những thời điểm nào.
+406. [EP02-088] Là Admin, tôi muốn lọc Nhật ký sử dụng hệ thống theo thời gian, trạng thái và nguồn gọi để phân tích sự cố chính xác hơn.
+407. [EP02-089] Là Admin, tôi muốn xem chi tiết từng bản ghi trong Nhật ký sử dụng hệ thống để nắm rõ thông tin request/response.
+408. [EP02-090] Là Admin, tôi muốn theo dõi thời gian xử lý và mã lỗi trong Nhật ký sử dụng hệ thống để phát hiện điểm nghẽn.
+409. [EP02-091] Là Admin, tôi muốn export dữ liệu từ Nhật ký sử dụng hệ thống ra Excel/CSV để phục vụ phân tích ngoại tuyến.
+410. [EP02-092] Là Admin, tôi muốn đánh dấu các bản ghi bất thường trong Nhật ký sử dụng hệ thống để ưu tiên xử lý.
+411. [EP02-093] Là Admin, tôi muốn cấu hình thời gian lưu trữ của Nhật ký sử dụng hệ thống để tối ưu dung lượng dữ liệu.
+412. [EP02-078] Là Admin, tôi muốn xem biểu đồ xu hướng phát sinh của Log API theo ngày/tuần/tháng để đánh giá tải hệ thống.
+413. [EP02-095] Là Admin, tôi muốn xem biểu đồ xu hướng phát sinh của Nhật ký sử dụng hệ thống theo ngày/tuần/tháng để đánh giá tải hệ thống.
+414. [EP02-080] Là Admin, tôi muốn đối chiếu Log API với người dùng hoặc API key liên quan để truy nguyên nguồn phát sinh.
+415. [EP02-081] Là Admin, tôi muốn xem địa chỉ IP, thiết bị hoặc hệ thống gọi trong Log API để phục vụ kiểm tra an toàn thông tin.
+416. [EP02-082] Là Admin, tôi muốn phân quyền truy cập vào Log API vì đây là dữ liệu nhạy cảm của hệ thống.
+417. [EP02-083] Là Admin, tôi muốn gom nhóm bản ghi trong Log API theo loại lỗi để xác định nguyên nhân phổ biến.
+418. [EP02-084] Là Admin, tôi muốn xem nhật ký thao tác liên quan trước và sau một bản ghi của Log API để phân tích chuỗi sự kiện.
+419. [EP02-085] Là Admin, tôi muốn tải lại dữ liệu chi tiết của một bản ghi Log API khi cần kiểm tra đối soát sâu hơn.
+420. [EP02-134] Là Admin, tôi muốn cấu hình mặc định quyền cho tài khoản mới theo từng nhóm người dùng.
+421. [EP02-087] Là Admin, tôi muốn tìm kiếm bản ghi trong Nhật ký sử dụng hệ thống theo mã giao dịch hoặc từ khóa để tra cứu nhanh.
+422. [EP02-072] Là Admin, tôi muốn xem chi tiết từng bản ghi trong Log API để nắm rõ thông tin request/response.
+423. [EP02-073] Là Admin, tôi muốn theo dõi thời gian xử lý và mã lỗi trong Log API để phát hiện điểm nghẽn.
+424. [EP02-074] Là Admin, tôi muốn export dữ liệu từ Log API ra Excel/CSV để phục vụ phân tích ngoại tuyến.
+425. [EP02-075] Là Admin, tôi muốn đánh dấu các bản ghi bất thường trong Log API để ưu tiên xử lý.
+426. [EP02-076] Là Admin, tôi muốn cấu hình thời gian lưu trữ của Log API để tối ưu dung lượng dữ liệu.
+427. [EP02-077] Là Admin, tôi muốn xóa hoặc lưu trữ lạnh dữ liệu cũ của Log API theo chính sách retention.
+428. [EP02-062] Là Admin, tôi muốn ghi nhận lịch sử thay đổi của Quản lý danh mục Chức năng để truy vết thao tác quản trị.
+429. [EP02-079] Là Admin, tôi muốn nhận cảnh báo khi Log API vượt ngưỡng lỗi cho phép để phản ứng kịp thời.
+430. [EP02-064] Là Admin, tôi muốn cấu hình trạng thái hiệu lực cho Quản lý danh mục Chức năng để bật/tắt nhanh khi cần.
+431. [EP02-065] Là Admin, tôi muốn sắp xếp danh sách Quản lý danh mục Chức năng theo nhiều tiêu chí để rà soát dữ liệu thuận tiện hơn.
+432. [EP02-066] Là Admin, tôi muốn thực hiện thao tác hàng loạt trên Quản lý danh mục Chức năng để xử lý nhiều bản ghi cùng lúc.
+433. [EP02-067] Là Admin, tôi muốn nhận cảnh báo khi dữ liệu Quản lý danh mục Chức năng thiếu trường bắt buộc để tránh lưu sai.
+434. [EP02-068] Là Admin, tôi muốn xem thống kê số lượng bản ghi theo trạng thái trong Quản lý danh mục Chức năng để đánh giá chất lượng dữ liệu.
+435. [EP02-069] Là Admin, tôi muốn xem danh sách bản ghi của Log API để giám sát hoạt động hệ thống.
+436. [EP02-054] Là Admin, tôi muốn lọc Quản lý danh mục Chức năng theo trạng thái để thu hẹp dữ liệu theo nhu cầu quản trị.
+437. [EP02-071] Là Admin, tôi muốn lọc Log API theo thời gian, trạng thái và nguồn gọi để phân tích sự cố chính xác hơn.
+438. [EP02-056] Là Admin, tôi muốn cập nhật thông tin trong Quản lý danh mục Chức năng để dữ liệu luôn chính xác.
+439. [EP02-057] Là Admin, tôi muốn ngừng sử dụng hoặc xóa mềm bản ghi trong Quản lý danh mục Chức năng để tránh dùng nhầm dữ liệu cũ.
+440. [EP02-058] Là Admin, tôi muốn xem chi tiết một bản ghi của Quản lý danh mục Chức năng để kiểm tra đầy đủ thuộc tính liên quan.
+441. [EP02-059] Là Admin, tôi muốn kiểm tra trùng mã hoặc trùng tên khi lưu dữ liệu Quản lý danh mục Chức năng để đảm bảo tính duy nhất.
+442. [EP02-060] Là Admin, tôi muốn import dữ liệu cho Quản lý danh mục Chức năng từ Excel/CSV để tiết kiệm thời gian nhập liệu.
+443. [EP02-061] Là Admin, tôi muốn export dữ liệu của Quản lý danh mục Chức năng ra Excel để phục vụ kiểm tra và đối soát.
+444. [EP02-046] Là Admin, tôi muốn phân quyền xem/sửa/xóa trên Quản lý danh mục Nhóm quyền để kiểm soát trách nhiệm sử dụng.
+445. [EP02-063] Là Admin, tôi muốn phân quyền xem/sửa/xóa trên Quản lý danh mục Chức năng để kiểm soát trách nhiệm sử dụng.
+446. [EP02-048] Là Admin, tôi muốn sắp xếp danh sách Quản lý danh mục Nhóm quyền theo nhiều tiêu chí để rà soát dữ liệu thuận tiện hơn.
+447. [EP02-049] Là Admin, tôi muốn thực hiện thao tác hàng loạt trên Quản lý danh mục Nhóm quyền để xử lý nhiều bản ghi cùng lúc.
+448. [EP02-050] Là Admin, tôi muốn nhận cảnh báo khi dữ liệu Quản lý danh mục Nhóm quyền thiếu trường bắt buộc để tránh lưu sai.
+449. [EP02-051] Là Admin, tôi muốn xem thống kê số lượng bản ghi theo trạng thái trong Quản lý danh mục Nhóm quyền để đánh giá chất lượng dữ liệu.
+450. [EP02-052] Là Admin, tôi muốn xem danh sách Quản lý danh mục Chức năng để theo dõi toàn bộ cấu hình hiện có.
+451. [EP02-053] Là Admin, tôi muốn tìm kiếm Quản lý danh mục Chức năng theo từ khóa để truy xuất nhanh bản ghi cần thao tác.
+452. [EP02-102] Là Admin, tôi muốn tải lại dữ liệu chi tiết của một bản ghi Nhật ký sử dụng hệ thống khi cần kiểm tra đối soát sâu hơn.
+453. [EP02-055] Là Admin, tôi muốn tạo mới bản ghi trong Quản lý danh mục Chức năng để bổ sung thông tin cho hệ thống.
+454. [EP02-040] Là Admin, tôi muốn ngừng sử dụng hoặc xóa mềm bản ghi trong Quản lý danh mục Nhóm quyền để tránh dùng nhầm dữ liệu cũ.
+455. [EP02-041] Là Admin, tôi muốn xem chi tiết một bản ghi của Quản lý danh mục Nhóm quyền để kiểm tra đầy đủ thuộc tính liên quan.
+456. [EP02-042] Là Admin, tôi muốn kiểm tra trùng mã hoặc trùng tên khi lưu dữ liệu Quản lý danh mục Nhóm quyền để đảm bảo tính duy nhất.
+457. [EP02-043] Là Admin, tôi muốn import dữ liệu cho Quản lý danh mục Nhóm quyền từ Excel/CSV để tiết kiệm thời gian nhập liệu.
+458. [EP02-044] Là Admin, tôi muốn export dữ liệu của Quản lý danh mục Nhóm quyền ra Excel để phục vụ kiểm tra và đối soát.
+459. [EP02-045] Là Admin, tôi muốn ghi nhận lịch sử thay đổi của Quản lý danh mục Nhóm quyền để truy vết thao tác quản trị.
+460. [EP02-030] Là Admin, tôi muốn cấu hình trạng thái hiệu lực cho Quản lý danh mục API Key để bật/tắt nhanh khi cần.
+461. [EP02-047] Là Admin, tôi muốn cấu hình trạng thái hiệu lực cho Quản lý danh mục Nhóm quyền để bật/tắt nhanh khi cần.
+462. [EP02-032] Là Admin, tôi muốn thực hiện thao tác hàng loạt trên Quản lý danh mục API Key để xử lý nhiều bản ghi cùng lúc.
+463. [EP02-033] Là Admin, tôi muốn nhận cảnh báo khi dữ liệu Quản lý danh mục API Key thiếu trường bắt buộc để tránh lưu sai.
+464. [EP02-034] Là Admin, tôi muốn xem thống kê số lượng bản ghi theo trạng thái trong Quản lý danh mục API Key để đánh giá chất lượng dữ liệu.
+465. [EP02-035] Là Admin, tôi muốn xem danh sách Quản lý danh mục Nhóm quyền để theo dõi toàn bộ cấu hình hiện có.
+466. [EP02-036] Là Admin, tôi muốn tìm kiếm Quản lý danh mục Nhóm quyền theo từ khóa để truy xuất nhanh bản ghi cần thao tác.
+467. [EP02-037] Là Admin, tôi muốn lọc Quản lý danh mục Nhóm quyền theo trạng thái để thu hẹp dữ liệu theo nhu cầu quản trị.
+468. [EP02-022] Là Admin, tôi muốn cập nhật thông tin trong Quản lý danh mục API Key để dữ liệu luôn chính xác.
+469. [EP02-039] Là Admin, tôi muốn cập nhật thông tin trong Quản lý danh mục Nhóm quyền để dữ liệu luôn chính xác.
+470. [EP02-024] Là Admin, tôi muốn xem chi tiết một bản ghi của Quản lý danh mục API Key để kiểm tra đầy đủ thuộc tính liên quan.
+471. [EP02-025] Là Admin, tôi muốn kiểm tra trùng mã hoặc trùng tên khi lưu dữ liệu Quản lý danh mục API Key để đảm bảo tính duy nhất.
+472. [EP02-026] Là Admin, tôi muốn import dữ liệu cho Quản lý danh mục API Key từ Excel/CSV để tiết kiệm thời gian nhập liệu.
+473. [EP02-027] Là Admin, tôi muốn export dữ liệu của Quản lý danh mục API Key ra Excel để phục vụ kiểm tra và đối soát.
+474. [EP02-028] Là Admin, tôi muốn ghi nhận lịch sử thay đổi của Quản lý danh mục API Key để truy vết thao tác quản trị.
+475. [EP02-029] Là Admin, tôi muốn phân quyền xem/sửa/xóa trên Quản lý danh mục API Key để kiểm soát trách nhiệm sử dụng.
+476. [EP02-014] Là Admin, tôi muốn sắp xếp danh sách Quản lý danh mục Cấu hình hệ thống theo nhiều tiêu chí để rà soát dữ liệu thuận tiện hơn.
+477. [EP02-031] Là Admin, tôi muốn sắp xếp danh sách Quản lý danh mục API Key theo nhiều tiêu chí để rà soát dữ liệu thuận tiện hơn.
+478. [EP02-016] Là Admin, tôi muốn nhận cảnh báo khi dữ liệu Quản lý danh mục Cấu hình hệ thống thiếu trường bắt buộc để tránh lưu sai.
+479. [EP02-017] Là Admin, tôi muốn xem thống kê số lượng bản ghi theo trạng thái trong Quản lý danh mục Cấu hình hệ thống để đánh giá chất lượng dữ liệu.
+480. [EP02-018] Là Admin, tôi muốn xem danh sách Quản lý danh mục API Key để theo dõi toàn bộ cấu hình hiện có.
+481. [EP02-019] Là Admin, tôi muốn tìm kiếm Quản lý danh mục API Key theo từ khóa để truy xuất nhanh bản ghi cần thao tác.
+482. [EP02-020] Là Admin, tôi muốn lọc Quản lý danh mục API Key theo trạng thái để thu hẹp dữ liệu theo nhu cầu quản trị.
+483. [EP02-021] Là Admin, tôi muốn tạo mới bản ghi trong Quản lý danh mục API Key để bổ sung thông tin cho hệ thống.
+484. [EP02-070] Là Admin, tôi muốn tìm kiếm bản ghi trong Log API theo mã giao dịch hoặc từ khóa để tra cứu nhanh.
+485. [EP02-023] Là Admin, tôi muốn ngừng sử dụng hoặc xóa mềm bản ghi trong Quản lý danh mục API Key để tránh dùng nhầm dữ liệu cũ.
+486. [EP02-006] Là Admin, tôi muốn ngừng sử dụng hoặc xóa mềm bản ghi trong Quản lý danh mục Cấu hình hệ thống để tránh dùng nhầm dữ liệu cũ.
+487. [EP02-007] Là Admin, tôi muốn xem chi tiết một bản ghi của Quản lý danh mục Cấu hình hệ thống để kiểm tra đầy đủ thuộc tính liên quan.
+488. [EP02-008] Là Admin, tôi muốn kiểm tra trùng mã hoặc trùng tên khi lưu dữ liệu Quản lý danh mục Cấu hình hệ thống để đảm bảo tính duy nhất.
+489. [EP02-009] Là Admin, tôi muốn import dữ liệu cho Quản lý danh mục Cấu hình hệ thống từ Excel/CSV để tiết kiệm thời gian nhập liệu.
+490. [EP02-010] Là Admin, tôi muốn export dữ liệu của Quản lý danh mục Cấu hình hệ thống ra Excel để phục vụ kiểm tra và đối soát.
+491. [EP02-011] Là Admin, tôi muốn ghi nhận lịch sử thay đổi của Quản lý danh mục Cấu hình hệ thống để truy vết thao tác quản trị.
+492. [EP02-012] Là Admin, tôi muốn phân quyền xem/sửa/xóa trên Quản lý danh mục Cấu hình hệ thống để kiểm soát trách nhiệm sử dụng.
+493. [EP02-015] Là Admin, tôi muốn thực hiện thao tác hàng loạt trên Quản lý danh mục Cấu hình hệ thống để xử lý nhiều bản ghi cùng lúc.
+494. [EP02-001] Là Admin, tôi muốn xem danh sách Quản lý danh mục Cấu hình hệ thống để theo dõi toàn bộ cấu hình hiện có.
+495. [EP02-002] Là Admin, tôi muốn tìm kiếm Quản lý danh mục Cấu hình hệ thống theo từ khóa để truy xuất nhanh bản ghi cần thao tác.
+496. [EP02-003] Là Admin, tôi muốn lọc Quản lý danh mục Cấu hình hệ thống theo trạng thái để thu hẹp dữ liệu theo nhu cầu quản trị.
+497. [EP02-004] Là Admin, tôi muốn tạo mới bản ghi trong Quản lý danh mục Cấu hình hệ thống để bổ sung thông tin cho hệ thống.
+498. [EP02-013] Là Admin, tôi muốn cấu hình trạng thái hiệu lực cho Quản lý danh mục Cấu hình hệ thống để bật/tắt nhanh khi cần.
+499. [EP02-038] Là Admin, tôi muốn tạo mới bản ghi trong Quản lý danh mục Nhóm quyền để bổ sung thông tin cho hệ thống.
+500. [EP02-005] Là Admin, tôi muốn cập nhật thông tin trong Quản lý danh mục Cấu hình hệ thống để dữ liệu luôn chính xác.

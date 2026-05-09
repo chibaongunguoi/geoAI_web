@@ -66,7 +66,8 @@ class ImportDaNangOvertureBuildingsTest(unittest.TestCase):
         self.assertIsNone(row.name)
         self.assertIsNone(row.address_line)
         self.assertIsNone(row.street)
-        self.assertEqual(row.attributes["trustedColumnsOnly"], True)
+        attributes = json.loads(row.attributes)
+        self.assertEqual(attributes["trustedColumnsOnly"], True)
         self.assertIn("hoa khanh bac", row.search_text_normalized)
 
     def test_building_outside_wards_is_skipped(self):
@@ -161,8 +162,11 @@ class ImportDaNangOvertureBuildingsTest(unittest.TestCase):
 
     def test_stage_batch_uses_executemany_with_json_payloads(self):
         connection = MagicMock()
-        cursor = connection.cursor.return_value.__enter__.return_value
-        row = importer.BuildingStageRow(
+        # Mock connection.__enter__ for the 'with connection:' context manager
+        connection.__enter__.return_value = connection
+        
+        row = importer.BuildingPropertyRow(
+            id="ovt_abc",
             code="DN-OVT-ABC",
             overture_id="abc",
             name=None,
@@ -181,54 +185,21 @@ class ImportDaNangOvertureBuildingsTest(unittest.TestCase):
             area_sqm=None,
             centroid_lat=16.0,
             centroid_lng=108.0,
-            bbox={"xmin": 108, "ymin": 16, "xmax": 108.1, "ymax": 16.1},
-            geometry={"type": "Polygon", "coordinates": []},
-            attributes={"id": "abc"},
+            bbox=json.dumps({"xmin": 108, "ymin": 16, "xmax": 108.1, "ymax": 16.1}),
+            geometry=json.dumps({"type": "Polygon", "coordinates": []}),
+            attributes=json.dumps({"id": "abc"}),
             search_text="DN-OVT-ABC Hoa Khanh Bac",
             search_text_normalized="dn ovt abc hoa khanh bac",
         )
 
-        importer.stage_rows(connection, [row])
+        importer.insert_batch(connection, [row])
 
-        cursor.executemany.assert_called_once()
-        params = cursor.executemany.call_args.args[1][0]
-        self.assertEqual(params[0], "DN-OVT-ABC")
-        self.assertEqual(json.loads(params[18]), row.bbox)
-
-    def test_parse_storage_size_handles_neon_units(self):
-        self.assertEqual(importer.parse_storage_size_to_bytes("512MB"), 512 * 1024 * 1024)
-        self.assertEqual(importer.parse_storage_size_to_bytes("1 GB"), 1024 * 1024 * 1024)
-        self.assertIsNone(importer.parse_storage_size_to_bytes(""))
-
-    def test_storage_preflight_blocks_stage_that_exceeds_limit(self):
-        snapshot = importer.StorageSnapshot(
-            max_bytes=512 * 1024 * 1024,
-            db_bytes=500 * 1024 * 1024,
-            property_bytes=10 * 1024 * 1024,
-            stage_bytes=500 * 1024 * 1024,
-            property_row_count=100,
-            overture_count=100,
-        )
-
-        message = importer.storage_capacity_error(snapshot, target_importable_count=424_486)
-
-        assert message is not None
-        self.assertIn("staging table", message)
-
-    def test_storage_preflight_blocks_projected_final_table_that_exceeds_limit(self):
-        snapshot = importer.StorageSnapshot(
-            max_bytes=512 * 1024 * 1024,
-            db_bytes=492 * 1024 * 1024,
-            property_bytes=484 * 1024 * 1024,
-            stage_bytes=0,
-            property_row_count=235_250,
-            overture_count=235_250,
-        )
-
-        message = importer.storage_capacity_error(snapshot, target_importable_count=424_486)
-
-        assert message is not None
-        self.assertIn("projected BuildingProperty size", message)
+        connection.executemany.assert_called_once()
+        params = connection.executemany.call_args.args[1][0]
+        # index 1 is code "DN-OVT-ABC"
+        self.assertEqual(params[1], "DN-OVT-ABC")
+        # index 19 is bbox
+        self.assertEqual(json.loads(params[19]), json.loads(row.bbox))
 
 
 if __name__ == "__main__":
