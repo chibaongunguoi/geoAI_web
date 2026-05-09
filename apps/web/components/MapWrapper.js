@@ -13,6 +13,7 @@ import {
   hasDensityResult,
   propertySearchAnswerText
 } from "@/features/map/property-search";
+import useSearchHistory from "@/features/map/useSearchHistory";
 import {
   createDefaultAssetDisplayConfig,
   normalizeAssetDisplayConfig,
@@ -41,6 +42,8 @@ import {
   writeStoredBasemap
 } from "@/features/map/basemaps";
 import styles from "./MapWrapper.module.css";
+import PropertyTable from "./PropertyTable";
+import SearchResultList from "./SearchResultList";
 
 const Map = dynamic(() => import("./Map"), {
   ssr: false,
@@ -71,6 +74,11 @@ const SCAN_MODE_OPTIONS = [
   }
 ];
 const REFERENCE_LAYER_IDS = ["admin-boundaries"];
+const SAMPLE_PROPERTY_QUESTIONS = [
+  "Có bao nhiêu nhà ở phường Hòa Khánh Bắc?",
+  "Vùng nào ở Liên Chiểu có mật độ nhà dày đặc nhất?",
+  "Nhà ở đường Nguyễn Lương Bằng"
+];
 
 function selectedLabel(options, value) {
   return options.find((option) => option.value === value)?.label || "";
@@ -112,6 +120,10 @@ export default function MapWrapper({ permissions = [] }) {
   const [propertySearchResult, setPropertySearchResult] = useState(null);
   const [propertySearchStatus, setPropertySearchStatus] = useState(null);
   const [isSearchingProperties, setIsSearchingProperties] = useState(false);
+  const [focusedProperty, setFocusedProperty] = useState(null);
+  const [propertyResultView, setPropertyResultView] = useState("list");
+  const [suggestions, setSuggestions] = useState([]);
+  const { history: searchHistory, addSearch } = useSearchHistory();
   const skipNextLayerPersistRef = useRef(false);
   const skipNextAssetPersistRef = useRef(false);
 
@@ -398,13 +410,20 @@ export default function MapWrapper({ permissions = [] }) {
     );
   }, []);
 
-  const runPropertySearch = useCallback(async () => {
-    const query = propertyQuery.trim();
+  const runPropertySearch = useCallback(async (overrideQuery) => {
+    const query = typeof overrideQuery === "string" ? overrideQuery.trim() : propertyQuery.trim();
     if (!query || isSearchingProperties) return;
+
+    if (typeof overrideQuery === "string") {
+      setPropertyQuery(query);
+    }
+
+    addSearch(query);
 
     setIsSearchingProperties(true);
     setPropertySearchStatus(null);
     setAnalysisResults(null);
+    setFocusedProperty(null);
 
     try {
       const response = await fetch(
@@ -420,21 +439,51 @@ export default function MapWrapper({ permissions = [] }) {
       setPropertySearchResult(result);
       setLayerState((current) => hideAllLayerVisibility(current, REFERENCE_LAYER_IDS));
       setPropertySearchStatus(
-        propertySearchAnswerText(result) || `${result.items?.length || 0} ket qua`
+        propertySearchAnswerText(result) || (result.items?.length > 0 ? `${result.items.length} kết quả` : "")
       );
+
+      if (result.meta?.ambiguityWarning) {
+        setPropertySearchStatus(result.meta.ambiguityWarning);
+      }
+
+      if (result.map?.type === "focus" && result.map.center) {
+        setFocusedProperty({
+          code: "TỌA ĐỘ",
+          name: "Vị trí được ghim",
+          addressLine: `${result.map.center.lat.toFixed(5)}, ${result.map.center.lng.toFixed(5)}`,
+          centroidLat: result.map.center.lat,
+          centroidLng: result.map.center.lng
+        });
+      }
     } catch {
       setPropertySearchResult(null);
       setPropertySearchStatus("Khong tim kiem duoc du lieu nha/dat.");
     } finally {
       setIsSearchingProperties(false);
     }
-  }, [isSearchingProperties, propertyQuery]);
+  }, [addSearch, isSearchingProperties, propertyQuery]);
 
   const refreshLayer = useCallback((layerId) => {
     setLayerRefreshRequests((current) => ({
       ...current,
       [layerId]: (current[layerId] || 0) + 1
     }));
+  }, []);
+
+  const fetchSuggestions = useCallback(async (query) => {
+    if (!query || query.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/properties/suggestions?q=${encodeURIComponent(query.trim())}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      setSuggestions([]);
+    }
   }, []);
 
   const analyzeImage = useCallback(
@@ -661,8 +710,18 @@ export default function MapWrapper({ permissions = [] }) {
                 className={styles.textAreaInput}
                 value={propertyQuery}
                 rows={3}
-                onChange={(event) => setPropertyQuery(event.target.value)}
+                list="property-search-suggestions"
+                onChange={(event) => {
+                  const val = event.target.value;
+                  setPropertyQuery(val);
+                  fetchSuggestions(val);
+                }}
               />
+              <datalist id="property-search-suggestions">
+                {suggestions.map((s) => (
+                  <option key={s.id} value={s.text} />
+                ))}
+              </datalist>
             </label>
             <button
               className={styles.primaryAction}
@@ -672,6 +731,34 @@ export default function MapWrapper({ permissions = [] }) {
               {isSearchingProperties ? "Đang tìm..." : "Tìm kiếm"}
             </button>
           </form>
+          <div className={styles.sampleQuestionChips} aria-label="Câu hỏi mẫu">
+            {SAMPLE_PROPERTY_QUESTIONS.map((question) => (
+              <button
+                key={question}
+                type="button"
+                className={styles.sampleQuestionChip}
+                onClick={() => runPropertySearch(question)}
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+          {searchHistory.length > 0 ? (
+            <div className={styles.searchHistory}>
+              {searchHistory.map((item, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={styles.historyChip}
+                  onClick={() => runPropertySearch(item.text)}
+                  title={item.text}
+                  data-type={item.type}
+                >
+                  {item.text}
+                </button>
+              ))}
+            </div>
+          ) : null}
           {propertySearchStatus ? (
             <p className={styles.actionHint} role="status">
               {propertySearchStatus}
@@ -686,6 +773,34 @@ export default function MapWrapper({ permissions = [] }) {
                 </li>
               ))}
             </ol>
+          ) : null}
+          {propertySearchResult && !hasDensityResult(propertySearchResult) ? (
+            <div className={styles.propertyResultsPanel}>
+              <div className={styles.viewSwitcher} role="group" aria-label="Kiểu hiển thị kết quả">
+                <button
+                  type="button"
+                  className={propertyResultView === "list" ? styles.activeViewButton : styles.viewButton}
+                  onClick={() => setPropertyResultView("list")}
+                >
+                  Danh sách
+                </button>
+                <button
+                  type="button"
+                  className={propertyResultView === "table" ? styles.activeViewButton : styles.viewButton}
+                  onClick={() => setPropertyResultView("table")}
+                >
+                  Bảng
+                </button>
+              </div>
+              {propertyResultView === "table" ? (
+                <PropertyTable results={propertySearchResult.items || []} />
+              ) : (
+                <SearchResultList
+                  results={propertySearchResult.items || []}
+                  onSelectResult={(item) => setFocusedProperty(item)}
+                />
+              )}
+            </div>
           ) : null}
         </CollapsibleSection>
 
@@ -864,6 +979,7 @@ export default function MapWrapper({ permissions = [] }) {
           onAssetLoad={setVisibleAssets}
           onAssetError={setAssetDisplayError}
           propertySearchResult={propertySearchResult}
+          focusedProperty={focusedProperty}
         />
       </div>
     </div>

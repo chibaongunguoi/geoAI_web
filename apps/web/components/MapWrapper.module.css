@@ -407,3 +407,91 @@
     border-bottom: 1px solid var(--color-border);
   }
 }
+
+.searchHistory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.historyChip {
+  font-size: 0.75rem;
+  background-color: var(--color-card-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historyChip:hover {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: var(--color-primary-strong);
+  border-color: var(--color-primary);
+}
+
+.sampleQuestionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.sampleQuestionChip {
+  max-width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-card-soft-bg);
+  color: var(--color-text-muted);
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.sampleQuestionChip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-strong);
+}
+
+.propertyResultsPanel {
+  display: grid;
+  gap: 10px;
+}
+
+.viewSwitcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card-soft-bg);
+  padding: 4px;
+}
+
+.viewButton,
+.activeViewButton {
+  min-height: 32px;
+  border: 0;
+  border-radius: calc(var(--radius-md) - 3px);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.viewButton {
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.activeViewButton {
+  background: var(--color-card-bg);
+  color: var(--color-primary-strong);
+  box-shadow: 0 1px 4px rgba(30, 27, 75, 0.12);
+}

@@ -300,6 +300,7 @@ function MapComponent({
   onAssetLoad,
   onAssetError,
   propertySearchResult,
+  focusedProperty,
 }) {
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
@@ -308,6 +309,7 @@ function MapComponent({
   const [boundaryLayer] = useState(new L.FeatureGroup());
   const [maskLayer] = useState(new L.FeatureGroup());
   const [propertySearchLayer] = useState(new L.FeatureGroup());
+  const [focusedPropertyLayer] = useState(new L.FeatureGroup());
   const [currentCoords, setCurrentCoords] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(() => map.getZoom());
   const [adminBoundaries, setAdminBoundaries] = useState(null);
@@ -400,6 +402,7 @@ function MapComponent({
     map.addLayer(maskLayer);
     map.addLayer(boundaryLayer);
     map.addLayer(propertySearchLayer);
+    map.addLayer(focusedPropertyLayer);
     setTimeout(() => map.invalidateSize(), 0);
 
     const handleCreated = (event) => {
@@ -426,6 +429,7 @@ function MapComponent({
       map.removeLayer(maskLayer);
       map.removeLayer(boundaryLayer);
       map.removeLayer(propertySearchLayer);
+      map.removeLayer(focusedPropertyLayer);
       externalLayersRef.current.forEach((layer) => map.removeLayer(layer));
       externalLayersRef.current.clear();
     };
@@ -437,9 +441,41 @@ function MapComponent({
     maskLayer,
     boundaryLayer,
     propertySearchLayer,
+    focusedPropertyLayer,
     onRectangleDrawn,
     captureImageForCoords,
   ]);
+
+  useEffect(() => {
+    focusedPropertyLayer.clearLayers();
+    if (!focusedProperty) return;
+
+    const lat = focusedProperty.centroidLat;
+    const lng = focusedProperty.centroidLng;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return;
+
+    const center = L.latLng(lat, lng);
+
+    const marker = L.circleMarker(center, {
+      radius: 8,
+      color: "#ffffff",
+      weight: 2,
+      opacity: 1,
+      fillColor: "#ef4444",
+      fillOpacity: 1,
+    }).bindPopup(
+      `<strong>${escapeHtml(focusedProperty.name || focusedProperty.code)}</strong><br>${escapeHtml(focusedProperty.addressLine || focusedProperty.ward || "")}`
+    );
+
+    marker.addTo(focusedPropertyLayer);
+
+    const targetZoom = Math.max(map.getZoom(), 17);
+    map.flyTo(center, targetZoom, { animate: true, duration: 0.75 });
+    
+    // Automatically open popup after flying
+    setTimeout(() => marker.openPopup(), 800);
+
+  }, [focusedProperty, focusedPropertyLayer, map]);
 
   useEffect(() => {
     propertySearchLayer.clearLayers();
@@ -1244,6 +1280,7 @@ export default function Map({
   onAssetLoad,
   onAssetError,
   propertySearchResult,
+  focusedProperty,
 }) {
   return (
     <MapContainer
@@ -1286,6 +1323,7 @@ export default function Map({
         onAssetLoad={onAssetLoad}
         onAssetError={onAssetError}
         propertySearchResult={propertySearchResult}
+        focusedProperty={focusedProperty}
       />
     </MapContainer>
   );

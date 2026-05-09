@@ -1,0 +1,94 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+  margin-bottom: 0.25rem;
+}
+
+.emptyState {
+  font-size: 0.875rem;
+  color: var(--color-gray-500);
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+  background-color: var(--color-gray-50);
+  border-radius: 4px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background-color: white;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.item:hover {
+  border-color: var(--color-blue-500);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.itemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-gray-900);
+}
+
+.code {
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
+  font-family: monospace;
+}
+
+.address {
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+}
+
+.badges {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.badge {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+  text-transform: uppercase;
+}
+
+.badgeStatus {
+  background-color: var(--color-green-100);
+  color: var(--color-green-800);
+}

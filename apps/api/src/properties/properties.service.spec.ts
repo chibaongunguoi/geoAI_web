@@ -116,6 +116,144 @@ describe("PropertiesService", () => {
     );
   });
 
+  it("detects lat,lng coordinate input and returns focus map", async () => {
+    const prisma = prismaStub();
+    const service = new PropertiesService(prisma);
+
+    const result = await service.searchProperties({
+      query: "16.0544, 108.2022",
+      limit: 10
+    });
+
+    expect(result.items).toHaveLength(0);
+    expect(result.map).toEqual({
+      type: "focus",
+      center: { lat: 16.0544, lng: 108.2022 }
+    });
+    expect(result.answer).toEqual({
+      type: "coordinate",
+      text: "Tọa độ: 16.05440, 108.20220"
+    });
+    expect(result.meta.searchMode).toBe("coordinate");
+  });
+
+  it("detects lng,lat coordinate input and normalizes it", async () => {
+    const prisma = prismaStub();
+    const service = new PropertiesService(prisma);
+
+    const result = await service.searchProperties({
+      query: "108.2022, 16.0544",
+      limit: 10
+    });
+
+    expect(result.map).toEqual({
+      type: "focus",
+      center: { lat: 16.0544, lng: 108.2022 }
+    });
+  });
+
+  it("parses Vietnamese status and district conditions for natural-language list queries", async () => {
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma);
+
+    const result = await service.searchProperties({
+      query: "nha dang hoat dong o lien chieu",
+      limit: 10
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(prisma.buildingProperty.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          deletedAt: null,
+          status: "ACTIVE",
+          propertyType: "building",
+          AND: expect.arrayContaining([
+            { searchTextNormalized: { contains: "lien chieu" } },
+            { searchTextNormalized: { contains: "lien" } },
+            { searchTextNormalized: { contains: "chieu" } }
+          ])
+        })
+      })
+    );
+  });
+
+  it("parses review and building type conditions without accent marks", async () => {
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma);
+
+    await service.searchProperties({
+      query: "toa nha can xem xet o hoa khanh bac",
+      limit: 10
+    });
+
+    expect(prisma.buildingProperty.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: "REVIEW",
+          propertyType: "building",
+          AND: expect.arrayContaining([
+            { searchTextNormalized: { contains: "hoa khanh bac" } }
+          ])
+        })
+      })
+    );
+  });
+
+  it("returns an ambiguity warning for broad Vietnamese natural-language queries", async () => {
+    const prisma = prismaStub();
+    const service = new PropertiesService(prisma);
+
+    const result = await service.searchProperties({
+      query: "Cho toi danh sach",
+      limit: 10
+    });
+
+    expect(result.meta.ambiguityWarning).toBe(
+      "Bạn có thể chỉ rõ phường, quận hoặc điều kiện cần tìm?"
+    );
+  });
+
+  it("returns typed property suggestions", async () => {
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma);
+
+    await expect(service.getSuggestions("Nguyen Luong")).resolves.toEqual([
+      {
+        id: "property-1",
+        text: "Nha Nguyen Luong Bang, 546 Nguyen Luong Bang, Hoa Khanh Bac, Lien Chieu",
+        code: "DN-BLD-000001"
+      }
+    ]);
+  });
+
   it("answers Vietnamese ward and district building count questions", async () => {
     const prisma = prismaStub({
       buildingProperty: {

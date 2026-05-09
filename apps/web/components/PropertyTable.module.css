@@ -1,0 +1,45 @@
+.tableShell {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card-bg);
+}
+
+.table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--color-card-soft-bg);
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
+.table td {
+  color: var(--color-text);
+}
+
+.emptyState {
+  margin: 10px 0 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card-soft-bg);
+  color: var(--color-text-muted);
+  padding: 10px;
+  text-align: center;
+  font-size: 12px;
+}

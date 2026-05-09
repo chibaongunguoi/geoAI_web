@@ -113,6 +113,8 @@ type SearchIntent = {
   filters: {
     ward?: string;
     district?: string;
+    status?: PropertyStatus;
+    propertyType?: string;
   };
 };
 
@@ -139,6 +141,7 @@ export type PropertySearchInput = {
   ward?: string;
   district?: string;
   status?: string;
+  propertyType?: string;
   source?: string;
   limit?: number;
 };
@@ -203,6 +206,7 @@ const VALID_STATUSES = new Set<PropertyStatus>([
 const STOP_WORDS = new Set([
   "cho",
   "toi",
+  "toi",
   "danh",
   "sach",
   "cac",
@@ -242,7 +246,18 @@ const STOP_WORDS = new Set([
   "do",
   "day",
   "dac",
-  "nhat"
+  "nhat",
+  "tim",
+  "dang",
+  "hoat",
+  "dong",
+  "khong",
+  "can",
+  "xem",
+  "xet",
+  "luu",
+  "tru",
+  "building"
 ]);
 
 const DANANG_DISTRICTS = [
@@ -279,6 +294,33 @@ export class PropertiesService {
 
   async searchProperties(input: PropertySearchInput = {}): Promise<any> {
     const limit = this.validLimit(input.limit);
+
+    if (input.query) {
+      const coordMatch = input.query.trim().match(/^([+-]?\d+\.\d+),\s*([+-]?\d+\.\d+)$/);
+      if (coordMatch) {
+        const val1 = parseFloat(coordMatch[1]);
+        const val2 = parseFloat(coordMatch[2]);
+        let lat = val1, lng = val2;
+        
+        if (Math.abs(val1) > 90) {
+          lat = val2;
+          lng = val1;
+        }
+
+        if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+          return {
+            items: [],
+            answer: { type: "coordinate", text: `Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}` },
+            map: {
+              type: "focus",
+              center: { lat, lng }
+            },
+            meta: { limit, tokens: [], searchMode: "coordinate" }
+          };
+        }
+      }
+    }
+
     const intent = this.searchIntent(input.query);
     const tokens = this.searchTokens(input.query);
     const source = this.searchSource(input.source);
@@ -287,12 +329,16 @@ export class PropertiesService {
       try {
         const providerResult = await this.elasticsearchProvider().search({
           query: input.query,
-          status: VALID_STATUSES.has(input.status as PropertyStatus) ? input.status : undefined,
+          status: this.searchStatus(input.status, intent),
+          propertyType: this.searchPropertyType(input.propertyType, intent),
           source,
           limit,
           tokens,
           normalizedQuery: normalizeSearchText(input.query || ""),
-          filters: intent.filters
+          filters: {
+            ward: intent.filters.ward,
+            district: intent.filters.district
+          }
         });
 
         return {
@@ -302,7 +348,8 @@ export class PropertiesService {
             tokens,
             normalizedQuery: normalizeSearchText(input.query || ""),
             searchMode: providerResult.searchMode,
-            semanticModel: providerResult.semanticModel || DEFAULT_EMBEDDING_MODEL
+            semanticModel: providerResult.semanticModel || DEFAULT_EMBEDDING_MODEL,
+            ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
           }
         };
       } catch {
@@ -345,7 +392,7 @@ export class PropertiesService {
 
     if (rankedRows.length === 0 && tokens.length > 0 && intent.type === "list") {
       rows = (await this.prisma.buildingProperty.findMany({
-        where: this.fuzzySearchWhere(input, tokens, source),
+        where: this.fuzzySearchWhere(input, tokens, source, intent),
         orderBy: [{ updatedAt: "desc" }],
         take: MAX_LIMIT
       })) as BuildingPropertyRow[];
@@ -379,7 +426,8 @@ export class PropertiesService {
             ? "postgres-normalized-vietnamese-nl"
             : "postgres-normalized-lexical",
         semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
-        warnings: [] as string[]
+        warnings: [] as string[],
+        ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
       }
     };
   }
@@ -403,6 +451,39 @@ export class PropertiesService {
 
   private searchSource(source?: string) {
     return this.cleanString(source) || OVERTURE_SOURCE;
+  }
+
+  async getSuggestions(query: string) {
+    if (!query || query.trim().length < 2) return [];
+    
+    const normalized = normalizeSearchText(query);
+    const properties = (await this.prisma.buildingProperty.findMany({
+      where: {
+        deletedAt: null,
+        searchTextNormalized: { contains: normalized }
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        addressLine: true,
+        ward: true,
+        district: true
+      },
+      take: 5
+    })) as Array<Pick<
+      BuildingPropertyRow,
+      "id" | "code" | "name" | "addressLine" | "ward" | "district"
+    >>;
+
+    return properties.map(p => {
+      const addressParts = [p.name, p.addressLine, p.ward, p.district].filter(Boolean);
+      return {
+        id: p.id,
+        text: addressParts.join(", ") || p.code,
+        code: p.code
+      };
+    });
   }
 
   async getProperty(id: string) {
@@ -541,12 +622,23 @@ export class PropertiesService {
 
     if (input.status && VALID_STATUSES.has(input.status as PropertyStatus)) {
       where.status = input.status;
+    } else if (intent.filters.status) {
+      where.status = intent.filters.status;
+    }
+
+    if (input.propertyType || intent.filters.propertyType) {
+      where.propertyType = input.propertyType || intent.filters.propertyType;
     }
 
     return where;
   }
 
-  private fuzzySearchWhere(input: PropertySearchInput, tokens: string[], source: string) {
+  private fuzzySearchWhere(
+    input: PropertySearchInput,
+    tokens: string[],
+    source: string,
+    intent?: SearchIntent
+  ) {
     const where: Record<string, unknown> = { deletedAt: null, source };
     const candidates = [...new Set(tokens.flatMap((token) => [token, token.slice(0, 4)]))]
       .filter((token) => token.length >= 3)
@@ -558,6 +650,12 @@ export class PropertiesService {
 
     if (input.status && VALID_STATUSES.has(input.status as PropertyStatus)) {
       where.status = input.status;
+    } else if (intent?.filters.status) {
+      where.status = intent.filters.status;
+    }
+
+    if (input.propertyType || intent?.filters.propertyType) {
+      where.propertyType = input.propertyType || intent?.filters.propertyType;
     }
 
     return where;
@@ -655,7 +753,9 @@ export class PropertiesService {
       : false;
     const filters = {
       ward: wardFromMarker || (locationIsKnownDistrict ? undefined : locationAfterAt),
-      district: district || (locationIsKnownDistrict ? locationAfterAt : undefined)
+      district: district || (locationIsKnownDistrict ? locationAfterAt : undefined),
+      status: this.matchStatus(normalizedQuery),
+      propertyType: this.matchPropertyType(normalizedQuery)
     };
 
     return {
@@ -724,6 +824,65 @@ export class PropertiesService {
 
   private matchKnownDistrict(normalizedQuery: string) {
     return DANANG_DISTRICTS.find((district) => normalizedQuery.includes(district));
+  }
+
+  private matchStatus(normalizedQuery: string): PropertyStatus | undefined {
+    if (/\b(khong hoat dong|ngung hoat dong)\b/.test(normalizedQuery)) {
+      return "INACTIVE";
+    }
+
+    if (/\b(can xem xet|cho xem xet|review)\b/.test(normalizedQuery)) {
+      return "REVIEW";
+    }
+
+    if (/\b(luu tru|archived)\b/.test(normalizedQuery)) {
+      return "ARCHIVED";
+    }
+
+    if (/\b(dang hoat dong|hoat dong|active)\b/.test(normalizedQuery)) {
+      return "ACTIVE";
+    }
+
+    return undefined;
+  }
+
+  private matchPropertyType(normalizedQuery: string) {
+    return /\b(building|toa nha|can nha|nha)\b/.test(normalizedQuery)
+      ? DEFAULT_PROPERTY_TYPE
+      : undefined;
+  }
+
+  private searchStatus(status: string | undefined, intent: SearchIntent) {
+    return VALID_STATUSES.has(status as PropertyStatus)
+      ? (status as PropertyStatus)
+      : intent.filters.status;
+  }
+
+  private searchPropertyType(propertyType: string | undefined, intent: SearchIntent) {
+    return this.cleanString(propertyType) || intent.filters.propertyType;
+  }
+
+  private ambiguityWarning(query: string | undefined, intent: SearchIntent, tokens: string[]) {
+    const normalizedQuery = normalizeSearchText(query || "");
+
+    if (
+      !this.isNaturalLanguageQuestion(normalizedQuery) ||
+      intent.filters.ward ||
+      intent.filters.district ||
+      intent.filters.status ||
+      intent.filters.propertyType ||
+      tokens.length > 0
+    ) {
+      return undefined;
+    }
+
+    return "Bạn có thể chỉ rõ phường, quận hoặc điều kiện cần tìm?";
+  }
+
+  private isNaturalLanguageQuestion(normalizedQuery: string) {
+    return /\b(cho toi|tim|danh sach|co bao nhieu|bao nhieu|vung nao|noi nao|hay cho biet)\b/.test(
+      normalizedQuery
+    );
   }
 
   private async densityRegions(
@@ -942,6 +1101,10 @@ export class PropertiesService {
     intent: SearchIntent,
     densityRegions: PropertyDensityRegion[] = []
   ): PropertySearchAnswer {
+    const answerFilters = {
+      ward: intent.filters.ward,
+      district: intent.filters.district
+    };
     const filterText = [
       intent.filters.ward ? `phường ${intent.filters.ward}` : undefined,
       intent.filters.district ? `quận/huyện ${intent.filters.district}` : undefined
@@ -954,7 +1117,7 @@ export class PropertiesService {
       return {
         type: "density",
         count,
-        filters: intent.filters,
+        filters: answerFilters,
         topRegion,
         text: topRegion
           ? `Vùng dày đặc nhất có ${topRegion.count.toLocaleString("vi-VN")} tòa nhà tại ${topRegion.label}.`
@@ -965,7 +1128,7 @@ export class PropertiesService {
     return {
       type: "count",
       count,
-      filters: intent.filters,
+      filters: answerFilters,
       text: `Có ${count.toLocaleString("vi-VN")} tòa nhà${filterText ? ` tại ${filterText}` : ""}.`
     };
   }

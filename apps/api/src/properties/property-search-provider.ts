@@ -21,6 +21,7 @@ export type PropertySearchProviderRow = {
 export type PropertySearchProviderInput = {
   query?: string;
   status?: string;
+  propertyType?: string;
   source?: string;
   limit: number;
   tokens: string[];

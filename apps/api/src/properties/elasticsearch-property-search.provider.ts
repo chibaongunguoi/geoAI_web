@@ -172,6 +172,10 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
       filters.push({ term: { status: input.status } });
     }
 
+    if (input.propertyType) {
+      filters.push({ term: { propertyType: input.propertyType } });
+    }
+
     if (input.source) {
       filters.push({ term: { source: input.source } });
     }

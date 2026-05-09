@@ -42,9 +42,16 @@ export class PropertiesController {
       ward: query.ward,
       district: query.district,
       status: query.status,
+      propertyType: query.propertyType,
       source: query.source,
       limit: Number(query.limit || 20)
     } satisfies PropertySearchInput);
+  }
+
+  @Get("suggestions")
+  @RequirePermissions("search.use")
+  getSuggestions(@Query("q") q: string) {
+    return this.properties.getSuggestions(q);
   }
 
   @Get(":id")
