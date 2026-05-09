@@ -750,6 +750,119 @@ body {
   font-weight: 800;
 }
 
+.filter-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.filter-alert {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card-soft-bg);
+  color: var(--color-text-muted);
+  padding: 9px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.filter-grid,
+.filter-presets {
+  display: grid;
+  gap: 10px;
+}
+
+.filter-grid label,
+.filter-presets label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.filter-grid input,
+.filter-grid select,
+.filter-presets input,
+.filter-presets select {
+  min-height: 38px;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-control-bg);
+  color: var(--color-control-text);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  color-scheme: light;
+}
+
+.filter-chip-row,
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.filter-chip-row button,
+.filter-actions button,
+.filter-presets button {
+  min-height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card-soft-bg);
+  color: var(--color-primary-strong);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.filter-chip-row button:disabled,
+.filter-actions button:disabled,
+.filter-presets button:disabled,
+.filter-grid input:disabled,
+.filter-grid select:disabled,
+.filter-presets input:disabled,
+.filter-presets select:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.filter-history {
+  display: grid;
+  gap: 8px;
+}
+
+.filter-history h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.filter-history ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.filter-history li {
+  display: grid;
+  gap: 2px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
 .asset-field-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -1,14 +1,10 @@
 import { serverFetch } from "@/features/auth/server-auth";
+import { assetFilterQueryString } from "@/features/filters/filter-state";
 import fs from "fs/promises";
 import path from "path";
 
 export function assetSearchQuery(filters) {
-  const query = new URLSearchParams();
-  if (filters.query) query.set("query", filters.query);
-  if (filters.status) query.set("status", filters.status);
-  if (filters.propertyType) query.set("propertyType", filters.propertyType);
-  query.set("limit", String(filters.limit || 100));
-  return query.toString();
+  return assetFilterQueryString({ ...filters, limit: filters.limit || 100 });
 }
 
 export function sortAssets(assets, sort) {

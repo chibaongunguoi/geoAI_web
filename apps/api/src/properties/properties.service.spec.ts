@@ -187,6 +187,81 @@ describe("PropertiesService", () => {
     );
   });
 
+  it("combines explicit advanced filters including update date range", async () => {
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma);
+
+    await service.searchProperties({
+      query: "Nguyen Luong Bang",
+      status: "ACTIVE",
+      propertyType: "building",
+      district: "Lien Chieu",
+      ward: "Hoa Khanh Bac",
+      updatedFrom: "2026-05-01",
+      updatedTo: "2026-05-09",
+      limit: 10
+    });
+
+    expect(prisma.buildingProperty.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          deletedAt: null,
+          status: "ACTIVE",
+          propertyType: "building",
+          updatedAt: {
+            gte: new Date("2026-05-01T00:00:00.000Z"),
+            lte: new Date("2026-05-09T23:59:59.999Z")
+          },
+          AND: expect.arrayContaining([
+            { searchTextNormalized: { contains: "nguyen" } },
+            { searchTextNormalized: { contains: "luong" } },
+            { searchTextNormalized: { contains: "bang" } },
+            { searchTextNormalized: { contains: "hoa khanh bac" } },
+            { searchTextNormalized: { contains: "lien chieu" } }
+          ])
+        })
+      })
+    );
+  });
+
+  it("ignores invalid explicit updated date filters", async () => {
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma);
+
+    await service.searchProperties({
+      query: "Nguyen Luong Bang",
+      updatedFrom: "not-a-date",
+      updatedTo: "also-bad",
+      limit: 10
+    });
+
+    expect(prisma.buildingProperty.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.not.objectContaining({
+          updatedAt: expect.anything()
+        })
+      })
+    );
+  });
+
   it("parses review and building type conditions without accent marks", async () => {
     const prisma = prismaStub({
       buildingProperty: {

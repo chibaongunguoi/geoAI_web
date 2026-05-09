@@ -41,6 +41,15 @@ import {
   readStoredBasemap,
   writeStoredBasemap
 } from "@/features/map/basemaps";
+import FilterPanel from "@/features/filters/FilterPanel";
+import {
+  DEFAULT_ASSET_FILTERS,
+  addFilterHistory,
+  assetFilterQueryString,
+  normalizeAssetFilters,
+  readFilterState,
+  writeFilterState
+} from "@/features/filters/filter-state";
 import styles from "./MapWrapper.module.css";
 import PropertyTable from "./PropertyTable";
 import SearchResultList from "./SearchResultList";
@@ -123,6 +132,10 @@ export default function MapWrapper({ permissions = [] }) {
   const [focusedProperty, setFocusedProperty] = useState(null);
   const [propertyResultView, setPropertyResultView] = useState("list");
   const [suggestions, setSuggestions] = useState([]);
+  const [assetFilters, setAssetFilters] = useState(() => ({ ...DEFAULT_ASSET_FILTERS }));
+  const [filterPresets, setFilterPresets] = useState([]);
+  const [filterHistory, setFilterHistory] = useState([]);
+  const [filterStatus, setFilterStatus] = useState(null);
   const { history: searchHistory, addSearch } = useSearchHistory();
   const skipNextLayerPersistRef = useRef(false);
   const skipNextAssetPersistRef = useRef(false);
@@ -130,6 +143,7 @@ export default function MapWrapper({ permissions = [] }) {
   const canViewLayers = canAccess(permissions, "layers.view");
   const canManageLayers = canAccess(permissions, "layers.manage");
   const canExportAssets = canAccess(permissions, "assets.importExport");
+  const canUseFilters = canAccess(permissions, "filters.use");
   const loadLayerHistory = useCallback(async () => {
     if (!canViewLayers) return;
 
@@ -162,6 +176,10 @@ export default function MapWrapper({ permissions = [] }) {
 
   useEffect(() => {
     setSelectedBasemapId(readStoredBasemap(window.localStorage));
+    const storedFilters = readFilterState(window.localStorage);
+    setAssetFilters(storedFilters.lastFilters);
+    setFilterPresets(storedFilters.presets);
+    setFilterHistory(storedFilters.history);
     const localLayerState = readStoredLayerState(window.localStorage, DATA_LAYERS);
     setLayerState(localLayerState);
 
@@ -426,10 +444,13 @@ export default function MapWrapper({ permissions = [] }) {
     setFocusedProperty(null);
 
     try {
-      const response = await fetch(
-        `/api/properties?query=${encodeURIComponent(query)}&limit=10`,
-        { cache: "no-store" }
-      );
+      const filterParams = assetFilterQueryString({
+        ...(canUseFilters ? assetFilters : DEFAULT_ASSET_FILTERS),
+        limit: 10
+      });
+      const response = await fetch(`/api/properties?query=${encodeURIComponent(query)}&${filterParams}`, {
+        cache: "no-store"
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -461,7 +482,50 @@ export default function MapWrapper({ permissions = [] }) {
     } finally {
       setIsSearchingProperties(false);
     }
-  }, [addSearch, isSearchingProperties, propertyQuery]);
+  }, [addSearch, assetFilters, canUseFilters, isSearchingProperties, propertyQuery]);
+
+  const persistFilterState = useCallback((filters, presets, history) => {
+    writeFilterState(window.localStorage, {
+      filters,
+      presets,
+      history
+    });
+  }, []);
+
+  const applyFilters = useCallback(
+    (nextFilters, action = "filters.apply") => {
+      if (!canUseFilters) return;
+      const normalized = normalizeAssetFilters(nextFilters);
+      const nextHistory = addFilterHistory(filterHistory, action, normalized);
+      setAssetFilters(normalized);
+      setFilterHistory(nextHistory);
+      setFilterStatus("Filters updated.");
+      setPropertySearchResult(null);
+      setFocusedProperty(null);
+      persistFilterState(normalized, filterPresets, nextHistory);
+    },
+    [canUseFilters, filterHistory, filterPresets, persistFilterState]
+  );
+
+  const saveFilterPreset = useCallback(
+    (name, filters) => {
+      if (!canUseFilters) return;
+      const preset = {
+        name,
+        filters: normalizeAssetFilters(filters)
+      };
+      const nextPresets = [
+        preset,
+        ...filterPresets.filter((item) => item.name !== name)
+      ].slice(0, 20);
+      const nextHistory = addFilterHistory(filterHistory, "filters.preset.save", preset.filters);
+      setFilterPresets(nextPresets);
+      setFilterHistory(nextHistory);
+      setFilterStatus("Filter preset saved.");
+      persistFilterState(assetFilters, nextPresets, nextHistory);
+    },
+    [assetFilters, canUseFilters, filterHistory, filterPresets, persistFilterState]
+  );
 
   const refreshLayer = useCallback((layerId) => {
     setLayerRefreshRequests((current) => ({
@@ -602,6 +666,42 @@ export default function MapWrapper({ permissions = [] }) {
       setAssetDisplayError("Không xuất được dữ liệu tài sản.");
     }
   }, [assetDisplayConfig, canExportAssets, visibleAssets]);
+
+  const exportFilteredPropertyResults = useCallback(() => {
+    if (!canUseFilters) return;
+
+    try {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        filters: assetFilters,
+        result: propertySearchResult || { items: [] }
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `geoai-filtered-properties-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      const nextHistory = addFilterHistory(filterHistory, "filters.export", assetFilters);
+      setFilterHistory(nextHistory);
+      setFilterStatus("Filtered data exported.");
+      persistFilterState(assetFilters, filterPresets, nextHistory);
+    } catch {
+      setFilterStatus("Could not export filtered data.");
+    }
+  }, [
+    assetFilters,
+    canUseFilters,
+    filterHistory,
+    filterPresets,
+    persistFilterState,
+    propertySearchResult
+  ]);
 
   return (
     <div className={styles.mapWorkspace} ref={workspaceRef}>
@@ -803,6 +903,29 @@ export default function MapWrapper({ permissions = [] }) {
             </div>
           ) : null}
         </CollapsibleSection>
+
+        {canUseFilters ? (
+          <CollapsibleSection
+            title="Advanced filters"
+            summary={`${propertySearchResult?.meta?.total ?? propertySearchResult?.items?.length ?? 0} results`}
+          >
+            <FilterPanel
+              filters={assetFilters}
+              resultCount={propertySearchResult?.meta?.total ?? propertySearchResult?.items?.length ?? 0}
+              presets={filterPresets}
+              history={filterHistory}
+              canUseFilters={canUseFilters}
+              onApply={applyFilters}
+              onSavePreset={saveFilterPreset}
+              onExport={exportFilteredPropertyResults}
+            />
+            {filterStatus ? (
+              <p className={styles.actionHint} role="status">
+                {filterStatus}
+              </p>
+            ) : null}
+          </CollapsibleSection>
+        ) : null}
 
         {canViewLayers ? (
           <CollapsibleSection title="Lớp dữ liệu" summary={`${visibleLayers.length} đang bật`}>

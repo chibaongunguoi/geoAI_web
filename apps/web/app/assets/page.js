@@ -5,6 +5,7 @@ import { canAccess } from "@/features/auth/auth-client";
 import { getCurrentUser } from "@/features/auth/server-auth";
 import AssetListTable from "@/features/assets/AssetListTable";
 import { searchAssets, sortAssets } from "@/features/assets/assets-server";
+import { normalizeAssetFilters } from "@/features/filters/filter-state";
 
 const PAGE_SIZE = 20;
 
@@ -21,14 +22,21 @@ export default async function AssetsPage({ searchParams }) {
   }
 
   const page = Math.max(1, Number(params?.page || 1));
-  const filters = {
+  const filters = normalizeAssetFilters({
     query: params?.query || "",
     status: params?.status || "",
     propertyType: params?.propertyType || "",
+    district: params?.district || "",
+    ward: params?.ward || "",
+    updatedFrom: params?.updatedFrom || "",
+    updatedTo: params?.updatedTo || ""
+  });
+  const searchFilters = {
+    ...filters,
     sort: params?.sort || "updatedAt",
     limit: 100
   };
-  const allAssets = sortAssets(await searchAssets(filters), filters.sort);
+  const allAssets = sortAssets(await searchAssets(searchFilters), searchFilters.sort);
   const pageAssets = allAssets.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const canManageProperties = canAccess(user.permissions, "properties.manage");
 
@@ -59,8 +67,31 @@ export default async function AssetsPage({ searchParams }) {
             </select>
           </label>
           <label>
+            Loại
+            <select name="propertyType" defaultValue={filters.propertyType}>
+              <option value="">Tất cả</option>
+              <option value="building">Building</option>
+            </select>
+          </label>
+          <label>
+            Quận
+            <input name="district" defaultValue={filters.district} placeholder="Liên Chiểu" />
+          </label>
+          <label>
+            Phường
+            <input name="ward" defaultValue={filters.ward} placeholder="Hòa Khánh Bắc" />
+          </label>
+          <label>
+            Từ ngày
+            <input name="updatedFrom" type="date" defaultValue={filters.updatedFrom} />
+          </label>
+          <label>
+            Đến ngày
+            <input name="updatedTo" type="date" defaultValue={filters.updatedTo} />
+          </label>
+          <label>
             Sắp xếp
-            <select name="sort" defaultValue={filters.sort}>
+            <select name="sort" defaultValue={searchFilters.sort}>
               <option value="updatedAt">Mới cập nhật</option>
               <option value="code">Mã</option>
               <option value="name">Tên</option>
@@ -70,6 +101,9 @@ export default async function AssetsPage({ searchParams }) {
           <button className="text-button" type="submit">
             Lọc
           </button>
+          <Link className="text-button" href="/assets">
+            Xóa lọc
+          </Link>
         </form>
         <AssetListTable
           assets={pageAssets}

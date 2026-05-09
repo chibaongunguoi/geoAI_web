@@ -44,6 +44,8 @@ export class PropertiesController {
       status: query.status,
       propertyType: query.propertyType,
       source: query.source,
+      updatedFrom: query.updatedFrom,
+      updatedTo: query.updatedTo,
       limit: Number(query.limit || 20)
     } satisfies PropertySearchInput);
   }

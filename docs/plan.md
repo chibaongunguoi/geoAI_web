@@ -81,249 +81,6 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 
 ---
 
-## Proposed Changes — Phased
-
-### Phase 0: SQLite Migration (CRITICAL — unblocks 600k rows)
-
-> [!IMPORTANT]
-> This must be done first. Without it, you cannot store the full Da Nang dataset.
-
----
-
-#### TASK-000: SQLite + better-sqlite3 Datasource Switch
-
-##### TASK-000-A: Install better-sqlite3
-
-- `npm install better-sqlite3 -w @geoai/api`
-- `npm install @types/better-sqlite3 -D -w @geoai/api`
-
-##### TASK-000-B: Update Prisma schema datasource
-
-- **File**: [MODIFY] [schema.prisma](file:///e:/DUAN/geoAI_web/apps/api/prisma/schema.prisma)
-- Change `provider = "postgresql"` → `provider = "sqlite"`
-- Change URL to point to `file:../../geoai_data/geoai.db`
-
-##### TASK-000-C: Update .env — remove Neon entirely
-
-- **File**: [MODIFY] [.env](file:///e:/DUAN/geoAI_web/.env)
-- Set `DATABASE_URL="file:../../geoai_data/geoai.db"`
-- Remove all Neon connection strings
-
-##### TASK-000-D: Delete old PostgreSQL migrations, create fresh SQLite migration
-
-- Delete `apps/api/prisma/migrations/` contents
-- Run `npx prisma migrate dev --name init_sqlite`
-
-##### TASK-000-E: Update seed script for SQLite compatibility
-
-- **File**: [MODIFY] [seed.ts](file:///e:/DUAN/geoAI_web/apps/api/prisma/seed.ts)
-
-##### TASK-000-F: Create BetterSqliteService for raw queries
-
-- **File**: [NEW] `apps/api/src/prisma/better-sqlite.service.ts`
-- Wraps `better-sqlite3` for density grid queries and bulk operations
-- Shared DB path from env
-
-**Verification**: `npx prisma migrate dev` succeeds, seed runs, `npm run test -w @geoai/api` passes.
-
----
-
-#### TASK-001: Rewrite Raw SQL Queries for SQLite
-
-##### TASK-001-A: Rewrite density grid query
-
-- **File**: [MODIFY] [properties.service.ts](file:///e:/DUAN/geoAI_web/apps/api/src/properties/properties.service.ts)
-- Replace PostgreSQL `FLOOR()::INTEGER`, `::DOUBLE PRECISION` casts with SQLite `CAST(FLOOR(...) AS INTEGER)`
-- SQLite has no `FLOOR()` — use `CAST(value AS INTEGER)` for truncation or `(value - value % gridSize)`
-- Replace `concat()` with SQLite `||` operator
-
-##### TASK-001-B: Add density query unit tests
-
-- **File**: [MODIFY] [properties.service.spec.ts](file:///e:/DUAN/geoAI_web/apps/api/src/properties/properties.service.spec.ts)
-- Add test cases for density regions with SQLite-compatible mock
-
-##### TASK-001-C: Test count questions still work
-
-- Verify Vietnamese count queries return correct results with SQLite
-
-**Verification**: `npm run test -w @geoai/api -- properties.service.spec.ts` passes.
-
----
-
-#### TASK-002: Update Python Import Scripts for SQLite
-
-##### TASK-002-A: Update Overture importer
-
-- **File**: [MODIFY] [import_danang_overture_buildings.py](file:///e:/DUAN/geoAI_web/scripts/import_danang_overture_buildings.py)
-- Replace `psycopg2` connection with `sqlite3` module
-- Use `INSERT OR REPLACE` for upsert
-- **1,000 row batches with commit after each batch**
-- NULL for any missing column — no fake data
-- Keep `--dry-run`, `--batch-size`, `--district`, `--ward` filters
-
-##### TASK-002-B: Update ES indexing script
-
-- **File**: [MODIFY] [index_building_properties.py](file:///e:/DUAN/geoAI_web/scripts/index_building_properties.py)
-- Change DB connection from PostgreSQL to SQLite
-
-##### TASK-002-C: Update import tests
-
-- **File**: [MODIFY] [test_import_danang_overture_buildings.py](file:///e:/DUAN/geoAI_web/scripts/test_import_danang_overture_buildings.py)
-- Update to test against SQLite
-
-**Verification**: `python scripts/test_import_danang_overture_buildings.py` passes, dry-run import works.
-
----
-
-#### TASK-003: Full Data Import (all 424k rows)
-
-##### TASK-003-A: Import all rows in 1k batches
-
-- Run importer: `python scripts/import_danang_overture_buildings.py --batch-size 1000`
-- Each batch: insert 1000 rows → commit → next batch
-- Resume-safe via `INSERT OR REPLACE` on overtureId
-
-##### TASK-003-B: Verify row counts and search
-
-- Total rows should be ~424,486
-- Test keyword search, count question, density question
-- Verify response times with SQLite indexes
-
----
-
-### Phase 1: Search UX Completion (EP01-052→068)
-
-> Priority: This is the biggest user-visible gap.
-
----
-
-#### TASK-100: Property Search Result List (EP01-052, 054, 055, 059)
-
-##### TASK-100-A: Create SearchResultList component
-
-- **File**: [NEW] `apps/web/components/SearchResultList.js`
-- Render rows from `/api/properties` as a scrollable list
-- Show: code, name, address, ward, district, status
-- Handle empty state
-
-##### TASK-100-B: Create SearchResultList.module.css
-
-- **File**: [NEW] `apps/web/components/SearchResultList.module.css`
-
-##### TASK-100-C: Integrate into MapWrapper
-
-- **File**: [MODIFY] [MapWrapper.js](file:///e:/DUAN/geoAI_web/apps/web/components/MapWrapper.js)
-- Show result list below/alongside the search input
-- Keep density answer panel as-is
-
-##### TASK-100-D: Add result list unit test
-
-- **File**: [NEW] `apps/web/components/__tests__/SearchResultList.test.js`
-- Test: renders rows, shows empty state, calls onClick
-
-**Verification**: Search shows list of matching properties.
-
----
-
-#### TASK-101: Selected Result Map Focus (EP01-057, 058)
-
-##### TASK-101-A: Add click-to-focus handler
-
-- **File**: [MODIFY] `apps/web/components/MapWrapper.js`
-- Clicking a result item zooms to its centroid/bbox
-- Draw a highlight marker/bbox on the map
-
-##### TASK-101-B: Add highlight marker style
-
-- **File**: [MODIFY] `apps/web/components/Map.js`
-- Add selected-result marker layer with distinct styling
-
-##### TASK-101-C: Test focus behavior
-
-- **File**: [NEW] `apps/web/components/__tests__/SearchResultFocus.test.js`
-
----
-
-#### TASK-102: Coordinate Search (EP01-053)
-
-##### TASK-102-A: Detect coordinate input in search
-
-- **File**: [MODIFY] [properties.service.ts](file:///e:/DUAN/geoAI_web/apps/api/src/properties/properties.service.ts)
-- Add regex to detect `lat,lng` or `lng,lat` patterns
-- Return `map.focus` with coordinate point
-
-##### TASK-102-B: Handle coordinate result in web
-
-- **File**: [MODIFY] `apps/web/components/MapWrapper.js`
-- If result has `map.focus`, move map and show marker
-
-##### TASK-102-C: Test coordinate parsing
-
-- **File**: [MODIFY] `apps/api/src/properties/properties.service.spec.ts`
-- Test: `"16.05, 108.20"` returns focus point
-
----
-
-#### TASK-103: Suggestions While Typing (EP01-056)
-
-##### TASK-103-A: Add suggestions API endpoint
-
-- **File**: [MODIFY] [properties.controller.ts](file:///e:/DUAN/geoAI_web/apps/api/src/properties/properties.controller.ts)
-- Add `GET /api/properties/suggestions?q=...`
-- Return top 5 matching names/addresses from recent + DB
-
-##### TASK-103-B: Add suggestion service method
-
-- **File**: [MODIFY] `apps/api/src/properties/properties.service.ts`
-
-##### TASK-103-C: Add autocomplete dropdown in web
-
-- **File**: [NEW] `apps/web/components/SearchSuggestions.js`
-- Debounced typeahead dropdown
-
-##### TASK-103-D: Test suggestions
-
-- Unit test for API + component render test
-
----
-
-#### TASK-104: Search History + Persistence (EP01-060, 064)
-
-##### TASK-104-A: Add localStorage search history
-
-- **File**: [NEW] `apps/web/src/features/map/useSearchHistory.js`
-- Save last 20 searches to localStorage
-- Provide hook: `{ history, addSearch, clearHistory }`
-
-##### TASK-104-B: Show recent searches in UI
-
-- **File**: [MODIFY] `apps/web/components/MapWrapper.js`
-- Show recent searches when input is focused and empty
-
-##### TASK-104-C: Test history hook
-
-- **File**: [NEW] `apps/web/src/features/map/__tests__/useSearchHistory.test.js`
-
----
-
-#### TASK-105: Error & Empty States (EP01-063, 068)
-
-##### TASK-105-A: Add clear no-result message
-
-- **File**: [MODIFY] `apps/web/components/MapWrapper.js`
-- Show "Không tìm thấy kết quả" with suggestion to try different keywords
-
-##### TASK-105-B: Add backend error state
-
-- Show connection error with retry button
-- Show ES fallback warning from `meta.warnings`
-
-##### TASK-105-C: Test error states
-
-- Unit test for error/empty renders
-
----
-
 ### Phase 2: Vietnamese NL Query Completion (EP04-001→016)
 
 ---
@@ -395,148 +152,451 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 
 ---
 
-### Phase 3: Admin Foundation → Real (EP02 subset)
-
----
-
-**Status**: Implemented for TASK-300→302. This completes the admin audit log UI, user search/role filtering, account lock/unlock, and read-only role-permission matrix. API-key CRUD and API log ingestion remain deferred to the broader EP02 backlog.
-
-#### TASK-300: Audit Log Admin UI (EP02-099)
-
-##### TASK-300-A: Create audit log page
-
-- **File**: [NEW] `apps/web/app/admin/audit-logs/page.js`
-- List audit logs with filters: action, entity, date range, actor
-
-##### TASK-300-B: Add audit log API proxy
-
-- **File**: [NEW] `apps/web/app/api/admin/audit-logs/route.js`
-
-##### TASK-300-C: Test audit log page renders
-
----
-
-#### TASK-301: User Management Enhancement (EP02-120→127)
-
-##### TASK-301-A: Add user search/filter
-
-- **File**: [MODIFY] `apps/web/app/admin/users/page.js`
-- Add search by name/username/email
-- Add filter by role
-
-##### TASK-301-B: Add user status toggle (lock/unlock)
-
-- **File**: [MODIFY] `apps/api/src/admin/admin.service.ts`
-- Add `PATCH /admin/users/:id/status` endpoint
-- EP02-130: Lock account capability
-
----
-
-#### TASK-302: Permission Matrix View (EP02-126)
-
-##### TASK-302-A: Create permission matrix page
-
-- **File**: [NEW] `apps/web/app/admin/permissions/matrix/page.js`
-- Show roles × permissions grid
-- Read-only view for auditing
-
-#### Phase 3 Hard Issues / Solutions
-
-- **Admin filters shape**: `AdminService.listUsers()` originally accepted a single search string. Phase 3 needed search plus role filtering, so it now accepts either the legacy string or a `{ search, role }` object to avoid breaking existing callers.
-- **Audit log filtering**: The audit endpoint existed but ignored filter criteria. Added action/entity/actor/date filters in `AdminService.listAuditLogs()` and kept the response capped at 100 rows with actor display data included.
-- **Account status mutation**: User status existed as a field but there was no guarded mutation path. Added `PATCH /admin/users/:id/status`, a Next BFF proxy, validation for `ACTIVE`/`LOCKED`, and audit history under `admin.users.status.update`.
-- **Server component testability**: Admin pages remain server-rendered, while reusable display logic lives in small components (`AuditLogTable`, `PermissionMatrix`, `UserRoleDashboard`) with focused Jest tests.
-- **TDD evidence**: RED was captured with `npm run test -w @geoai/api -- admin.service.spec.ts --runInBand` and `npm run test -w @geoai/web -- UserRoleDashboard.test.js AuditLogTable.test.js PermissionMatrix.test.js`; GREEN was confirmed with the same API target and the expanded web target including `auth-client.test.js`.
-
----
-
-### Phase 4: Asset CRUD Foundation (EP03-001→017)
-
----
-
-#### TASK-400: Asset Create/Edit Form (EP03-001, 002)
-
-**Status**: Implemented.
-
-##### TASK-400-A: Create asset form component
-
-- **File**: [NEW] `apps/web/components/AssetForm.js`
-- Fields: code, name, type, status, address, ward/district/city, area, and coordinates.
-- Includes a compact map-picker affordance that seeds a Da Nang center coordinate for foundation CRUD without introducing a full map dependency into the form.
-
-##### TASK-400-B: Create asset page
-
-- **File**: [NEW] `apps/web/app/assets/new/page.js`
-- **File**: [NEW] `apps/web/app/assets/[code]/edit/page.js`
-- Pages are guarded by `properties.manage` and reuse the shared `AssetForm`.
-
-##### TASK-400-C: Wire to existing API
-
-- Use existing `POST /api/properties` and `PATCH /api/properties/:id`
-- Form submits JSON to the existing Next property proxy and redirects to the saved asset detail page.
-
----
-
-#### TASK-401: Asset List Page (EP03-004)
-
-**Status**: Implemented.
-
-##### TASK-401-A: Create asset list page
-
-- **File**: [NEW] `apps/web/app/assets/page.js`
-- Paginated table with search, sort, filter
-- Link to detail and edit pages
-- Added `AssetListTable` and navigation entry gated by `properties.view`.
-
----
-
-#### TASK-402: Asset Detail Page Enhancement (EP03-005)
-
-**Status**: Implemented.
-
-- **File**: [MODIFY] `apps/web/app/assets/[code]/page.js`
-- Show full property details with map preview
-- Show audit history timeline
-- Added `AssetDetailPanel`, real property resolution by id/code, sample GeoJSON fallback for existing map popup links, and entity-specific audit-log filtering.
-
-#### Phase 4 Hard Issues / Solutions
-
-- **Next alias boundary**: `@/components/AssetForm` failed during `next build` because this app maps `@/` to `apps/web/src`, while plan components live in `apps/web/components`. Solution: keep the plan file location and import it with relative paths from App Router pages.
-- **Asset detail identifier mismatch**: the route is `/assets/[code]`, but the API detail endpoint expects database `id`. Solution: resolve direct id first, then search by code/text, and keep a sample GeoJSON fallback so existing map popup links remain usable.
-- **Audit timeline specificity**: Phase 3 audit listing filtered by action/entity/actor/date but not `entityId`, which made asset-level timelines too broad. Solution: add optional `entityId` filtering through `AdminController` and `AdminService`.
-- **Form redirect testability**: direct `window.location.assign` is hard to assert in jsdom. Solution: keep production redirect behavior but add an optional `onSaved` callback for tests.
-- **TDD evidence**: RED was captured with `npm run test -w @geoai/web -- AssetForm.test.js AssetListTable.test.js AssetDetailPanel.test.js`; GREEN was confirmed with the same target plus `npm run test -w @geoai/api -- admin.service.spec.ts --runInBand`, `npm run test:api`, `npm run test:web`, and `npm run build`.
-
----
-
 ### Phase 5: Advanced Filters (EP01-069→085)
 
 ---
 
 #### TASK-500: Filter Panel Component
 
-##### TASK-500-A: Create FilterPanel component
+**Status**: Implemented as the shared Phase 5 filter model and UI foundation.
 
-- **File**: [NEW] `apps/web/components/FilterPanel.js`
-- Filters: type, status, ward, district, date range
-- Combine multiple filters (EP01-073)
-- Show result count (EP01-076)
+##### TASK-500-A: Add shared filter state helpers
 
-##### TASK-500-B: Sync filters with map and search
+- **File**: [NEW] `apps/web/src/features/filters/filter-state.js`
+- Normalize type, status, district, ward, and updated date range filters
+- Serialize filters into `/api/properties` query params
+- Store last-used filters, presets, and local operation history
 
-- Apply filters to both map markers and search results (EP01-077)
+##### TASK-500-B: Create FilterPanel component
 
-##### TASK-500-C: Save/load filter presets (EP01-074)
-
-- localStorage-based saved filters
+- **File**: [NEW] `apps/web/src/features/filters/FilterPanel.js`
+- Filters: type, status, ward, district, updated date range
+- Result count, warning state, quick status/type chips, reset, presets, export action
 
 ---
 
-### Phase 6: Measurement Tools (EP01-103→118) — Deferred
+#### TASK-501: API Filter Completion
 
-### Phase 7: Export & Sharing (EP01-119→135) — Deferred
+**Status**: Implemented.
 
-### Phase 8: Dashboard (EP03-069→085) — Deferred
+##### TASK-501-A: Add updated date range filters
+
+- **File**: [MODIFY] `apps/api/src/properties/properties.service.ts`
+- Supports `updatedFrom` and `updatedTo` query params
+- Invalid date values are ignored safely
+
+##### TASK-501-B: Forward filters through controller/proxy
+
+- **File**: [MODIFY] `apps/api/src/properties/properties.controller.ts`
+- Existing Next proxy keeps forwarding the full query string
+
+---
+
+#### TASK-502: Map Search Filter Sync
+
+**Status**: Implemented.
+
+##### TASK-502-A: Render filters in map sidebar
+
+- **File**: [MODIFY] `apps/web/components/MapWrapper.js`
+- Show Advanced Filters only for users with `filters.use`
+- Include active filters in property search requests
+- Show filtered result count from `meta.total` when available
+
+##### TASK-502-B: Filter presets/history/export
+
+- Store presets and recent filter actions in localStorage
+- Export current filtered property result payload as JSON
+
+---
+
+#### TASK-503: Asset List URL Filter Sync
+
+**Status**: Implemented.
+
+##### TASK-503-A: Extend asset list filter bar
+
+- **File**: [MODIFY] `apps/web/app/assets/page.js`
+- Add property type, district, ward, updated-from, and updated-to filters
+- URL query params remain the asset-list source of truth
+
+##### TASK-503-B: Reuse query serialization
+
+- **File**: [MODIFY] `apps/web/src/features/assets/assets-server.js`
+- Reuses the shared filter query serializer for `/properties`
+
+---
+
+#### TASK-504: Filter Presets and Last-Used State
+
+**Status**: Implemented.
+
+- Last-used filters, named presets, and recent filter actions are stored in localStorage through the shared filter state helper.
+
+---
+
+#### TASK-505: Filter Result Warnings
+
+**Status**: Implemented.
+
+- Broad-filter and narrow/no-result warnings are computed in the shared helper and displayed by `FilterPanel`.
+
+---
+
+#### TASK-506: Filtered Result Export
+
+**Status**: Implemented.
+
+- Map search users can export the current filter state and filtered property result payload as JSON.
+- PNG/PDF map export remains Phase 7.
+
+---
+
+#### TASK-507: Filter Permissions and Error Handling
+
+**Status**: Implemented.
+
+- `FilterPanel` actions are gated by `filters.use`.
+- Invalid localStorage and invalid date inputs fall back safely instead of crashing the UI or API.
+
+---
+
+#### Phase 5 Hard Issues / Solutions
+
+- **Existing permission key**: `filters.use` already existed in RBAC seed/default roles, so Phase 5 did not add a new permission or schema migration.
+- **Elasticsearch/date filters**: date filtering is implemented in the Prisma/SQLite path. Searches with explicit date filters skip Elasticsearch so results are not silently under-filtered.
+- **Persistence scope**: presets and history are localStorage-only for v1 to avoid creating a database-backed preset model before multi-device sharing is needed.
+- **TDD evidence**: RED was captured with `npm run test -w @geoai/api -- properties.service.spec.ts --runInBand` and `npm run test -w @geoai/web -- FilterPanel.test.js filter-state.test.js AssetListTable.test.js`; GREEN was confirmed with the same targets.
+
+---
+
+### Phase 6: Measurement Tools (EP01-103→118)
+
+---
+
+**Goal**: Add practical map measurement tools without introducing server-side persistence yet. Start with client-side distance/area workflows, then layer in session history, export hooks, permissions, and error states.
+
+#### TASK-600: Measurement State + Geometry Utilities (EP01-103→106, 105)
+
+##### TASK-600-A: Add measurement geometry helpers
+
+- **File**: [NEW] `apps/web/lib/measurementUtils.js`
+- Calculate polyline distance with haversine/geodesic approximation
+- Calculate polygon area in square meters/hectares
+- Format units as m/km and m²/ha
+
+##### TASK-600-B: Add measurement state hook
+
+- **File**: [NEW] `apps/web/hooks/useMeasurementTools.js`
+- Track active mode: `distance`, `area`, or `idle`
+- Track points, segments, total distance, polygon area, and selected result
+- Support reset and undo-last-point actions
+
+##### TASK-600-C: Unit tests for calculations and state transitions
+
+- **File**: [NEW] `apps/web/hooks/useMeasurementTools.test.js`
+- Cover distance, area, unit formatting, reset, and undo
+
+---
+
+#### TASK-601: Measurement Map Interaction (EP01-103, 104, 106, 108, 112)
+
+##### TASK-601-A: Add MeasurementToolbar component
+
+- **File**: [NEW] `apps/web/components/MeasurementToolbar.js`
+- Buttons for distance, area, undo, clear, copy
+- Keep controls compact and consistent with existing map tool UI
+
+##### TASK-601-B: Wire map click interaction
+
+- **File**: [MODIFY] `apps/web/components/MapComponent.js`
+- In distance mode, click adds polyline points
+- In area mode, click adds polygon vertices
+- Show temporary line/polygon overlay while measuring
+
+##### TASK-601-C: Show labels on map
+
+- **File**: [MODIFY] `apps/web/components/MapComponent.js`
+- Label segment length and total distance for distance mode
+- Label area value at polygon centroid for area mode
+
+---
+
+#### TASK-602: Edit + Snap MVP (EP01-107, 109)
+
+##### TASK-602-A: Add draggable measurement vertices
+
+- **File**: [MODIFY] `apps/web/components/MapComponent.js`
+- Allow moving existing measurement points after placement
+- Recalculate labels immediately after edit
+
+##### TASK-602-B: Add snap-to-visible-property option
+
+- **File**: [MODIFY] `apps/web/hooks/useMeasurementTools.js`
+- Optional snapping to nearest visible asset/property centroid within a small pixel threshold
+- Keep snapping client-side for the MVP
+
+---
+
+#### TASK-603: Measurement Session, Copy, Export Hooks (EP01-110, 111, 113, 114, 116)
+
+##### TASK-603-A: Persist recent measurements locally
+
+- **File**: [NEW] `apps/web/hooks/useMeasurementHistory.js`
+- Save last measurements in localStorage
+- Store type, points, computed value, createdAt, and label
+
+##### TASK-603-B: Copy measurement result
+
+- **File**: [MODIFY] `apps/web/components/MeasurementToolbar.js`
+- Copy formatted result and point list to clipboard
+
+##### TASK-603-C: Add export payload adapter
+
+- **File**: [NEW] `apps/web/lib/measurementExport.js`
+- Prepare measurement GeoJSON/JSON payload for Phase 7 export/share workflows
+- No PDF/PNG implementation here; Phase 7 owns rendering/export
+
+---
+
+#### TASK-604: Measurement Permissions, Audit Surface, Errors (EP01-115, 117, 118)
+
+##### TASK-604-A: Seed and enforce measurement permission
+
+- **File**: [MODIFY] `apps/api/prisma/seed.ts`
+- Add permission key such as `map.measure`
+- Hide/disable measurement controls when permission is absent
+
+##### TASK-604-B: Add client-side operation history
+
+- **File**: [MODIFY] `apps/web/hooks/useMeasurementHistory.js`
+- Record create/edit/clear/copy/export-intent actions locally
+
+##### TASK-604-C: Add error and empty states
+
+- **File**: [MODIFY] `apps/web/components/MeasurementToolbar.js`
+- Clear errors for invalid polygon, too few points, clipboard failure, localStorage failure
+
+---
+
+### Phase 7: Export & Sharing (EP01-119→135)
+
+---
+
+**Goal**: Export the current map context and share reproducible map state. This phase depends on Phase 5 filters and Phase 6 measurement payloads so exports can include current filters, selected layers, map bounds, measurements, legend, and metadata.
+
+#### TASK-700: Export State Model + Capture Utilities (EP01-119→124, 127)
+
+##### TASK-700-A: Define map export state adapter
+
+- **File**: [NEW] `apps/web/lib/mapExportState.js`
+- Capture center, zoom, bbox, basemap, visible layers, filters, selected result, density overlays, and measurements
+- Normalize state so it can be used by PNG/PDF/share URL
+
+##### TASK-700-B: Add map canvas capture utility
+
+- **File**: [NEW] `apps/web/lib/mapCapture.js`
+- Capture Leaflet map container as an image using a browser-side capture library or existing dependency if available
+- Include safeguards for unloaded tiles and cross-origin failures
+
+##### TASK-700-C: Add export metadata model
+
+- **File**: [NEW] `apps/web/lib/exportMetadata.js`
+- Title, organization/unit, timestamp, paper size, orientation, legend/scalebar toggles, watermark toggle
+
+---
+
+#### TASK-701: Export Dialog + Preview (EP01-121→124, 128, 129, 130, 131)
+
+##### TASK-701-A: Create MapExportDialog component
+
+- **File**: [NEW] `apps/web/components/MapExportDialog.js`
+- Controls for PNG/PDF, title, unit, paper size, orientation, legend, scale, watermark
+- Save/load export templates in localStorage
+
+##### TASK-701-B: Add export preview panel
+
+- **File**: [NEW] `apps/web/components/MapExportPreview.js`
+- Show current map image, legend, scale, title, unit, timestamp, watermark
+- Preview should reflect selected paper orientation and toggles
+
+##### TASK-701-C: Wire dialog into map toolbar
+
+- **File**: [MODIFY] `apps/web/components/MapWrapper.js`
+- Add export/share action beside existing map controls
+
+---
+
+#### TASK-702: PNG + PDF Export Implementation (EP01-119, 120, 121, 122, 123, 128)
+
+##### TASK-702-A: Export PNG
+
+- **File**: [MODIFY] `apps/web/lib/mapCapture.js`
+- Download PNG including map, legend, scale, title, timestamp, and optional watermark
+
+##### TASK-702-B: Export PDF
+
+- **File**: [NEW] `apps/web/lib/pdfExport.js`
+- Generate PDF from preview/captured image
+- Respect paper size and orientation
+
+##### TASK-702-C: Export tests
+
+- **File**: [NEW] `apps/web/lib/mapExportState.test.js`
+- Cover state capture, metadata defaults, template persistence, and invalid export errors
+
+---
+
+#### TASK-703: Share URL + Expiry (EP01-125, 126, 127)
+
+##### TASK-703-A: Add share-state serialization
+
+- **File**: [NEW] `apps/web/lib/shareState.js`
+- Serialize map state into compact URL-safe payload
+- Include center, zoom, filters, visible layers, selected asset/search, and measurement payload references
+
+##### TASK-703-B: Add share link route handler
+
+- **File**: [NEW] `apps/web/app/share/map/route.js`
+- Decode shared state and redirect/open the map with restored context
+- Validate expiry timestamp before applying state
+
+##### TASK-703-C: Restore shared map state
+
+- **File**: [MODIFY] `apps/web/components/MapWrapper.js`
+- On load, apply shared basemap/layers/filters/center/zoom/result focus
+
+---
+
+#### TASK-704: Export Permissions, History, Errors (EP01-132→135)
+
+##### TASK-704-A: Seed and enforce export/share permission
+
+- **File**: [MODIFY] `apps/api/prisma/seed.ts`
+- Add permission key such as `map.exportShare`
+- Disable export/share actions when permission is absent
+
+##### TASK-704-B: Record export/share history locally
+
+- **File**: [NEW] `apps/web/hooks/useExportHistory.js`
+- Record export format, metadata, share expiry, createdAt, and status
+
+##### TASK-704-C: Add export/share error states
+
+- **File**: [MODIFY] `apps/web/components/MapExportDialog.js`
+- Handle capture failure, PDF failure, invalid share payload, expired link, and clipboard failure
+
+---
+
+### Phase 8: Dashboard (EP03-069→085)
+
+---
+
+**Goal**: Build an operational asset dashboard on top of the property/asset catalog already implemented in Phase 4, with filters aligned to Phase 5 and export behavior aligned to Phase 7.
+
+#### TASK-800: Dashboard Summary API (EP03-069→075, 079)
+
+##### TASK-800-A: Add dashboard service aggregation methods
+
+- **File**: [NEW] `apps/api/src/dashboard/dashboard.service.ts`
+- Count assets by type, status, district, ward
+- Calculate recently updated assets and simple trend buckets by updatedAt
+- Return bbox/centroid summaries for map synchronization
+
+##### TASK-800-B: Add dashboard controller
+
+- **File**: [NEW] `apps/api/src/dashboard/dashboard.controller.ts`
+- `GET /dashboard/assets/summary`
+- Query params: district, ward, type, status, updatedFrom, updatedTo
+
+##### TASK-800-C: Add API tests
+
+- **File**: [NEW] `apps/api/src/dashboard/dashboard.service.spec.ts`
+- Cover grouped counts, filters, empty result, and date range behavior
+
+---
+
+#### TASK-801: Dashboard Page + KPI Cards (EP03-069, 070, 071, 074)
+
+##### TASK-801-A: Create dashboard route
+
+- **File**: [NEW] `apps/web/app/dashboard/page.js`
+- Authenticated dashboard page using existing app shell/navigation
+
+##### TASK-801-B: Add DashboardKpis component
+
+- **File**: [NEW] `apps/web/components/dashboard/DashboardKpis.js`
+- KPI cards: total assets, active/inactive/review counts, newly updated, missing geometry or risk-like status
+
+##### TASK-801-C: Add summary charts
+
+- **File**: [NEW] `apps/web/components/dashboard/DashboardCharts.js`
+- Bar/donut charts for type, status, district/ward
+- Prefer existing chart dependency if present; otherwise keep lightweight accessible charts
+
+---
+
+#### TASK-802: Dashboard Filters + Drilldown (EP03-072, 073, 075, 077, 081)
+
+##### TASK-802-A: Add DashboardFilters component
+
+- **File**: [NEW] `apps/web/components/dashboard/DashboardFilters.js`
+- Filters: district, ward, type, status, updated date range
+- Save last-used filters and named presets in localStorage
+
+##### TASK-802-B: Add chart drilldown behavior
+
+- **File**: [MODIFY] `apps/web/components/dashboard/DashboardCharts.js`
+- Clicking chart segment opens `/assets` with matching query params
+
+##### TASK-802-C: Sync dashboard with map context
+
+- **File**: [MODIFY] `apps/web/app/dashboard/page.js`
+- Add "View on map" action that opens map with equivalent filters and bounds
+
+---
+
+#### TASK-803: Dashboard Export + Auto Refresh (EP03-076, 078, 083)
+
+##### TASK-803-A: Add dashboard export adapter
+
+- **File**: [NEW] `apps/web/lib/dashboardExport.js`
+- Export dashboard summary as JSON/CSV
+- Reuse Phase 7 PDF/image export utility where practical
+
+##### TASK-803-B: Add dashboard export action
+
+- **File**: [MODIFY] `apps/web/app/dashboard/page.js`
+- Export PDF/image for report sharing
+- Export raw summary data for offline analysis
+
+##### TASK-803-C: Add auto-refresh option
+
+- **File**: [MODIFY] `apps/web/app/dashboard/page.js`
+- Manual refresh plus optional timed refresh
+- Show last refreshed timestamp and loading/error state
+
+---
+
+#### TASK-804: Dashboard Permissions, Audit, Errors (EP03-080, 082, 084, 085)
+
+##### TASK-804-A: Seed and enforce dashboard permissions
+
+- **File**: [MODIFY] `apps/api/prisma/seed.ts`
+- Add permission key such as `dashboard.view`
+- Optional `dashboard.sensitiveMetrics.view` for sensitive KPIs
+
+##### TASK-804-B: Add guarded API + UI behavior
+
+- **File**: [MODIFY] `apps/api/src/dashboard/dashboard.controller.ts`
+- Guard dashboard summary endpoint with dashboard permission
+- Hide sensitive cards if user lacks sensitive metric permission
+
+##### TASK-804-C: Add dashboard history and error states
+
+- **File**: [NEW] `apps/web/hooks/useDashboardHistory.js`
+- Record filter changes, exports, drilldowns, refreshes locally
+- Show clear API, permission, empty, and export errors
 
 ---
 
@@ -588,6 +648,12 @@ graph TD
     P1 --> P5["Phase 5: Advanced Filters"]
     P1 --> P2
     P4 --> P5
+    P5 --> P6["Phase 6: Measurement Tools"]
+    P5 --> P7["Phase 7: Export & Sharing"]
+    P6 --> P7
+    P4 --> P8["Phase 8: Dashboard"]
+    P5 --> P8
+    P7 --> P8
 ```
 
 ## Task Summary Table
@@ -615,11 +681,42 @@ graph TD
 | TASK-400 | 4     | Asset create/edit          | Medium          |
 | TASK-401 | 4     | Asset list page            | Medium          |
 | TASK-402 | 4     | Asset detail page          | Low             |
-| TASK-500 | 5     | Filter panel               | Medium          |
+| TASK-403 | 4     | Asset delete/restore       | Medium          |
+| TASK-404 | 4     | Server-side pagination     | Medium          |
+| TASK-405 | 4     | Validation/duplicates      | Medium          |
+| TASK-406 | 4     | Asset list filters         | Low             |
+| TASK-407 | 4     | Coordinate picker          | Medium          |
+| TASK-408 | 4     | Audit diff metadata        | Low             |
+| TASK-409 | 4     | Detail map preview         | Low             |
+| TASK-410 | 4     | CRUD E2E smoke path        | Medium          |
+| TASK-411 | 4     | Evidence/handoff           | Low             |
+| TASK-500 | 5     | Filter model and panel     | Medium          |
+| TASK-501 | 5     | API date filters           | Low             |
+| TASK-502 | 5     | Map filter sync            | Medium          |
+| TASK-503 | 5     | Asset list URL filters     | Low             |
+| TASK-504 | 5     | Filter presets/history     | Low             |
+| TASK-505 | 5     | Filter result warnings     | Low             |
+| TASK-506 | 5     | Filtered JSON export       | Low             |
+| TASK-507 | 5     | Filter permissions/errors  | Low             |
+| TASK-600 | 6     | Measurement utilities      | Medium          |
+| TASK-601 | 6     | Measurement map interaction | Medium          |
+| TASK-602 | 6     | Edit and snap MVP          | Medium          |
+| TASK-603 | 6     | Measurement session/export hooks | Low       |
+| TASK-604 | 6     | Measurement permissions/errors | Low          |
+| TASK-700 | 7     | Export state/capture utilities | Medium       |
+| TASK-701 | 7     | Export dialog and preview  | Medium          |
+| TASK-702 | 7     | PNG/PDF export             | Medium          |
+| TASK-703 | 7     | Share URL and expiry       | Medium          |
+| TASK-704 | 7     | Export permissions/history/errors | Low       |
+| TASK-800 | 8     | Dashboard summary API      | Medium          |
+| TASK-801 | 8     | Dashboard page and KPI cards | Medium        |
+| TASK-802 | 8     | Dashboard filters/drilldown | Medium         |
+| TASK-803 | 8     | Dashboard export/auto-refresh | Medium       |
+| TASK-804 | 8     | Dashboard permissions/errors | Low           |
 
 ## Principles Applied
 
-- **DRY**: Reuse `useSearchHistory` for both keyword and NL queries; reuse FilterPanel across map + asset list
-- **SOLID**: Each service method has single responsibility; search provider interface allows swapping ES/PG/SQLite
-- **TDD**: Every task includes a test sub-task; tests written before or alongside implementation
-- **YAGNI**: Phases 6-8 deferred; no AI report/predictive/image recognition until core search + CRUD stable
+- **DRY**: Reuse one normalized filter model across map search, asset list, export payloads, presets, and share-ready URL params.
+- **SOLID**: Keep filter parsing/serialization separate from UI components; keep API date filtering inside `PropertiesService.searchWhere()`.
+- **TDD**: Add failing API/helper/component tests before Phase 5 implementation, then verify the same targets after the fix.
+- **YAGNI**: Store filter presets/history in localStorage for v1; avoid a database-backed preset model until multi-device sharing is required.

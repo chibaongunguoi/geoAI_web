@@ -143,6 +143,8 @@ export type PropertySearchInput = {
   status?: string;
   propertyType?: string;
   source?: string;
+  updatedFrom?: string;
+  updatedTo?: string;
   limit?: number;
 };
 
@@ -427,6 +429,7 @@ export class PropertiesService {
             : "postgres-normalized-lexical",
         semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
         warnings: [] as string[],
+        total,
         ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
       }
     };
@@ -438,7 +441,8 @@ export class PropertiesService {
       provider === "elasticsearch" &&
       intent.type === "list" &&
       Boolean(input.query?.trim()) &&
-      tokens.length > 0
+      tokens.length > 0 &&
+      !this.validDateRange(input.updatedFrom, input.updatedTo)
     );
   }
 
@@ -630,6 +634,11 @@ export class PropertiesService {
       where.propertyType = input.propertyType || intent.filters.propertyType;
     }
 
+    const dateRange = this.validDateRange(input.updatedFrom, input.updatedTo);
+    if (dateRange) {
+      where.updatedAt = dateRange;
+    }
+
     return where;
   }
 
@@ -658,7 +667,40 @@ export class PropertiesService {
       where.propertyType = input.propertyType || intent?.filters.propertyType;
     }
 
+    const andFilters: Record<string, unknown>[] = [];
+    this.addNormalizedPhraseFilter(andFilters, input.ward);
+    this.addNormalizedPhraseFilter(andFilters, input.district);
+    if (andFilters.length > 0) {
+      where.AND = andFilters;
+    }
+
+    const dateRange = this.validDateRange(input.updatedFrom, input.updatedTo);
+    if (dateRange) {
+      where.updatedAt = dateRange;
+    }
+
     return where;
+  }
+
+  private validDateRange(updatedFrom?: string, updatedTo?: string) {
+    const range: Record<string, Date> = {};
+    const from = this.validDateBoundary(updatedFrom, false);
+    const to = this.validDateBoundary(updatedTo, true);
+
+    if (from) range.gte = from;
+    if (to) range.lte = to;
+
+    return Object.keys(range).length > 0 ? range : null;
+  }
+
+  private validDateBoundary(value?: string, endOfDay = false) {
+    const text = this.cleanString(value);
+    if (!text || !/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+      return null;
+    }
+
+    const date = new Date(`${text}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}Z`);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   private addNormalizedPhraseFilter(andFilters: Record<string, unknown>[], value?: string) {

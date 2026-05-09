@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import AssetListTable from "./AssetListTable";
+import { assetSearchQuery } from "./assets-server";
 
 describe("AssetListTable", () => {
   it("renders paginated asset rows with detail and edit links", () => {
@@ -41,5 +42,24 @@ describe("AssetListTable", () => {
     render(<AssetListTable assets={[]} canManageProperties={false} page={1} pageSize={20} total={0} />);
 
     expect(screen.getByText("Không có tài sản phù hợp.")).toBeInTheDocument();
+  });
+});
+
+describe("assetSearchQuery", () => {
+  it("serializes URL-backed advanced asset filters", () => {
+    expect(
+      assetSearchQuery({
+        query: "Nguyen",
+        status: "ACTIVE",
+        propertyType: "building",
+        district: "Lien Chieu",
+        ward: "Hoa Khanh Bac",
+        updatedFrom: "2026-05-01",
+        updatedTo: "2026-05-09",
+        limit: 100
+      })
+    ).toBe(
+      "query=Nguyen&status=ACTIVE&propertyType=building&district=Lien+Chieu&ward=Hoa+Khanh+Bac&updatedFrom=2026-05-01&updatedTo=2026-05-09&limit=100"
+    );
   });
 });
