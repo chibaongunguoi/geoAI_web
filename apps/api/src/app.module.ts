@@ -6,6 +6,7 @@ import { MapAssetsModule } from "./map-assets/map-assets.module";
 import { MapLayersModule } from "./map-layers/map-layers.module";
 import { PropertiesModule } from "./properties/properties.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     PrismaModule,
     AuthModule,
     AdminModule,
+    DashboardModule,
     MapAssetsModule,
     MapLayersModule,
     PropertiesModule

@@ -12,6 +12,7 @@ export const PERMISSION_KEYS = [
   "filters.use",
   "ai.query",
   "measurement.use",
+  "dashboard.view",
   "export.use",
   "share.create",
   "admin.users.view",

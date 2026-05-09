@@ -12,6 +12,7 @@ const rolePermissions = {
     "layers.view",
     "search.use",
     "properties.view",
+    "dashboard.view",
     "filters.use",
     "ai.query",
     "measurement.use"
@@ -25,6 +26,7 @@ const rolePermissions = {
     "properties.view",
     "properties.manage",
     "properties.import",
+    "dashboard.view",
     "filters.use",
     "ai.query",
     "measurement.use",

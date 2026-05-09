@@ -10,6 +10,11 @@ export const navigationItems = [
     permission: "properties.view"
   },
   {
+    href: "/dashboard",
+    label: "Dashboard",
+    permission: "dashboard.view"
+  },
+  {
     href: "/admin/users",
     label: "Người dùng",
     permission: "admin.users.view"

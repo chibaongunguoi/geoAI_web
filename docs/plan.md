@@ -401,114 +401,74 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 
 ---
 
-**Goal**: Build an operational asset dashboard on top of the property/asset catalog already implemented in Phase 4, with filters aligned to Phase 5 and export behavior aligned to Phase 7.
+**Goal**: Build an operational asset dashboard on top of the existing `BuildingProperty` catalog, with filters aligned to Phase 5 and export/share behavior aligned to Phase 7. Phase 8 adds `dashboard.view` for dashboard access, keeps export behind `export.use`, and stores dashboard UI state locally.
 
-#### TASK-800: Dashboard Summary API (EP03-069→075, 079)
+#### TASK-800: Dashboard Summary API (EP03-069->075, 079)
 
-##### TASK-800-A: Add dashboard service aggregation methods
+- **Files**:
+  - [NEW] `apps/api/src/dashboard/dashboard.service.ts`
+  - [NEW] `apps/api/src/dashboard/dashboard.controller.ts`
+  - [NEW] `apps/api/src/dashboard/dashboard.module.ts`
+  - [MODIFY] `apps/api/src/app.module.ts`
+  - [NEW] `apps/api/src/dashboard/dashboard.service.spec.ts`
+  - [NEW] `apps/api/src/dashboard/dashboard.controller.spec.ts`
+- Add `GET /dashboard/assets/summary` guarded by `dashboard.view`.
+- Query params reuse Phase 5 filter fields: `status`, `propertyType`, `district`, `ward`, `updatedFrom`, `updatedTo`.
+- Aggregate filtered `buildingProperty.findMany` rows in service code for SQLite compatibility.
+- Return `filters`, `totals`, `buckets`, `trend`, `map` bbox/center/count, and compact `topAssets` rows.
+- Status: implemented without Prisma schema changes.
 
-- **File**: [NEW] `apps/api/src/dashboard/dashboard.service.ts`
-- Count assets by type, status, district, ward
-- Calculate recently updated assets and simple trend buckets by updatedAt
-- Return bbox/centroid summaries for map synchronization
+#### TASK-801: Dashboard Page + KPI/Chart UI (EP03-069, 070, 071, 074)
 
-##### TASK-800-B: Add dashboard controller
+- **Files**:
+  - [NEW] `apps/web/app/dashboard/page.js`
+  - [NEW] `apps/web/src/features/dashboard/DashboardClient.js`
+  - [NEW] `apps/web/src/features/dashboard/DashboardKpis.js`
+  - [NEW] `apps/web/src/features/dashboard/DashboardCharts.js`
+  - [NEW] `apps/web/src/features/dashboard/DashboardComponents.test.js`
+- Add authenticated `/dashboard` page using existing `AppShell` and `dashboard.view` redirect behavior.
+- Show KPI cards for total, active, inactive, review, recently updated, and missing geometry.
+- Show lightweight accessible HTML/CSS chart bars for status, type, district, and ward plus a trend list.
+- Status: implemented without adding a chart dependency.
 
-- **File**: [NEW] `apps/api/src/dashboard/dashboard.controller.ts`
-- `GET /dashboard/assets/summary`
-- Query params: district, ward, type, status, updatedFrom, updatedTo
+#### TASK-802: Dashboard Filters + Drilldown + Map Sync (EP03-072, 073, 075, 077, 081)
 
-##### TASK-800-C: Add API tests
-
-- **File**: [NEW] `apps/api/src/dashboard/dashboard.service.spec.ts`
-- Cover grouped counts, filters, empty result, and date range behavior
-
----
-
-#### TASK-801: Dashboard Page + KPI Cards (EP03-069, 070, 071, 074)
-
-##### TASK-801-A: Create dashboard route
-
-- **File**: [NEW] `apps/web/app/dashboard/page.js`
-- Authenticated dashboard page using existing app shell/navigation
-
-##### TASK-801-B: Add DashboardKpis component
-
-- **File**: [NEW] `apps/web/components/dashboard/DashboardKpis.js`
-- KPI cards: total assets, active/inactive/review counts, newly updated, missing geometry or risk-like status
-
-##### TASK-801-C: Add summary charts
-
-- **File**: [NEW] `apps/web/components/dashboard/DashboardCharts.js`
-- Bar/donut charts for type, status, district/ward
-- Prefer existing chart dependency if present; otherwise keep lightweight accessible charts
-
----
-
-#### TASK-802: Dashboard Filters + Drilldown (EP03-072, 073, 075, 077, 081)
-
-##### TASK-802-A: Add DashboardFilters component
-
-- **File**: [NEW] `apps/web/components/dashboard/DashboardFilters.js`
-- Filters: district, ward, type, status, updated date range
-- Save last-used filters and named presets in localStorage
-
-##### TASK-802-B: Add chart drilldown behavior
-
-- **File**: [MODIFY] `apps/web/components/dashboard/DashboardCharts.js`
-- Clicking chart segment opens `/assets` with matching query params
-
-##### TASK-802-C: Sync dashboard with map context
-
-- **File**: [MODIFY] `apps/web/app/dashboard/page.js`
-- Add "View on map" action that opens map with equivalent filters and bounds
-
----
+- **Files**:
+  - [NEW] `apps/web/src/features/dashboard/DashboardFilters.js`
+  - [NEW] `apps/web/src/features/dashboard/dashboard-state.js`
+  - [MODIFY] `apps/web/app/api/dashboard/assets/summary/route.js`
+- Add BFF route `/api/dashboard/assets/summary` that proxies to the Nest endpoint.
+- Reuse `normalizeAssetFilters` and `assetFilterQueryString` for URL-backed dashboard filters.
+- Chart bucket clicks open `/assets` with matching query params.
+- `View on map` uses Phase 7 share-state helpers to open the map with current filters and summary viewport context.
+- Status: implemented with localStorage-backed dashboard filters/history.
 
 #### TASK-803: Dashboard Export + Auto Refresh (EP03-076, 078, 083)
 
-##### TASK-803-A: Add dashboard export adapter
+- **Files**:
+  - [MODIFY] `apps/web/src/features/dashboard/dashboard-state.js`
+  - [MODIFY] `apps/web/src/features/dashboard/DashboardClient.js`
+  - [MODIFY] `apps/web/app/globals.css`
+- Export dashboard summary as JSON or CSV when the user has `export.use`.
+- Add manual refresh and optional 60-second auto-refresh with last-refreshed timestamp.
+- Record filter changes, refreshes, exports, drilldowns, map handoff, and auto-refresh changes in localStorage history.
+- Status: implemented without PDF/image export for dashboard v1.
 
-- **File**: [NEW] `apps/web/lib/dashboardExport.js`
-- Export dashboard summary as JSON/CSV
-- Reuse Phase 7 PDF/image export utility where practical
+#### TASK-804: Dashboard Permissions, Navigation, Errors (EP03-080, 082, 084, 085)
 
-##### TASK-803-B: Add dashboard export action
-
-- **File**: [MODIFY] `apps/web/app/dashboard/page.js`
-- Export PDF/image for report sharing
-- Export raw summary data for offline analysis
-
-##### TASK-803-C: Add auto-refresh option
-
-- **File**: [MODIFY] `apps/web/app/dashboard/page.js`
-- Manual refresh plus optional timed refresh
-- Show last refreshed timestamp and loading/error state
-
----
-
-#### TASK-804: Dashboard Permissions, Audit, Errors (EP03-080, 082, 084, 085)
-
-##### TASK-804-A: Seed and enforce dashboard permissions
-
-- **File**: [MODIFY] `apps/api/prisma/seed.ts`
-- Add permission key such as `dashboard.view`
-- Optional `dashboard.sensitiveMetrics.view` for sensitive KPIs
-
-##### TASK-804-B: Add guarded API + UI behavior
-
-- **File**: [MODIFY] `apps/api/src/dashboard/dashboard.controller.ts`
-- Guard dashboard summary endpoint with dashboard permission
-- Hide sensitive cards if user lacks sensitive metric permission
-
-##### TASK-804-C: Add dashboard history and error states
-
-- **File**: [NEW] `apps/web/hooks/useDashboardHistory.js`
-- Record filter changes, exports, drilldowns, refreshes locally
-- Show clear API, permission, empty, and export errors
+- **Files**:
+  - [MODIFY] `apps/api/src/rbac/rbac.constants.ts`
+  - [MODIFY] `apps/api/prisma/seed.ts`
+  - [MODIFY] `apps/web/src/features/auth/auth-client.js`
+  - [MODIFY] `apps/web/app/globals.css`
+- Add `dashboard.view` to RBAC constants and seed it for USER, MANAGER, and ADMIN.
+- Add `/dashboard` navigation gated by `dashboard.view`.
+- Show visible loading, empty, API error, export-disabled, and recent-history states.
+- Verification targets:
+  - RED captured with `npm run test -w @geoai/api -- dashboard.service.spec.ts dashboard.controller.spec.ts --runInBand` and `npm run test -w @geoai/web -- dashboard-state.test.js DashboardComponents.test.js route.test.js`.
+  - GREEN confirmed with the same focused targets.
 
 ---
-
 ## Verification Plan
 
 ### Automated Tests
@@ -625,7 +585,7 @@ graph TD
 
 ## Principles Applied
 
-- **DRY**: Reuse one normalized filter model across map search, asset list, export payloads, presets, and share-ready URL params; reuse one measurement model across map overlays, toolbar summaries, local history, copy text, and JSON/GeoJSON export payloads; reuse one export-state model across PNG, printable PDF, share URLs, templates, and history.
-- **SOLID**: Keep filter parsing/serialization separate from UI components; keep API date filtering inside `PropertiesService.searchWhere()`; keep measurement math/state in `apps/web/src/features/measurement/`; keep export/share serialization and capture helpers in `apps/web/src/features/export/` while `MapWrapper` orchestrates permission-gated workflows and `Map.js` owns Leaflet viewport reporting.
-- **TDD**: Add failing API/helper/component tests before Phase 5 implementation; add failing measurement helper/state/toolbar/MapWrapper tests before Phase 6 implementation; add failing export/share helper/dialog/route/MapWrapper tests before Phase 7 implementation; verify the same focused targets after each fix.
-- **YAGNI**: Store filter presets/history, measurement sessions/history, and export templates/history in localStorage for v1; avoid database-backed preset/session/share models, server-side snapping, and a dedicated PDF dependency until multi-device sharing, cadastral-grade measurement, or higher-fidelity reporting is required.
+- **DRY**: Reuse one normalized filter model across map search, asset list, dashboard, export payloads, presets, and share-ready URL params; reuse one measurement model across map overlays, toolbar summaries, local history, copy text, and JSON/GeoJSON export payloads; reuse one export-state model across PNG, printable PDF, share URLs, templates, and history.
+- **SOLID**: Keep filter parsing/serialization separate from UI components; keep API date filtering inside `PropertiesService.searchWhere()`; keep dashboard aggregation inside `DashboardService`; keep measurement math/state in `apps/web/src/features/measurement/`; keep export/share serialization and capture helpers in `apps/web/src/features/export/` while page-level components orchestrate permission-gated workflows.
+- **TDD**: Add failing API/helper/component tests before Phase 5 implementation; add failing measurement helper/state/toolbar/MapWrapper tests before Phase 6 implementation; add failing export/share helper/dialog/route/MapWrapper tests before Phase 7 implementation; add failing dashboard API/helper/component/BFF tests before Phase 8 implementation; verify the same focused targets after each fix.
+- **YAGNI**: Store filter presets/history, measurement sessions/history, export templates/history, and dashboard filters/history in localStorage for v1; avoid database-backed preset/session/share/dashboard models, server-side snapping, chart dependencies, and a dedicated PDF dependency until multi-device sharing, cadastral-grade measurement, or higher-fidelity reporting is required.
