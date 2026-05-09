@@ -50,6 +50,15 @@ import {
   readFilterState,
   writeFilterState
 } from "@/features/filters/filter-state";
+import MeasurementToolbar from "@/features/measurement/MeasurementToolbar";
+import { buildMeasurementExport, getMeasurementResult } from "@/features/measurement/measurement-utils";
+import {
+  DEFAULT_MEASUREMENT_STATE,
+  addMeasurementHistory,
+  measurementReducer,
+  readMeasurementStorage,
+  writeMeasurementStorage
+} from "@/features/measurement/measurement-state";
 import styles from "./MapWrapper.module.css";
 import PropertyTable from "./PropertyTable";
 import SearchResultList from "./SearchResultList";
@@ -136,6 +145,9 @@ export default function MapWrapper({ permissions = [] }) {
   const [filterPresets, setFilterPresets] = useState([]);
   const [filterHistory, setFilterHistory] = useState([]);
   const [filterStatus, setFilterStatus] = useState(null);
+  const [measurementState, setMeasurementState] = useState(DEFAULT_MEASUREMENT_STATE);
+  const [measurementHistory, setMeasurementHistory] = useState([]);
+  const [measurementStatus, setMeasurementStatus] = useState(null);
   const { history: searchHistory, addSearch } = useSearchHistory();
   const skipNextLayerPersistRef = useRef(false);
   const skipNextAssetPersistRef = useRef(false);
@@ -144,6 +156,7 @@ export default function MapWrapper({ permissions = [] }) {
   const canManageLayers = canAccess(permissions, "layers.manage");
   const canExportAssets = canAccess(permissions, "assets.importExport");
   const canUseFilters = canAccess(permissions, "filters.use");
+  const canMeasure = canAccess(permissions, "measurement.use");
   const loadLayerHistory = useCallback(async () => {
     if (!canViewLayers) return;
 
@@ -180,6 +193,9 @@ export default function MapWrapper({ permissions = [] }) {
     setAssetFilters(storedFilters.lastFilters);
     setFilterPresets(storedFilters.presets);
     setFilterHistory(storedFilters.history);
+    const storedMeasurement = readMeasurementStorage(window.localStorage);
+    setMeasurementState(storedMeasurement.state);
+    setMeasurementHistory(storedMeasurement.history);
     const localLayerState = readStoredLayerState(window.localStorage, DATA_LAYERS);
     setLayerState(localLayerState);
 
@@ -526,6 +542,152 @@ export default function MapWrapper({ permissions = [] }) {
     },
     [assetFilters, canUseFilters, filterHistory, filterPresets, persistFilterState]
   );
+
+  const measurementResult = useMemo(
+    () => getMeasurementResult(measurementState.mode, measurementState.points),
+    [measurementState.mode, measurementState.points]
+  );
+
+  const persistMeasurementState = useCallback((nextState, nextHistory) => {
+    const saved = writeMeasurementStorage(window.localStorage, {
+      state: nextState,
+      history: nextHistory
+    });
+    if (!saved) {
+      setMeasurementStatus("Measurement history could not be saved locally.");
+    }
+  }, []);
+
+  const updateMeasurement = useCallback(
+    (action, historyAction, detail = {}) => {
+      if (!canMeasure) return;
+
+      setMeasurementState((current) => {
+        const nextState = measurementReducer(current, action);
+        setMeasurementHistory((currentHistory) => {
+          const nextHistory = historyAction
+            ? addMeasurementHistory(currentHistory, historyAction, {
+                ...detail,
+                points: nextState.points.length
+              })
+            : currentHistory;
+          persistMeasurementState(nextState, nextHistory);
+          return nextHistory;
+        });
+        return nextState;
+      });
+      setMeasurementStatus(null);
+    },
+    [canMeasure, persistMeasurementState]
+  );
+
+  const setMeasurementMode = useCallback(
+    (mode) => {
+      updateMeasurement({ type: "set-mode", mode }, "start", { mode });
+    },
+    [updateMeasurement]
+  );
+
+  const addMeasurementPoint = useCallback(
+    (point) => {
+      updateMeasurement({ type: "add-point", point }, "point.add", point);
+    },
+    [updateMeasurement]
+  );
+
+  const editMeasurementPoint = useCallback(
+    (index, point) => {
+      updateMeasurement({ type: "edit-point", index, point }, "point.edit", {
+        index,
+        ...point
+      });
+    },
+    [updateMeasurement]
+  );
+
+  const undoMeasurement = useCallback(() => {
+    updateMeasurement({ type: "undo" }, "undo");
+  }, [updateMeasurement]);
+
+  const clearMeasurement = useCallback(() => {
+    updateMeasurement({ type: "clear" }, "clear");
+  }, [updateMeasurement]);
+
+  const toggleMeasurementSnap = useCallback(
+    (enabled) => {
+      updateMeasurement({ type: "toggle-snap", enabled }, "snap.toggle", { enabled });
+    },
+    [updateMeasurement]
+  );
+
+  const saveMeasurementSession = useCallback(() => {
+    if (!canMeasure || measurementResult.error) return;
+    const nextHistory = addMeasurementHistory(measurementHistory, "save", {
+      type: measurementResult.type,
+      value: measurementResult.value
+    });
+    setMeasurementHistory(nextHistory);
+    persistMeasurementState(measurementState, nextHistory);
+    setMeasurementStatus("Measurement session saved locally.");
+  }, [canMeasure, measurementHistory, measurementResult, measurementState, persistMeasurementState]);
+
+  const copyMeasurement = useCallback(async () => {
+    if (!canMeasure || measurementResult.error) return;
+
+    const lines = [
+      `${measurementResult.type}: ${measurementResult.formattedValue}`,
+      ...measurementState.points.map(
+        (point, index) => `${index + 1}. ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`
+      )
+    ];
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(lines.join("\n"));
+      const nextHistory = addMeasurementHistory(measurementHistory, "copy", {
+        type: measurementResult.type
+      });
+      setMeasurementHistory(nextHistory);
+      persistMeasurementState(measurementState, nextHistory);
+      setMeasurementStatus("Measurement copied.");
+    } catch {
+      setMeasurementStatus("Clipboard copy failed.");
+    }
+  }, [canMeasure, measurementHistory, measurementResult, measurementState, persistMeasurementState]);
+
+  const exportMeasurement = useCallback(() => {
+    if (!canMeasure || measurementResult.error) return;
+
+    try {
+      const payload = buildMeasurementExport({
+        mode: measurementState.mode,
+        points: measurementState.points,
+        label: measurementState.label
+      });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `geoai-measurement-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      const nextHistory = addMeasurementHistory(measurementHistory, "export", {
+        type: payload.type,
+        value: payload.value
+      });
+      setMeasurementHistory(nextHistory);
+      persistMeasurementState(measurementState, nextHistory);
+      setMeasurementStatus("Measurement exported as JSON.");
+    } catch {
+      setMeasurementStatus("Measurement export failed.");
+    }
+  }, [canMeasure, measurementHistory, measurementResult, measurementState, persistMeasurementState]);
 
   const refreshLayer = useCallback((layerId) => {
     setLayerRefreshRequests((current) => ({
@@ -927,6 +1089,29 @@ export default function MapWrapper({ permissions = [] }) {
           </CollapsibleSection>
         ) : null}
 
+        {canMeasure ? (
+          <CollapsibleSection
+            title="Measurement tools"
+            summary={measurementResult.error || measurementResult.formattedValue}
+            defaultOpen
+          >
+            <MeasurementToolbar
+              canMeasure={canMeasure}
+              state={measurementState}
+              result={measurementResult}
+              history={measurementHistory}
+              status={measurementStatus}
+              onModeChange={setMeasurementMode}
+              onUndo={undoMeasurement}
+              onClear={clearMeasurement}
+              onCopy={copyMeasurement}
+              onSave={saveMeasurementSession}
+              onExport={exportMeasurement}
+              onToggleSnap={toggleMeasurementSnap}
+            />
+          </CollapsibleSection>
+        ) : null}
+
         {canViewLayers ? (
           <CollapsibleSection title="Lớp dữ liệu" summary={`${visibleLayers.length} đang bật`}>
             <LayerPanel
@@ -1103,6 +1288,11 @@ export default function MapWrapper({ permissions = [] }) {
           onAssetError={setAssetDisplayError}
           propertySearchResult={propertySearchResult}
           focusedProperty={focusedProperty}
+          measurementState={measurementState}
+          measurementResult={measurementResult}
+          visibleAssets={visibleAssets}
+          onMeasurementPointAdd={addMeasurementPoint}
+          onMeasurementPointEdit={editMeasurementPoint}
         />
       </div>
     </div>

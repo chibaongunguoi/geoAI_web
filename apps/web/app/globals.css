@@ -1296,6 +1296,135 @@ select:focus-visible,
   font-weight: 900;
 }
 
+.measurement-toolbar {
+  display: grid;
+  gap: 10px;
+}
+
+.measurement-mode-grid,
+.measurement-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.measurement-action-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.measurement-mode-grid button,
+.measurement-action-grid button {
+  min-height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-card-bg);
+  color: var(--color-text);
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.measurement-mode-grid button.active {
+  border-color: #059669;
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.measurement-mode-grid button:disabled,
+.measurement-action-grid button:disabled,
+.measurement-toggle input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.measurement-summary {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-card-soft-bg);
+  padding: 10px;
+}
+
+.measurement-summary span,
+.measurement-summary small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.measurement-summary strong {
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.measurement-alert {
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 7px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400e;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.measurement-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.measurement-history {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.measurement-history li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.measurement-label {
+  color: #064e3b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.measurement-label span {
+  display: inline-block;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  border-radius: 7px;
+  background: rgba(236, 253, 245, 0.94);
+  box-shadow: 0 8px 18px rgba(6, 78, 59, 0.22);
+  padding: 4px 7px;
+}
+
+.measurement-vertex span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #059669;
+  box-shadow: 0 7px 18px rgba(6, 78, 59, 0.28);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .leaflet-draw-toolbar a,
 .leaflet-control-zoom a {
   transition: background-color 180ms ease, color 180ms ease;

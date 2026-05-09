@@ -274,111 +274,62 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 
 ---
 
-**Goal**: Add practical map measurement tools without introducing server-side persistence yet. Start with client-side distance/area workflows, then layer in session history, export hooks, permissions, and error states.
+**Goal**: Add practical client-side map measurement tools for distance and area without server persistence. Phase 6 reuses the existing `measurement.use` RBAC key, stores config/history in localStorage, snaps only to visible asset/property centroids, and prepares JSON/GeoJSON payloads for Phase 7 export/share.
 
-#### TASK-600: Measurement State + Geometry Utilities (EP01-103→106, 105)
+#### TASK-600: Measurement Calculation + State (EP01-103->106, 108, 114)
 
-##### TASK-600-A: Add measurement geometry helpers
+- **Files**:
+  - [NEW] `apps/web/src/features/measurement/measurement-utils.js`
+  - [NEW] `apps/web/src/features/measurement/measurement-state.js`
+  - [NEW] `apps/web/src/features/measurement/measurement-utils.test.js`
+  - [NEW] `apps/web/src/features/measurement/measurement-state.test.js`
+- Add haversine distance, approximate polygon area, centroid, unit formatting, and JSON/GeoJSON export payload helpers.
+- Add normalized state shape: `{ mode, points, snapEnabled, label }`.
+- Support mode changes, add point, edit point, undo, clear, snap selection, localStorage read/write, and local operation history.
+- Status: implemented client-side; no Prisma schema or API endpoint added.
 
-- **File**: [NEW] `apps/web/lib/measurementUtils.js`
-- Calculate polyline distance with haversine/geodesic approximation
-- Calculate polygon area in square meters/hectares
-- Format units as m/km and m²/ha
+#### TASK-601: Toolbar + Permission-Gated UI (EP01-110, 113, 117, 118)
 
-##### TASK-600-B: Add measurement state hook
+- **Files**:
+  - [NEW] `apps/web/src/features/measurement/MeasurementToolbar.js`
+  - [NEW] `apps/web/src/features/measurement/MeasurementToolbar.test.js`
+  - [MODIFY] `apps/web/components/MapWrapper.js`
+  - [NEW] `apps/web/components/__tests__/MapWrapperMeasurement.test.js`
+- Render mode buttons for distance, area, and idle plus undo, clear, copy, save, export JSON, snap toggle, summary, and validation/status messages.
+- Show the measurement section in `MapWrapper` only when `canAccess(permissions, "measurement.use")` is true. Component-level tests still cover disabled toolbar behavior.
+- Status: implemented with the existing `measurement.use` permission key.
 
-- **File**: [NEW] `apps/web/hooks/useMeasurementTools.js`
-- Track active mode: `distance`, `area`, or `idle`
-- Track points, segments, total distance, polygon area, and selected result
-- Support reset and undo-last-point actions
+#### TASK-602: Leaflet Map Interaction (EP01-103, 104, 106, 107, 109, 112)
 
-##### TASK-600-C: Unit tests for calculations and state transitions
+- **File**: [MODIFY] `apps/web/components/Map.js`
+- Add a dedicated `measurementLayer` alongside existing draw, asset, boundary, search, and focus layers.
+- Map clicks add measurement points while distance/area mode is active.
+- Render distance polylines, area polygons, draggable vertex handles, segment labels, total distance labels, and area centroid labels.
+- Snap v1 uses visible asset/property centroids already loaded in `visibleAssets`; no backend nearest-neighbor query is added.
+- Keep rectangle scan, density result focus, and asset layers on their existing paths.
+- Status: implemented as a client-only Leaflet overlay.
 
-- **File**: [NEW] `apps/web/hooks/useMeasurementTools.test.js`
-- Cover distance, area, unit formatting, reset, and undo
+#### TASK-603: Session, Copy, and Export Payloads (EP01-110, 111, 113, 115, 116)
 
----
+- **Files**:
+  - [MODIFY] `apps/web/components/MapWrapper.js`
+  - [MODIFY] `apps/web/src/features/measurement/measurement-utils.js`
+  - [MODIFY] `apps/web/src/features/measurement/measurement-state.js`
+- Persist last measurement state and local action history in localStorage.
+- Copy formatted measurement result and coordinates to clipboard with controlled failure messaging.
+- Export the current measurement as JSON/GeoJSON only; PNG/PDF/image export remains Phase 7.
+- Status: implemented for JSON/GeoJSON export payload compatibility.
 
-#### TASK-601: Measurement Map Interaction (EP01-103, 104, 106, 108, 112)
+#### TASK-604: Styling, Errors, and Verification (EP01-118)
 
-##### TASK-601-A: Add MeasurementToolbar component
-
-- **File**: [NEW] `apps/web/components/MeasurementToolbar.js`
-- Buttons for distance, area, undo, clear, copy
-- Keep controls compact and consistent with existing map tool UI
-
-##### TASK-601-B: Wire map click interaction
-
-- **File**: [MODIFY] `apps/web/components/MapComponent.js`
-- In distance mode, click adds polyline points
-- In area mode, click adds polygon vertices
-- Show temporary line/polygon overlay while measuring
-
-##### TASK-601-C: Show labels on map
-
-- **File**: [MODIFY] `apps/web/components/MapComponent.js`
-- Label segment length and total distance for distance mode
-- Label area value at polygon centroid for area mode
-
----
-
-#### TASK-602: Edit + Snap MVP (EP01-107, 109)
-
-##### TASK-602-A: Add draggable measurement vertices
-
-- **File**: [MODIFY] `apps/web/components/MapComponent.js`
-- Allow moving existing measurement points after placement
-- Recalculate labels immediately after edit
-
-##### TASK-602-B: Add snap-to-visible-property option
-
-- **File**: [MODIFY] `apps/web/hooks/useMeasurementTools.js`
-- Optional snapping to nearest visible asset/property centroid within a small pixel threshold
-- Keep snapping client-side for the MVP
+- **File**: [MODIFY] `apps/web/app/globals.css`
+- Add compact toolbar styling plus measurement map label and draggable vertex styles.
+- Surface visible errors for too few points, invalid area, clipboard failure, export failure, and localStorage failure.
+- Verification targets:
+  - RED captured with `npm run test -w @geoai/web -- measurement-utils.test.js measurement-state.test.js MeasurementToolbar.test.js MapWrapperMeasurement.test.js`.
+  - GREEN confirmed with the same target and `npm run test -w @geoai/web -- measurement-utils.test.js measurement-state.test.js MeasurementToolbar.test.js SearchResultFocus.test.js`.
 
 ---
-
-#### TASK-603: Measurement Session, Copy, Export Hooks (EP01-110, 111, 113, 114, 116)
-
-##### TASK-603-A: Persist recent measurements locally
-
-- **File**: [NEW] `apps/web/hooks/useMeasurementHistory.js`
-- Save last measurements in localStorage
-- Store type, points, computed value, createdAt, and label
-
-##### TASK-603-B: Copy measurement result
-
-- **File**: [MODIFY] `apps/web/components/MeasurementToolbar.js`
-- Copy formatted result and point list to clipboard
-
-##### TASK-603-C: Add export payload adapter
-
-- **File**: [NEW] `apps/web/lib/measurementExport.js`
-- Prepare measurement GeoJSON/JSON payload for Phase 7 export/share workflows
-- No PDF/PNG implementation here; Phase 7 owns rendering/export
-
----
-
-#### TASK-604: Measurement Permissions, Audit Surface, Errors (EP01-115, 117, 118)
-
-##### TASK-604-A: Seed and enforce measurement permission
-
-- **File**: [MODIFY] `apps/api/prisma/seed.ts`
-- Add permission key such as `map.measure`
-- Hide/disable measurement controls when permission is absent
-
-##### TASK-604-B: Add client-side operation history
-
-- **File**: [MODIFY] `apps/web/hooks/useMeasurementHistory.js`
-- Record create/edit/clear/copy/export-intent actions locally
-
-##### TASK-604-C: Add error and empty states
-
-- **File**: [MODIFY] `apps/web/components/MeasurementToolbar.js`
-- Clear errors for invalid polygon, too few points, clipboard failure, localStorage failure
-
----
-
 ### Phase 7: Export & Sharing (EP01-119→135)
 
 ---
@@ -716,7 +667,7 @@ graph TD
 
 ## Principles Applied
 
-- **DRY**: Reuse one normalized filter model across map search, asset list, export payloads, presets, and share-ready URL params.
-- **SOLID**: Keep filter parsing/serialization separate from UI components; keep API date filtering inside `PropertiesService.searchWhere()`.
-- **TDD**: Add failing API/helper/component tests before Phase 5 implementation, then verify the same targets after the fix.
-- **YAGNI**: Store filter presets/history in localStorage for v1; avoid a database-backed preset model until multi-device sharing is required.
+- **DRY**: Reuse one normalized filter model across map search, asset list, export payloads, presets, and share-ready URL params; reuse one measurement model across map overlays, toolbar summaries, local history, copy text, and JSON/GeoJSON export payloads.
+- **SOLID**: Keep filter parsing/serialization separate from UI components; keep API date filtering inside `PropertiesService.searchWhere()`; keep measurement math/state in `apps/web/src/features/measurement/` while `MapWrapper` orchestrates permission-gated UI and `Map.js` owns Leaflet rendering.
+- **TDD**: Add failing API/helper/component tests before Phase 5 implementation; add failing measurement helper/state/toolbar/MapWrapper tests before Phase 6 implementation; verify the same focused targets after each fix.
+- **YAGNI**: Store filter presets/history and measurement sessions/history in localStorage for v1; avoid database-backed preset/session models and server-side snapping until multi-device sharing or cadastral-grade measurement is required.

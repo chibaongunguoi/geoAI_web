@@ -21,6 +21,12 @@ import {
   clusterAssets,
   createDefaultAssetDisplayConfig,
 } from "@/features/map/assets";
+import {
+  calculateCentroid,
+  calculateDistance,
+  formatDistance,
+} from "@/features/measurement/measurement-utils";
+import { snapPointToVisibleAssets } from "@/features/measurement/measurement-state";
 
 const DANANG_CENTER = [16.0544, 108.2022];
 const DANANG_BOUNDS = [
@@ -280,6 +286,57 @@ function labelIcon(label) {
   });
 }
 
+function measurementLabelIcon(label) {
+  return L.divIcon({
+    className: "measurement-label",
+    html: `<span>${escapeHtml(label)}</span>`,
+    iconSize: [132, 28],
+    iconAnchor: [66, 34],
+  });
+}
+
+function measurementVertexIcon(index) {
+  return L.divIcon({
+    className: "measurement-vertex",
+    html: `<span>${index + 1}</span>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+}
+
+function visibleAssetPoint(feature) {
+  if (feature?.geometry?.type === "Point" && Array.isArray(feature.geometry.coordinates)) {
+    const [lng, lat] = feature.geometry.coordinates;
+    if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))) {
+      return { lat: Number(lat), lng: Number(lng) };
+    }
+  }
+
+  const lat = Number(feature?.centroidLat ?? feature?.properties?.centroidLat);
+  const lng = Number(feature?.centroidLng ?? feature?.properties?.centroidLng);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function snapPointByPixel(rawPoint, visibleAssets, map, thresholdPixels = 14) {
+  const clickPoint = map.latLngToContainerPoint([rawPoint.lat, rawPoint.lng]);
+  const candidates = Array.isArray(visibleAssets)
+    ? visibleAssets.map(visibleAssetPoint).filter(Boolean)
+    : [];
+
+  const closest = candidates.reduce((best, candidate) => {
+    const candidatePoint = map.latLngToContainerPoint([candidate.lat, candidate.lng]);
+    const distance = clickPoint.distanceTo(candidatePoint);
+    if (!best || distance < best.distance) {
+      return { point: candidate, distance };
+    }
+    return best;
+  }, null);
+
+  return closest && closest.distance <= thresholdPixels
+    ? closest.point
+    : snapPointToVisibleAssets(rawPoint, visibleAssets, { thresholdMeters: 25 });
+}
+
 function MapComponent({
   onRectangleDrawn,
   onAnalyzeImage,
@@ -301,6 +358,11 @@ function MapComponent({
   onAssetError,
   propertySearchResult,
   focusedProperty,
+  measurementState,
+  measurementResult,
+  visibleAssets,
+  onMeasurementPointAdd,
+  onMeasurementPointEdit,
 }) {
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
@@ -310,6 +372,7 @@ function MapComponent({
   const [maskLayer] = useState(new L.FeatureGroup());
   const [propertySearchLayer] = useState(new L.FeatureGroup());
   const [focusedPropertyLayer] = useState(new L.FeatureGroup());
+  const [measurementLayer] = useState(new L.FeatureGroup());
   const [currentCoords, setCurrentCoords] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(() => map.getZoom());
   const [adminBoundaries, setAdminBoundaries] = useState(null);
@@ -403,6 +466,7 @@ function MapComponent({
     map.addLayer(boundaryLayer);
     map.addLayer(propertySearchLayer);
     map.addLayer(focusedPropertyLayer);
+    map.addLayer(measurementLayer);
     setTimeout(() => map.invalidateSize(), 0);
 
     const handleCreated = (event) => {
@@ -430,6 +494,7 @@ function MapComponent({
       map.removeLayer(boundaryLayer);
       map.removeLayer(propertySearchLayer);
       map.removeLayer(focusedPropertyLayer);
+      map.removeLayer(measurementLayer);
       externalLayersRef.current.forEach((layer) => map.removeLayer(layer));
       externalLayersRef.current.clear();
     };
@@ -442,6 +507,7 @@ function MapComponent({
     boundaryLayer,
     propertySearchLayer,
     focusedPropertyLayer,
+    measurementLayer,
     onRectangleDrawn,
     captureImageForCoords,
   ]);
@@ -476,6 +542,103 @@ function MapComponent({
     setTimeout(() => marker.openPopup(), 800);
 
   }, [focusedProperty, focusedPropertyLayer, map]);
+
+  useEffect(() => {
+    const mode = measurementState?.mode || "idle";
+    if (mode === "idle") return undefined;
+
+    const handleMeasurementClick = (event) => {
+      const rawPoint = {
+        lat: event.latlng.lat,
+        lng: event.latlng.lng,
+      };
+      const point =
+        measurementState?.snapEnabled === false
+          ? rawPoint
+          : snapPointByPixel(rawPoint, visibleAssets, map);
+
+      onMeasurementPointAdd?.({
+        lat: point.lat,
+        lng: point.lng,
+      });
+    };
+
+    map.on("click", handleMeasurementClick);
+    return () => {
+      map.off("click", handleMeasurementClick);
+    };
+  }, [map, measurementState?.mode, measurementState?.snapEnabled, onMeasurementPointAdd, visibleAssets]);
+
+  useEffect(() => {
+    measurementLayer.clearLayers();
+    const mode = measurementState?.mode || "idle";
+    const points = Array.isArray(measurementState?.points) ? measurementState.points : [];
+    if (mode === "idle" || points.length === 0) return;
+
+    const latLngs = points.map((point) => [point.lat, point.lng]);
+
+    if (mode === "distance" && latLngs.length >= 2) {
+      L.polyline(latLngs, {
+        color: "#059669",
+        weight: 4,
+        opacity: 0.95,
+      }).addTo(measurementLayer);
+
+      points.slice(1).forEach((point, index) => {
+        const previous = points[index];
+        const mid = [(previous.lat + point.lat) / 2, (previous.lng + point.lng) / 2];
+        L.marker(mid, {
+          interactive: false,
+          icon: measurementLabelIcon(formatDistance(calculateDistance(previous, point))),
+        }).addTo(measurementLayer);
+      });
+
+      const last = points[points.length - 1];
+      L.marker([last.lat, last.lng], {
+        interactive: false,
+        icon: measurementLabelIcon(measurementResult?.formattedValue || ""),
+      }).addTo(measurementLayer);
+    }
+
+    if (mode === "area" && latLngs.length >= 3) {
+      L.polygon(latLngs, {
+        color: "#059669",
+        weight: 4,
+        opacity: 0.95,
+        fillColor: "#10b981",
+        fillOpacity: 0.16,
+      }).addTo(measurementLayer);
+
+      const centroid = measurementResult?.centroid || calculateCentroid(points);
+      if (centroid) {
+        L.marker([centroid.lat, centroid.lng], {
+          interactive: false,
+          icon: measurementLabelIcon(measurementResult?.formattedValue || ""),
+        }).addTo(measurementLayer);
+      }
+    }
+
+    points.forEach((point, index) => {
+      const marker = L.marker([point.lat, point.lng], {
+        draggable: true,
+        icon: measurementVertexIcon(index),
+        zIndexOffset: 1100,
+      });
+      marker.on("dragend", () => {
+        const latLng = marker.getLatLng();
+        onMeasurementPointEdit?.(index, { lat: latLng.lat, lng: latLng.lng });
+      });
+      marker.addTo(measurementLayer);
+    });
+
+    measurementLayer.bringToFront();
+  }, [
+    measurementLayer,
+    measurementResult,
+    measurementState?.mode,
+    measurementState?.points,
+    onMeasurementPointEdit,
+  ]);
 
   useEffect(() => {
     propertySearchLayer.clearLayers();
@@ -1249,7 +1412,8 @@ function MapComponent({
 
     propertySearchLayer.bringToFront();
     drawnItems.bringToFront();
-  }, [assetMarkers, boundaryLayer, drawnItems, objectBoxes, propertySearchLayer, layerOrder]);
+    measurementLayer.bringToFront();
+  }, [assetMarkers, boundaryLayer, drawnItems, objectBoxes, propertySearchLayer, measurementLayer, layerOrder]);
 
   useEffect(() => {
     if (captureRequestId > 0) {
@@ -1281,6 +1445,11 @@ export default function Map({
   onAssetError,
   propertySearchResult,
   focusedProperty,
+  measurementState,
+  measurementResult,
+  visibleAssets,
+  onMeasurementPointAdd,
+  onMeasurementPointEdit,
 }) {
   return (
     <MapContainer
@@ -1324,6 +1493,11 @@ export default function Map({
         onAssetError={onAssetError}
         propertySearchResult={propertySearchResult}
         focusedProperty={focusedProperty}
+        measurementState={measurementState}
+        measurementResult={measurementResult}
+        visibleAssets={visibleAssets || []}
+        onMeasurementPointAdd={onMeasurementPointAdd}
+        onMeasurementPointEdit={onMeasurementPointEdit}
       />
     </MapContainer>
   );
