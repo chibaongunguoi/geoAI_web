@@ -5,6 +5,11 @@ export const navigationItems = [
     permission: "map.view"
   },
   {
+    href: "/assets",
+    label: "TÃ i sáº£n",
+    permission: "properties.view"
+  },
+  {
     href: "/admin/users",
     label: "Người dùng",
     permission: "admin.users.view"

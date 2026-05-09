@@ -456,37 +456,56 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 
 #### TASK-400: Asset Create/Edit Form (EP03-001, 002)
 
+**Status**: Implemented.
+
 ##### TASK-400-A: Create asset form component
 
 - **File**: [NEW] `apps/web/components/AssetForm.js`
-- Fields: code, name, type, status, address, coordinates (pick from map)
+- Fields: code, name, type, status, address, ward/district/city, area, and coordinates.
+- Includes a compact map-picker affordance that seeds a Da Nang center coordinate for foundation CRUD without introducing a full map dependency into the form.
 
 ##### TASK-400-B: Create asset page
 
 - **File**: [NEW] `apps/web/app/assets/new/page.js`
 - **File**: [NEW] `apps/web/app/assets/[code]/edit/page.js`
+- Pages are guarded by `properties.manage` and reuse the shared `AssetForm`.
 
 ##### TASK-400-C: Wire to existing API
 
 - Use existing `POST /api/properties` and `PATCH /api/properties/:id`
+- Form submits JSON to the existing Next property proxy and redirects to the saved asset detail page.
 
 ---
 
 #### TASK-401: Asset List Page (EP03-004)
+
+**Status**: Implemented.
 
 ##### TASK-401-A: Create asset list page
 
 - **File**: [NEW] `apps/web/app/assets/page.js`
 - Paginated table with search, sort, filter
 - Link to detail and edit pages
+- Added `AssetListTable` and navigation entry gated by `properties.view`.
 
 ---
 
 #### TASK-402: Asset Detail Page Enhancement (EP03-005)
 
+**Status**: Implemented.
+
 - **File**: [MODIFY] `apps/web/app/assets/[code]/page.js`
 - Show full property details with map preview
 - Show audit history timeline
+- Added `AssetDetailPanel`, real property resolution by id/code, sample GeoJSON fallback for existing map popup links, and entity-specific audit-log filtering.
+
+#### Phase 4 Hard Issues / Solutions
+
+- **Next alias boundary**: `@/components/AssetForm` failed during `next build` because this app maps `@/` to `apps/web/src`, while plan components live in `apps/web/components`. Solution: keep the plan file location and import it with relative paths from App Router pages.
+- **Asset detail identifier mismatch**: the route is `/assets/[code]`, but the API detail endpoint expects database `id`. Solution: resolve direct id first, then search by code/text, and keep a sample GeoJSON fallback so existing map popup links remain usable.
+- **Audit timeline specificity**: Phase 3 audit listing filtered by action/entity/actor/date but not `entityId`, which made asset-level timelines too broad. Solution: add optional `entityId` filtering through `AdminController` and `AdminService`.
+- **Form redirect testability**: direct `window.location.assign` is hard to assert in jsdom. Solution: keep production redirect behavior but add an optional `onSaved` callback for tests.
+- **TDD evidence**: RED was captured with `npm run test -w @geoai/web -- AssetForm.test.js AssetListTable.test.js AssetDetailPanel.test.js`; GREEN was confirmed with the same target plus `npm run test -w @geoai/api -- admin.service.spec.ts --runInBand`, `npm run test:api`, `npm run test:web`, and `npm run build`.
 
 ---
 

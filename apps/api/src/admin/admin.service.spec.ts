@@ -147,6 +147,7 @@ describe("AdminService", () => {
     await service.listAuditLogs({
       action: "admin.users.roles.update",
       entityType: "User",
+      entityId: "user-1",
       actorUserId: "admin-1",
       from: "2026-05-01",
       to: "2026-05-09"
@@ -156,6 +157,7 @@ describe("AdminService", () => {
       where: {
         action: { contains: "admin.users.roles.update" },
         entityType: "User",
+        entityId: "user-1",
         actorUserId: "admin-1",
         createdAt: {
           gte: new Date("2026-05-01T00:00:00.000Z"),

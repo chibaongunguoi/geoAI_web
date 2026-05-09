@@ -64,10 +64,11 @@ export class AdminController {
   listAuditLogs(
     @Query("action") action?: string,
     @Query("entityType") entityType?: string,
+    @Query("entityId") entityId?: string,
     @Query("actorUserId") actorUserId?: string,
     @Query("from") from?: string,
     @Query("to") to?: string
   ) {
-    return this.admin.listAuditLogs({ action, entityType, actorUserId, from, to });
+    return this.admin.listAuditLogs({ action, entityType, entityId, actorUserId, from, to });
   }
 }

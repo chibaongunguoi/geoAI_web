@@ -9,8 +9,8 @@ This file records what is already implemented or only partially implemented. For
 - `EP02-029` - Added `admin.apiKeys.manage` permission key for future API key management. API key CRUD and per-action guards are not implemented yet.
 - `EP02-046` - Seeded `USER`, `MANAGER`, `ADMIN`; added role-permission assignment API foundation.
 - `EP02-063` - Seeded feature permission catalog and admin permission listing.
-- `EP02-082` - Added shared `admin.logs.view` permission foundation. Dedicated API log model, listing, filters, and UI are not implemented yet.
-- `EP02-099` - Added audit log listing endpoint guarded by `admin.logs.view`. Admin UI for system audit logs is not implemented yet.
+- `EP02-082` - Added shared `admin.logs.view` permission foundation. Dedicated API log ingestion/model is still pending.
+- `EP02-099` - Added audit log listing endpoint guarded by `admin.logs.view`, plus filtered admin audit log UI.
 - `EP02-134` - Seeded default role permission sets for `USER`, `MANAGER`, and `ADMIN`.
 
 ### Auth registration and admin role management
@@ -20,9 +20,12 @@ This file records what is already implemented or only partially implemented. For
 - Login now accepts username or email through `identifier`, while keeping email compatibility.
 - Seed now creates/updates `admin123/admin123` with the `ADMIN` role and keeps the existing secondary admin account.
 - Admin users dashboard now lists username, email, name, status, and roles.
+- Admin users dashboard supports search by name/username/email and filtering by role.
 - Admins with `admin.users.manage` can assign/revoke `USER`, `MANAGER`, and `ADMIN` roles.
+- Admins with `admin.users.manage` can lock/unlock accounts through `PATCH /admin/users/:id/status`; status changes are recorded in audit logs.
 - Backend prevents removing the final remaining `ADMIN` role.
 - Role changes are recorded in audit logs.
+- Added a read-only role-permission matrix view for auditing permission coverage by role.
 
 ### Map basemap slice
 
@@ -84,6 +87,17 @@ This file records what is already implemented or only partially implemented. For
 - Added Vietnamese natural-language count answers for ward/district building questions, including accented and no-accent matching such as `phường hòa khánh bắc thuộc liên chiểu`.
 - Added Vietnamese density intent search for questions like `vùng nào ở hòa khánh bắc có số lượng nhà dày đặc nhất`; the API returns a text answer plus map-ready density regions.
 - Added web map rendering for density-search output, including the top density bbox, scan-style building boxes, answer text, and auto-zoom/focus to the densest region.
+- Added normal property result list/table switching for Vietnamese natural-language and keyword search results.
+- Added sample Vietnamese question chips, local recent-search/recent-question history with `keyword` vs `nl-question` tags, and clear ambiguity warnings for overly broad natural-language queries.
+- Added status/type condition parsing for Vietnamese/no-accent natural-language property queries, including active, inactive, review, archived, and building type filters.
+- Added selected normal-result map focus/highlight and coordinate-query map focus support.
+- Added property search suggestions through `/api/properties/suggestions` and the matching Next.js proxy route.
+- Added asset CRUD foundation pages: `/assets`, `/assets/new`, `/assets/[code]`, and `/assets/[code]/edit`.
+- Added shared asset create/edit form wired to the existing property create/update proxy, including status/type/address/area/coordinate fields.
+- Added paginated asset list table with search, status filter, sort controls, and detail/edit links.
+- Replaced the placeholder asset detail page with full property details, map preview, edit action, and audit timeline.
+- Added entity-specific audit-log filtering with `entityId` so property detail timelines can show changes for one asset.
+- Preserved existing sample asset popup detail links through a server-side fallback to `public/data/sample-assets.geojson` when no database property matches the route code.
 - Applied the migration and seeded `properties.view`, `properties.manage`, and `properties.import`.
 
 ### Elasticsearch + MiniLM search infrastructure
@@ -108,16 +122,23 @@ This file records what is already implemented or only partially implemented. For
 - Hardened the web auth fetch path so the main page does not hard-crash when the Nest API is unavailable.
 - Hardened web API proxies so backend connection failures return controlled 503 JSON responses.
 - Fixed the property density map path so `propertySearchResult` reaches the Leaflet component that draws and zooms the density bbox.
-m
+- Hardened property-search suggestions in the web UI so non-array or failed responses do not crash the search panel.
+
+### Verification checkpoints
+
+- Phase 2 Vietnamese NL/search UX: `npm run test:api`, `npm run test:web`, and `npm run build` passed after implementing result table, samples, condition parsing, ambiguity warnings, typed history, suggestions, and selected-result focus.
+- Phase 3 admin foundation: `npm run test:api`, `npm run test:web`, and `npm run build` passed after implementing audit log UI, user filtering, lock/unlock, and permission matrix.
+- Phase 4 asset CRUD foundation: `npm run test:api`, `npm run test:web`, and `npm run build` passed after implementing asset create/edit/list/detail pages, entity-specific audit timelines, and sample asset detail fallback.
+
 ## Partially Implemented / Foundation Only
 
 - `EP02-029` - Permission key exists for API key management, but API key CRUD is still pending.
-- `EP02-082` - Shared log permission exists, but dedicated API log ingestion/listing is still pending.
-- `EP02-099` - Audit log endpoint exists, but admin UI and richer system log workflows are still pending.
-- `EP01-052` - Property keyword search exists through `/api/properties`, but address-search UX polish and source-specific modes are still pending.
-- `EP01-057` and `EP01-058` - Density-question auto-zoom and highlight are implemented. Generic selected-result focus/highlight for normal result lists is still pending.
-- `EP01-062` and `EP04-005` - Accented/no-accent matching exists for property search and current Vietnamese count/density questions. Broader parser coverage still needs more cases.
-- `EP04-001` to `EP04-006` - Vietnamese natural-language property queries are partially implemented for count and density. General condition parsing, list/table answers, ambiguity handling, and export are still pending.
+- `EP02-082` - Shared log permission and audit-log UI exist, but dedicated API log ingestion/listing is still pending.
+- `EP02-099` - Audit log UI exists; richer system log workflows beyond audit-log filtering are still pending.
+- `EP01-052` - Property keyword search, result list/table, suggestions, and selected-result focus exist; dedicated source-specific modes are still pending.
+- `EP01-062` and `EP04-005` - Accented/no-accent matching exists for property search and Vietnamese count/density/list conditions. Broader parser coverage can still expand with more business-specific cases.
+- `EP04-001` to `EP04-007` and `EP04-009` - Vietnamese natural-language property queries now support count, density, list/table results, sample questions, status/type/location conditions, recent history, and ambiguity warnings. Favorites, Excel/export, backend audit/history for NL actions, role-specific NL access review, and SQL review remain pending.
+- `EP03-001`, `EP03-002`, `EP03-004`, and `EP03-005` - Asset create/edit/list/detail foundations are implemented against the existing property API. Delete workflows, bulk actions, import/export, validation polish, media/files, richer map coordinate picking, and the remaining EP03 items are still pending.
 - Da Nang building/property import is now clean for `Liên Chiểu` only on the current Neon database. The previous `manual-demo` rows were removed, staging tables were dropped after import, and the table now has `63,445` trusted `source='overture'` rows for Liên Chiểu.
 - Liên Chiểu row counts by GADM ward: `Hòa Minh` 18,657; `Hòa Khánh Bắc` 14,300; `Hòa Khánh Nam` 14,039; `Hòa Hiệp Nam` 8,878; `Hòa Hiệp Bắc` 7,571.
 - The direct PostgreSQL importer supports `--dry-run`, advisory locking, staging/upsert resume, storage preflight, `--district`, and `--ward` filters. For the Liên Chiểu reload it was run with `--batch-size 1000`; each staging/upsert batch commits independently.

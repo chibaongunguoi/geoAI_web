@@ -37,6 +37,7 @@ type ListUsersInput = {
 type ListAuditLogsInput = {
   action?: string;
   entityType?: string;
+  entityId?: string;
   actorUserId?: string;
   from?: string;
   to?: string;
@@ -206,6 +207,10 @@ export class AdminService {
 
     if (filters.entityType) {
       where.entityType = filters.entityType;
+    }
+
+    if (filters.entityId) {
+      where.entityId = filters.entityId;
     }
 
     if (filters.actorUserId) {
