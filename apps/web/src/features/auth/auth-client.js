@@ -38,6 +38,11 @@ export const navigationItems = [
     href: "/admin/audit-logs",
     label: "Nhật ký",
     permission: "admin.logs.view"
+  },
+  {
+    href: "/admin/import-export",
+    label: "Import/Export",
+    permission: "assets.importExport"
   }
 ];
 

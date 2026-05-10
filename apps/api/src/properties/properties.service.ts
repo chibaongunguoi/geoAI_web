@@ -173,6 +173,16 @@ export type PropertyMutationInput = {
   embedding?: unknown;
 };
 
+export type AssetImportResult = {
+  imported: number;
+  skipped: number;
+  failedRows: Array<{
+    rowNumber: number;
+    code?: string;
+    errors: string[];
+  }>;
+};
+
 type ImportOptions = {
   actorUserId?: string;
   sourceVersion?: string;
@@ -546,6 +556,70 @@ export class PropertiesService {
     return deleted;
   }
 
+  async importAssetRows(rows: unknown, options: ImportOptions = {}): Promise<AssetImportResult> {
+    if (!Array.isArray(rows)) {
+      throw new BadRequestException("Asset import payload must be an array");
+    }
+
+    const candidates = rows.map((row, index) => this.assetImportCandidate(row, index));
+    const codes = candidates.map((candidate) => candidate.code).filter(Boolean) as string[];
+    const duplicateCodes = new Set<string>();
+    const seenCodes = new Set<string>();
+    for (const code of codes) {
+      if (seenCodes.has(code)) duplicateCodes.add(code);
+      seenCodes.add(code);
+    }
+
+    const existingRows = codes.length
+      ? ((await this.prisma.buildingProperty.findMany({
+          where: { code: { in: [...new Set(codes)] }, deletedAt: null },
+          select: { code: true }
+        })) as Array<{ code?: string | null }>)
+      : [];
+    const existingCodes = new Set(existingRows.map((row) => row.code).filter(Boolean));
+
+    let imported = 0;
+    const failedRows: AssetImportResult["failedRows"] = [];
+
+    for (const candidate of candidates) {
+      const errors = [...candidate.errors];
+      if (candidate.code && duplicateCodes.has(candidate.code)) errors.push("Duplicate code in file.");
+      if (candidate.code && existingCodes.has(candidate.code)) errors.push("Asset code already exists.");
+
+      if (errors.length > 0) {
+        failedRows.push({ rowNumber: candidate.rowNumber, code: candidate.code, errors });
+        continue;
+      }
+
+      const data = this.propertyData(candidate.input, {
+        city: DEFAULT_CITY,
+        propertyType: DEFAULT_PROPERTY_TYPE,
+        source: "manual-import",
+        status: DEFAULT_STATUS
+      });
+      await this.prisma.buildingProperty.create({ data });
+      imported += 1;
+    }
+
+    const skipped = failedRows.length;
+    await this.prisma.auditLog.create({
+      data: {
+        actorUserId: options.actorUserId,
+        action: "properties.import.assets",
+        entityType: "BuildingProperty",
+        entityId: null,
+        metadata: {
+          imported,
+          skipped,
+          failedRows: failedRows.length,
+          sourceVersion: options.sourceVersion
+        }
+      }
+    });
+
+    return { imported, skipped, failedRows };
+  }
+
   async importOvertureBuildings(features: unknown, options: ImportOptions = {}) {
     if (!Array.isArray(features)) {
       throw new BadRequestException("Overture import payload must be an array");
@@ -590,6 +664,41 @@ export class PropertiesService {
     });
 
     return { imported, skipped };
+  }
+
+  private assetImportCandidate(row: unknown, index: number) {
+    const errors: string[] = [];
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      return {
+        rowNumber: index + 1,
+        code: undefined,
+        input: {} as PropertyMutationInput,
+        errors: ["Import row must be an object."]
+      };
+    }
+
+    const input = row as PropertyMutationInput;
+    const code = this.cleanString(input.code);
+    if (!code) errors.push("Code is required.");
+    if (!this.cleanString(input.name)) errors.push("Name is required.");
+    if (
+      (input.centroidLat === undefined || input.centroidLng === undefined) &&
+      (input.geometry === undefined || input.geometry === null)
+    ) {
+      errors.push("Latitude/longitude or geometry is required.");
+    }
+
+    return {
+      rowNumber: index + 1,
+      code,
+      input: {
+        ...input,
+        code,
+        source: this.cleanString(input.source) || "manual-import",
+        sourceVersion: this.cleanString(input.sourceVersion)
+      },
+      errors
+    };
   }
 
   private async findProperty(id: string) {

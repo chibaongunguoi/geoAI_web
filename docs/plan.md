@@ -65,18 +65,6 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 
 ## Next 5 Priority Phases
 
-### Phase 9 - Spatial Draw/Edit Tools (`EP01-086 -> EP01-102`)
-
-**Big task**: let managers draw and edit point/line/polygon objects on the map.
-
-- `TASK-901` Draw toolbar buttons: add Point, Line, Polygon, Select/Edit, Save Draft, Cancel buttons for `EP01-086 -> EP01-088`, `EP01-095`.
-- `TASK-902` Draft geometry state: create client state for selected mode, draft coordinates, selected vertex, unsaved changes, and local draft restore for `EP01-086 -> EP01-088`, `EP01-095`.
-- `TASK-903` Map click drawing: wire map clicks to add point/polyline/polygon vertices and show temporary overlays for `EP01-086 -> EP01-088`.
-- `TASK-904` Vertex edit controls: drag vertices, add vertex button, delete selected vertex button, and undo/redo buttons for `EP01-089 -> EP01-090`, `EP01-094`.
-- `TASK-905` Precision inputs: add manual coordinate form and snap-to-visible-assets toggle for `EP01-091 -> EP01-092`.
-- `TASK-906` Attribute panel: add simple name/type/description fields for drawn objects for `EP01-093`.
-- `TASK-907` Validate/save/export: block invalid geometry, show errors, gate by permission, write local history, and export GeoJSON for `EP01-096`, `EP01-098 -> EP01-102`.
-
 ### Phase 10 - Asset Dossier/Profile (`EP03-018 -> EP03-034`)
 
 **Big task**: turn the current basic asset detail page into an operational dossier.

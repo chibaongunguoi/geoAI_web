@@ -104,6 +104,22 @@ export class PropertiesController {
     });
   }
 
+  @Post("import/assets")
+  @RequirePermissions("properties.import")
+  importAssets(
+    @Req() request: AuthenticatedRequest,
+    @Body()
+    body: {
+      rows?: PropertyMutationInput[];
+      sourceVersion?: string;
+    }
+  ) {
+    return this.properties.importAssetRows(body.rows || [], {
+      actorUserId: this.userId(request),
+      sourceVersion: body.sourceVersion
+    });
+  }
+
   private userId(request: AuthenticatedRequest) {
     const userId = request.user?.sub || request.user?.id;
     if (!userId) {
