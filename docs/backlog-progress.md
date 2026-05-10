@@ -18,9 +18,10 @@ Compact tracker for what is done, partially done, and still open. Source task ID
 
 ### EP03 - Assets, Dossier, Maintenance, Import/Export, Dashboard
 
-- Done: `EP03-001 -> EP03-017`, `EP03-069 -> EP03-085`.
-- Not done: `EP03-018 -> EP03-068`.
-- Next EP03 phases: Phase 10 `EP03-018 -> EP03-034`, Phase 12 `EP03-035 -> EP03-051`, Phase 11 `EP03-052 -> EP03-068`.
+- Done: `EP03-001 -> EP03-034`, `EP03-069 -> EP03-085`.
+- Partially server-backed: Phase 10 asset dossier/profile uses local dossier storage for documents, inspections, maintenance entries, value history, links, timeline extras, search/export, warnings, last-used config, and local history; current status updates use the existing property API.
+- Not done: `EP03-035 -> EP03-068`.
+- Next EP03 phases: Phase 12 `EP03-035 -> EP03-051`, Phase 11 `EP03-052 -> EP03-068`.
 
 ### EP04 - Vietnamese NL Query And AI Features
 
