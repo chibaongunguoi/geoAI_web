@@ -304,6 +304,15 @@ function measurementVertexIcon(index) {
   });
 }
 
+function spatialDrawVertexIcon(index, selected) {
+  return L.divIcon({
+    className: selected ? "spatial-draw-vertex selected" : "spatial-draw-vertex",
+    html: `<span>${index + 1}</span>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
+}
+
 function visibleAssetPoint(feature) {
   if (feature?.geometry?.type === "Point" && Array.isArray(feature.geometry.coordinates)) {
     const [lng, lat] = feature.geometry.coordinates;
@@ -363,6 +372,11 @@ function MapComponent({
   visibleAssets,
   onMeasurementPointAdd,
   onMeasurementPointEdit,
+  spatialDrawState,
+  spatialDrawResult,
+  onSpatialDrawMapPointAdd,
+  onSpatialDrawVertexEdit,
+  onSpatialDrawVertexSelect,
   onViewportChange,
 }) {
   const map = useMap();
@@ -374,6 +388,7 @@ function MapComponent({
   const [propertySearchLayer] = useState(new L.FeatureGroup());
   const [focusedPropertyLayer] = useState(new L.FeatureGroup());
   const [measurementLayer] = useState(new L.FeatureGroup());
+  const [spatialDrawLayer] = useState(new L.FeatureGroup());
   const [currentCoords, setCurrentCoords] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(() => map.getZoom());
   const [adminBoundaries, setAdminBoundaries] = useState(null);
@@ -483,6 +498,7 @@ function MapComponent({
     map.addLayer(propertySearchLayer);
     map.addLayer(focusedPropertyLayer);
     map.addLayer(measurementLayer);
+    map.addLayer(spatialDrawLayer);
     setTimeout(() => map.invalidateSize(), 0);
 
     const handleCreated = (event) => {
@@ -511,6 +527,7 @@ function MapComponent({
       map.removeLayer(propertySearchLayer);
       map.removeLayer(focusedPropertyLayer);
       map.removeLayer(measurementLayer);
+      map.removeLayer(spatialDrawLayer);
       externalLayersRef.current.forEach((layer) => map.removeLayer(layer));
       externalLayersRef.current.clear();
     };
@@ -524,6 +541,7 @@ function MapComponent({
     propertySearchLayer,
     focusedPropertyLayer,
     measurementLayer,
+    spatialDrawLayer,
     onRectangleDrawn,
     captureImageForCoords,
   ]);
@@ -654,6 +672,102 @@ function MapComponent({
     measurementState?.mode,
     measurementState?.points,
     onMeasurementPointEdit,
+  ]);
+
+  useEffect(() => {
+    const mode = spatialDrawState?.mode || "idle";
+    if (mode === "idle" || mode === "edit") return undefined;
+
+    const handleSpatialDrawClick = (event) => {
+      const rawPoint = {
+        lat: event.latlng.lat,
+        lng: event.latlng.lng,
+      };
+      const point =
+        spatialDrawState?.snapEnabled === false
+          ? rawPoint
+          : snapPointByPixel(rawPoint, visibleAssets, map);
+
+      onSpatialDrawMapPointAdd?.({
+        lat: point.lat,
+        lng: point.lng,
+      });
+    };
+
+    map.on("click", handleSpatialDrawClick);
+    return () => {
+      map.off("click", handleSpatialDrawClick);
+    };
+  }, [
+    map,
+    onSpatialDrawMapPointAdd,
+    spatialDrawState?.mode,
+    spatialDrawState?.snapEnabled,
+    visibleAssets,
+  ]);
+
+  useEffect(() => {
+    spatialDrawLayer.clearLayers();
+    const mode = spatialDrawState?.mode || "idle";
+    const coordinates = Array.isArray(spatialDrawState?.coordinates) ? spatialDrawState.coordinates : [];
+    if (mode === "idle" || coordinates.length === 0) return;
+
+    const latLngs = coordinates.map((point) => [point.lat, point.lng]);
+
+    if (coordinates.length === 1) {
+      L.circleMarker(latLngs[0], {
+        radius: 7,
+        color: "#ffffff",
+        weight: 2,
+        fillColor: "#7c3aed",
+        fillOpacity: 0.95,
+      }).addTo(spatialDrawLayer);
+    }
+
+    if (coordinates.length >= 2 && (mode === "line" || coordinates.length === 2)) {
+      L.polyline(latLngs, {
+        color: "#7c3aed",
+        weight: 4,
+        opacity: 0.95,
+        dashArray: mode === "polygon" ? "6 5" : undefined,
+      }).addTo(spatialDrawLayer);
+    }
+
+    if (coordinates.length >= 3 && (mode === "polygon" || spatialDrawResult?.type === "polygon")) {
+      L.polygon(latLngs, {
+        color: "#7c3aed",
+        weight: 4,
+        opacity: 0.95,
+        fillColor: "#8b5cf6",
+        fillOpacity: 0.16,
+      }).addTo(spatialDrawLayer);
+    }
+
+    coordinates.forEach((point, index) => {
+      const marker = L.marker([point.lat, point.lng], {
+        draggable: true,
+        icon: spatialDrawVertexIcon(index, spatialDrawState?.selectedVertexIndex === index),
+        zIndexOffset: 1200,
+      });
+      marker.on("click", () => {
+        onSpatialDrawVertexSelect?.(index);
+      });
+      marker.on("dragend", () => {
+        const latLng = marker.getLatLng();
+        onSpatialDrawVertexEdit?.(index, { lat: latLng.lat, lng: latLng.lng });
+      });
+      marker.addTo(spatialDrawLayer);
+    });
+
+    spatialDrawLayer.bringToFront();
+  }, [
+    onSpatialDrawVertexEdit,
+    onSpatialDrawVertexSelect,
+    spatialDrawLayer,
+    spatialDrawResult?.type,
+    spatialDrawState?.coordinates,
+    spatialDrawState?.mode,
+    spatialDrawState?.selectedVertexIndex,
   ]);
 
   useEffect(() => {
@@ -1439,7 +1553,8 @@ function MapComponent({
     propertySearchLayer.bringToFront();
     drawnItems.bringToFront();
     measurementLayer.bringToFront();
-  }, [assetMarkers, boundaryLayer, drawnItems, objectBoxes, propertySearchLayer, measurementLayer, layerOrder]);
+    spatialDrawLayer.bringToFront();
+  }, [assetMarkers, boundaryLayer, drawnItems, objectBoxes, propertySearchLayer, measurementLayer, spatialDrawLayer, layerOrder]);
 
   useEffect(() => {
     if (captureRequestId > 0) {
@@ -1476,6 +1591,11 @@ export default function Map({
   visibleAssets,
   onMeasurementPointAdd,
   onMeasurementPointEdit,
+  spatialDrawState,
+  spatialDrawResult,
+  onSpatialDrawMapPointAdd,
+  onSpatialDrawVertexEdit,
+  onSpatialDrawVertexSelect,
   onViewportChange,
 }) {
   return (
@@ -1525,6 +1645,11 @@ export default function Map({
         visibleAssets={visibleAssets || []}
         onMeasurementPointAdd={onMeasurementPointAdd}
         onMeasurementPointEdit={onMeasurementPointEdit}
+        spatialDrawState={spatialDrawState}
+        spatialDrawResult={spatialDrawResult}
+        onSpatialDrawMapPointAdd={onSpatialDrawMapPointAdd}
+        onSpatialDrawVertexEdit={onSpatialDrawVertexEdit}
+        onSpatialDrawVertexSelect={onSpatialDrawVertexSelect}
         onViewportChange={onViewportChange}
       />
     </MapContainer>

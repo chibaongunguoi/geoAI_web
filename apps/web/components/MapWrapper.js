@@ -70,6 +70,15 @@ import {
   readMeasurementStorage,
   writeMeasurementStorage
 } from "@/features/measurement/measurement-state";
+import SpatialDrawToolbar from "@/features/spatial-draw/SpatialDrawToolbar";
+import { buildSpatialDrawExport, getSpatialDrawResult } from "@/features/spatial-draw/spatial-draw-utils";
+import {
+  DEFAULT_SPATIAL_DRAW_STATE,
+  addSpatialDrawHistory,
+  readSpatialDrawStorage,
+  spatialDrawReducer,
+  writeSpatialDrawStorage
+} from "@/features/spatial-draw/spatial-draw-state";
 import styles from "./MapWrapper.module.css";
 import PropertyTable from "./PropertyTable";
 import SearchResultList from "./SearchResultList";
@@ -160,6 +169,9 @@ export default function MapWrapper({ permissions = [] }) {
   const [measurementState, setMeasurementState] = useState(DEFAULT_MEASUREMENT_STATE);
   const [measurementHistory, setMeasurementHistory] = useState([]);
   const [measurementStatus, setMeasurementStatus] = useState(null);
+  const [spatialDrawState, setSpatialDrawState] = useState(DEFAULT_SPATIAL_DRAW_STATE);
+  const [spatialDrawHistory, setSpatialDrawHistory] = useState([]);
+  const [spatialDrawStatus, setSpatialDrawStatus] = useState(null);
   const [exportMetadata, setExportMetadata] = useState(DEFAULT_EXPORT_METADATA);
   const [exportTemplates, setExportTemplates] = useState([]);
   const [exportHistory, setExportHistory] = useState([]);
@@ -174,6 +186,7 @@ export default function MapWrapper({ permissions = [] }) {
   const canExportAssets = canAccess(permissions, "assets.importExport");
   const canUseFilters = canAccess(permissions, "filters.use");
   const canMeasure = canAccess(permissions, "measurement.use");
+  const canDrawSpatial = canAccess(permissions, "properties.manage");
   const canExportMap = canAccess(permissions, "export.use");
   const canShareMap = canAccess(permissions, "share.create");
   const loadLayerHistory = useCallback(async () => {
@@ -215,6 +228,9 @@ export default function MapWrapper({ permissions = [] }) {
     const storedMeasurement = readMeasurementStorage(window.localStorage);
     setMeasurementState(storedMeasurement.state);
     setMeasurementHistory(storedMeasurement.history);
+    const storedSpatialDraw = readSpatialDrawStorage(window.localStorage);
+    setSpatialDrawState(storedSpatialDraw.state);
+    setSpatialDrawHistory(storedSpatialDraw.history);
     const storedExport = readExportStorage(window.localStorage);
     setExportTemplates(storedExport.templates);
     setExportHistory(storedExport.history);
@@ -729,6 +745,179 @@ export default function MapWrapper({ permissions = [] }) {
       setMeasurementStatus("Measurement export failed.");
     }
   }, [canMeasure, measurementHistory, measurementResult, measurementState, persistMeasurementState]);
+
+  const spatialDrawResult = useMemo(
+    () => getSpatialDrawResult(spatialDrawState),
+    [spatialDrawState]
+  );
+
+  const persistSpatialDrawState = useCallback((nextState, nextHistory) => {
+    const saved = writeSpatialDrawStorage(window.localStorage, {
+      state: nextState,
+      history: nextHistory
+    });
+    if (!saved) {
+      setSpatialDrawStatus("Spatial draft could not be saved locally.");
+    }
+  }, []);
+
+  const updateSpatialDraw = useCallback(
+    (action, historyAction, detail = {}) => {
+      if (!canDrawSpatial) return;
+
+      setSpatialDrawState((current) => {
+        const nextState = spatialDrawReducer(current, action);
+        setSpatialDrawHistory((currentHistory) => {
+          const nextHistory = historyAction
+            ? addSpatialDrawHistory(currentHistory, historyAction, {
+                ...detail,
+                coordinates: nextState.coordinates.length
+              })
+            : currentHistory;
+          persistSpatialDrawState(nextState, nextHistory);
+          return nextHistory;
+        });
+        return nextState;
+      });
+      setSpatialDrawStatus(null);
+    },
+    [canDrawSpatial, persistSpatialDrawState]
+  );
+
+  const setSpatialDrawMode = useCallback(
+    (mode) => {
+      updateSpatialDraw({ type: "set-mode", mode }, "mode.change", { mode });
+    },
+    [updateSpatialDraw]
+  );
+
+  const addSpatialDrawCoordinate = useCallback(
+    (point) => {
+      updateSpatialDraw({ type: "add-coordinate", point }, "coordinate.add", point);
+    },
+    [updateSpatialDraw]
+  );
+
+  const editSpatialDrawCoordinate = useCallback(
+    (index, point) => {
+      updateSpatialDraw({ type: "edit-coordinate", index, point }, "coordinate.edit", {
+        index,
+        ...point
+      });
+    },
+    [updateSpatialDraw]
+  );
+
+  const selectSpatialDrawVertex = useCallback(
+    (index) => {
+      updateSpatialDraw({ type: "select-vertex", index });
+    },
+    [updateSpatialDraw]
+  );
+
+  const deleteSpatialDrawVertex = useCallback(
+    (index) => {
+      updateSpatialDraw({ type: "delete-vertex", index }, "vertex.delete", { index });
+    },
+    [updateSpatialDraw]
+  );
+
+  const updateSpatialDrawAttributes = useCallback(
+    (attributes) => {
+      updateSpatialDraw({ type: "set-attributes", attributes }, "attributes.update");
+    },
+    [updateSpatialDraw]
+  );
+
+  const toggleSpatialDrawSnap = useCallback(
+    (enabled) => {
+      updateSpatialDraw({ type: "toggle-snap", enabled }, "snap.toggle", { enabled });
+    },
+    [updateSpatialDraw]
+  );
+
+  const undoSpatialDraw = useCallback(() => {
+    updateSpatialDraw({ type: "undo" }, "undo");
+  }, [updateSpatialDraw]);
+
+  const redoSpatialDraw = useCallback(() => {
+    updateSpatialDraw({ type: "redo" }, "redo");
+  }, [updateSpatialDraw]);
+
+  const cancelSpatialDraw = useCallback(() => {
+    updateSpatialDraw({ type: "cancel" }, "cancel");
+  }, [updateSpatialDraw]);
+
+  const saveSpatialDrawDraft = useCallback(() => {
+    if (!canDrawSpatial || spatialDrawResult.error) return;
+    const savedState = spatialDrawReducer(spatialDrawState, { type: "mark-saved" });
+    const nextHistory = addSpatialDrawHistory(spatialDrawHistory, "draft.save", {
+      type: spatialDrawResult.type,
+      state: savedState,
+      geojson: spatialDrawResult.geojson
+    });
+    setSpatialDrawState(savedState);
+    setSpatialDrawHistory(nextHistory);
+    persistSpatialDrawState(savedState, nextHistory);
+    setSpatialDrawStatus("Spatial draft saved locally.");
+  }, [
+    canDrawSpatial,
+    persistSpatialDrawState,
+    spatialDrawHistory,
+    spatialDrawResult,
+    spatialDrawState
+  ]);
+
+  const duplicateLatestSpatialDraft = useCallback(() => {
+    if (!canDrawSpatial) return;
+    const saved = spatialDrawHistory.find((item) => item.detail?.state);
+    if (!saved?.detail?.state) {
+      setSpatialDrawStatus("No saved spatial draft to copy.");
+      return;
+    }
+    updateSpatialDraw(
+      { type: "replace-draft", state: saved.detail.state },
+      "draft.copy",
+      { copiedAt: saved.createdAt }
+    );
+  }, [canDrawSpatial, spatialDrawHistory, updateSpatialDraw]);
+
+  const exportSpatialDraw = useCallback(() => {
+    if (!canDrawSpatial || spatialDrawResult.error) return;
+
+    try {
+      const payload = buildSpatialDrawExport({
+        mode: spatialDrawResult.type,
+        coordinates: spatialDrawState.coordinates,
+        attributes: spatialDrawState.attributes
+      });
+      const blob = new Blob([JSON.stringify(payload.geojson, null, 2)], {
+        type: "application/geo+json"
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `geoai-spatial-draft-${new Date().toISOString().slice(0, 10)}.geojson`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      const nextHistory = addSpatialDrawHistory(spatialDrawHistory, "export", {
+        type: payload.type
+      });
+      setSpatialDrawHistory(nextHistory);
+      persistSpatialDrawState(spatialDrawState, nextHistory);
+      setSpatialDrawStatus("Spatial draft exported as GeoJSON.");
+    } catch {
+      setSpatialDrawStatus("Spatial draft export failed.");
+    }
+  }, [
+    canDrawSpatial,
+    persistSpatialDrawState,
+    spatialDrawHistory,
+    spatialDrawResult,
+    spatialDrawState
+  ]);
 
   const refreshLayer = useCallback((layerId) => {
     setLayerRefreshRequests((current) => ({
@@ -1271,6 +1460,35 @@ export default function MapWrapper({ permissions = [] }) {
           </CollapsibleSection>
         ) : null}
 
+        {canDrawSpatial ? (
+          <CollapsibleSection
+            title="Spatial draw/edit"
+            summary={spatialDrawResult.error || spatialDrawResult.formattedType}
+            defaultOpen
+          >
+            <SpatialDrawToolbar
+              canDraw={canDrawSpatial}
+              state={spatialDrawState}
+              result={spatialDrawResult}
+              history={spatialDrawHistory}
+              status={spatialDrawStatus}
+              onModeChange={setSpatialDrawMode}
+              onUndo={undoSpatialDraw}
+              onRedo={redoSpatialDraw}
+              onSaveDraft={saveSpatialDrawDraft}
+              onCancel={cancelSpatialDraw}
+              onExport={exportSpatialDraw}
+              onToggleSnap={toggleSpatialDrawSnap}
+              onAddCoordinate={addSpatialDrawCoordinate}
+              onUpdateCoordinate={editSpatialDrawCoordinate}
+              onDeleteVertex={deleteSpatialDrawVertex}
+              onSelectVertex={selectSpatialDrawVertex}
+              onAttributesChange={updateSpatialDrawAttributes}
+              onDuplicateLatest={duplicateLatestSpatialDraft}
+            />
+          </CollapsibleSection>
+        ) : null}
+
         {canExportMap || canShareMap ? (
           <CollapsibleSection
             title="Export & share"
@@ -1475,6 +1693,11 @@ export default function MapWrapper({ permissions = [] }) {
           visibleAssets={visibleAssets}
           onMeasurementPointAdd={addMeasurementPoint}
           onMeasurementPointEdit={editMeasurementPoint}
+          spatialDrawState={canDrawSpatial ? spatialDrawState : DEFAULT_SPATIAL_DRAW_STATE}
+          spatialDrawResult={spatialDrawResult}
+          onSpatialDrawMapPointAdd={addSpatialDrawCoordinate}
+          onSpatialDrawVertexEdit={editSpatialDrawCoordinate}
+          onSpatialDrawVertexSelect={selectSpatialDrawVertex}
           onViewportChange={setMapViewport}
         />
       </div>

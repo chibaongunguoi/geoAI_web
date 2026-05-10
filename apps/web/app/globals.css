@@ -1425,6 +1425,162 @@ select:focus-visible,
   font-weight: 900;
 }
 
+.spatial-draw-toolbar {
+  display: grid;
+  gap: 10px;
+}
+
+.spatial-draw-mode-grid,
+.spatial-draw-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.spatial-draw-mode-grid button,
+.spatial-draw-action-grid button,
+.spatial-draw-coordinate-form button,
+.spatial-draw-vertices button {
+  min-height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-card-bg);
+  color: var(--color-text);
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.spatial-draw-mode-grid button.active,
+.spatial-draw-vertices button.active {
+  border-color: #7c3aed;
+  background: rgba(139, 92, 246, 0.14);
+  color: #5b21b6;
+}
+
+.spatial-draw-mode-grid button:disabled,
+.spatial-draw-action-grid button:disabled,
+.spatial-draw-coordinate-form button:disabled,
+.spatial-draw-toggle input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.spatial-draw-summary {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-card-soft-bg);
+  padding: 10px;
+}
+
+.spatial-draw-summary span,
+.spatial-draw-summary small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.spatial-draw-summary strong {
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.spatial-draw-alert {
+  border: 1px solid rgba(124, 58, 237, 0.28);
+  border-radius: 7px;
+  background: rgba(139, 92, 246, 0.1);
+  color: #5b21b6;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.spatial-draw-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.spatial-draw-field-grid,
+.spatial-draw-coordinate-form {
+  display: grid;
+  gap: 8px;
+}
+
+.spatial-draw-field-grid label,
+.spatial-draw-coordinate-form label {
+  display: grid;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.spatial-draw-field-grid input,
+.spatial-draw-field-grid textarea,
+.spatial-draw-coordinate-form input,
+.spatial-draw-vertices input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-card-bg);
+  color: var(--color-text);
+  padding: 7px 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.spatial-draw-vertices,
+.spatial-draw-history {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.spatial-draw-vertices li {
+  display: grid;
+  grid-template-columns: minmax(74px, 0.8fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 5px;
+}
+
+.spatial-draw-history {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.spatial-draw-history li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.spatial-draw-vertex span {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #7c3aed;
+  box-shadow: 0 7px 18px rgba(91, 33, 182, 0.28);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.spatial-draw-vertex.selected span {
+  background: #f59e0b;
+  box-shadow: 0 7px 18px rgba(146, 64, 14, 0.28);
+}
+
 .map-export-dialog {
   display: grid;
   gap: 10px;

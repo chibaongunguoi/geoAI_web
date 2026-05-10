@@ -17,7 +17,7 @@ describe("GET /share/map", () => {
   it("redirects valid share payloads to the map page", async () => {
     const state = encodeShareState({ filters: { status: "ACTIVE" } }, {
       now: new Date("2026-05-09T00:00:00.000Z"),
-      expiresInHours: 24,
+      expiresInHours: 24 * 365 * 20,
     });
     const response = await GET({ url: `https://geoai.test/share/map?state=${state}` });
 

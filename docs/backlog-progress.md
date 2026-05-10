@@ -1,65 +1,34 @@
 # Product Backlog Progress
 
-This file records what is already implemented or only partially implemented. Forward-looking recommendations and next-session plans belong in [next-session-semantic-search.md](./next-session-semantic-search.md).
+Compact tracker for what is done, partially done, and still open. Source task IDs come from [codex_tasks_simple.txt](./codex_tasks_simple.txt). Phase order follows [plan.md](./plan.md).
 
-## Completed
+## Progress By EP
 
-### RBAC foundation
+### EP01 - Map, Layers, Search, Filters, Tools
 
-- `EP02-029` - Added `admin.apiKeys.manage` permission key for future API key management. API key CRUD and per-action guards are not implemented yet.
-- `EP02-046` - Seeded `USER`, `MANAGER`, `ADMIN`; added role-permission assignment API foundation.
-- `EP02-063` - Seeded feature permission catalog and admin permission listing.
-- `EP02-082` - Added shared `admin.logs.view` permission foundation. Dedicated API log ingestion/model is still pending.
-- `EP02-099` - Added audit log listing endpoint guarded by `admin.logs.view`, plus filtered admin audit log UI.
-- `EP02-134` - Seeded default role permission sets for `USER`, `MANAGER`, and `ADMIN`.
+- Done: `EP01-001 -> EP01-006`, `EP01-008`, `EP01-010 -> EP01-011`, `EP01-014`, `EP01-018 -> EP01-024`, `EP01-026 -> EP01-042`, `EP01-044 -> EP01-135`.
+- Not done: `EP01-007`, `EP01-009`, `EP01-012 -> EP01-013`, `EP01-015 -> EP01-017`, `EP01-025`, `EP01-043`.
+- Next EP01 phase: none currently planned.
 
-### Map basemap slice
+### EP02 - Admin, RBAC, Logs, Backup, Users
 
-- `EP01-001` - Display default basemap after login.
-- `EP01-002` - Switch between OSM, satellite, and terrain basemaps.
-- `EP01-003` - Enable smooth multi-level map zoom through Leaflet controls and scroll-wheel zoom.
-- `EP01-004` - Enable map panning by dragging.
-- `EP01-005` - Remember the previously selected basemap.
-- `EP01-006` - Show source information for basemap layers.
-- `EP01-008` - Limit zoom level per basemap.
-- `EP01-010` - Show pointer coordinates on map hover.
-- `EP01-011` - Show map scale control.
-- `EP01-014` - Enable fullscreen map mode.
+- Done/foundation: `EP02-029`, `EP02-046`, `EP02-063`, `EP02-082`, `EP02-099`, `EP02-120 -> EP02-123`, `EP02-127`, `EP02-134`, `EP02-136`.
+- Partially done: admin users, roles, permissions, permission catalog, role-permission assignment, and audit-log viewing.
+- Not done: API key CRUD `EP02-018 -> EP02-028`, `EP02-030 -> EP02-034`; full admin catalogs `EP02-001 -> EP02-017`, `EP02-035 -> EP02-068`; API/system logs `EP02-069 -> EP02-085`, `EP02-086 -> EP02-102`; backup/restore `EP02-103 -> EP02-119`; advanced user/security controls `EP02-124 -> EP02-126`, `EP02-128 -> EP02-133`, `EP02-135`.
 
-### Data layer management slice
+### EP03 - Assets, Dossier, Maintenance, Import/Export, Dashboard
 
-- `EP01-018` - Added a data layer panel listing available layers.
-- `EP01-019` - Added per-layer visibility toggles for administrative boundaries, sample assets, and AI scan results.
-- `EP01-020` - Added drag/drop layer ordering, with button controls as an accessible fallback.
-- `EP01-021` - Added per-layer opacity controls and Leaflet opacity application.
-- `EP01-022` - Added layer group metadata and group-level visibility toggles.
-- `EP01-023` - Added layer search across name, group, source type, source, and keywords.
-- `EP01-024` - Added per-layer legend metadata and visible legend swatches.
-- `EP01-026` - Added and enforced min/max zoom thresholds per data layer.
-- `EP01-027` - Added load status display for administrative boundaries, sample assets, and AI scan results.
-- `EP01-028` - Added config-driven external layer loading for GeoJSON, WMS, and WMTS/XYZ URL-template sources.
-- `EP01-029` - Added per-layer refresh controls and load error reporting for configured external layers.
-- `EP01-030` - Added server-backed per-user layer configuration persistence with localStorage fallback.
-- `EP01-031` - Added recent layer-management operation history from audit logs.
-- `EP01-032` - Added JSON export for saved layer configuration and recent layer history.
-- `EP01-033` - Added `layers.manage` gating for layer changes, refresh, and export while keeping `layers.view` read access.
-- `EP01-034` - Added visible error alerts for active layer-management failures.
+- Done: `EP03-001 -> EP03-017`, `EP03-069 -> EP03-085`.
+- Not done: `EP03-018 -> EP03-068`.
+- Next EP03 phases: Phase 10 `EP03-018 -> EP03-034`, Phase 12 `EP03-035 -> EP03-051`, Phase 11 `EP03-052 -> EP03-068`.
 
-### Asset display slice
+### EP04 - Vietnamese NL Query And AI Features
 
-- `EP01-035` - Added dedicated asset markers with category-specific icons.
-- `EP01-036` - Added clickable asset popups with configurable summary fields.
-- `EP01-037` - Added asset popup links to `/assets/[code]` detail pages.
-- `EP01-038` - Added status indicators on asset markers.
-- `EP01-039` - Added deterministic low-zoom asset clustering without a new dependency.
-- `EP01-040` - Added configurable asset labels by code or name.
-- `EP01-041` - Added representative asset thumbnails in popups.
-- `EP01-042` - Added asset coloring by type or priority.
-- `EP01-044` - Highlighted recently updated assets on the map.
-- `EP01-045` - Added configurable popup fields with role-gated advanced fields.
-- `EP01-046` - Added viewport-based asset loading through `/api/map/assets?bbox=...`.
-- `EP01-047` - Added server-backed per-user asset display configuration with localStorage fallback.
-- `EP01-048` - Added recent asset-display operation history from audit logs.
-- `EP01-049` - Added JSON export for visible assets and persisted asset display metadata.
-- `EP01-050` - Added asset display permission behavior using existing `layers.view` and `assets.importExport`.
-- `EP01-051` - Added visible asset display error reporting in the map sidebar.
+- Done: `EP04-001 -> EP04-016`.
+- Not done: SQL review/editing `EP04-017 -> EP04-032`; predictive maintenance `EP04-033 -> EP04-048`; image recognition `EP04-049 -> EP04-064`; AI report generation `EP04-065 -> EP04-080`.
+
+### EP05 - Spatial Analytics
+
+- Done: none.
+- Not done: heatmap `EP05-001 -> EP05-016`; buffer analysis `EP05-017 -> EP05-032`; route optimization `EP05-033 -> EP05-048`; choropleth/admin stats `EP05-049 -> EP05-064`.
+- Next EP05 phase: Phase 13, `EP05-001 -> EP05-016`.
