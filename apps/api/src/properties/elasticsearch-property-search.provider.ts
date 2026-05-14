@@ -148,7 +148,7 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
 
   private async searchHits(input: PropertySearchProviderInput, queryVector: number[]) {
     const filters: unknown[] = [{ term: { deleted: false } }];
-    const must: unknown[] = [
+    const should: unknown[] = [
       {
         multi_match: {
           query: input.query || input.normalizedQuery,
@@ -180,24 +180,27 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
       filters.push({ term: { source: input.source } });
     }
     for (const term of this.locationTerms(input.filters)) {
-      must.push({ match_phrase: { searchTextNormalized: term } });
+      filters.push({ match_phrase: { searchTextNormalized: term } });
     }
 
     const response = await this.client.search({
       index: this.indexName,
       size: Math.max(input.limit * 2, input.limit),
       query: {
-        bool: {
-          must,
-          filter: filters
+        script_score: {
+          query: {
+            bool: {
+              filter: filters,
+              should
+            }
+          },
+          script: {
+            source: "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+            params: {
+              query_vector: queryVector
+            }
+          }
         }
-      },
-      knn: {
-        field: "embedding",
-        query_vector: queryVector,
-        k: Math.max(input.limit * 2, input.limit),
-        num_candidates: Math.max(input.limit * 10, 100),
-        filter: filters
       }
     });
 
@@ -263,8 +266,7 @@ export const PROPERTY_SEARCH_INDEX_MAPPING = {
       embedding: {
         type: "dense_vector",
         dims: EMBEDDING_DIMENSIONS,
-        index: true,
-        similarity: "cosine"
+        index: false
       },
       deleted: { type: "boolean" },
       updatedAt: { type: "date" },

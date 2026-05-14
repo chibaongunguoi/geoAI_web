@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
-import Database from "better-sqlite3";
+import Database = require("better-sqlite3");
 import { resolve } from "path";
 
 /**
@@ -20,6 +20,11 @@ export class BetterSqliteService implements OnModuleDestroy {
       this.db = new Database(this.resolveDbPath());
       this.db.pragma("journal_mode = WAL");
       this.db.pragma("foreign_keys = ON");
+      this.db.exec(`
+        CREATE INDEX IF NOT EXISTS BuildingProperty_density_source_ward_district_centroid_idx
+        ON BuildingProperty(source, ward, district, centroidLat, centroidLng)
+        WHERE deletedAt IS NULL
+      `);
     }
     return this.db;
   }
@@ -84,8 +89,8 @@ export class BetterSqliteService implements OnModuleDestroy {
       if (filePath.startsWith("/") || /^[a-zA-Z]:/.test(filePath)) {
         return filePath; // absolute
       }
-      // Resolve relative to apps/api/prisma/ (where schema.prisma lives)
-      return resolve(__dirname, "..", "..", "prisma", filePath);
+      // Resolve relative to apps/api/prisma/ (where schema.prisma lives).
+      return resolve(process.cwd(), "prisma", filePath);
     }
 
     // Fallback: project root geoai_data/geoai.db

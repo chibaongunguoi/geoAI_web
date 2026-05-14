@@ -100,8 +100,11 @@ const ADMIN_OPTIONS = [
 ];
 
 const SCAN_MODE_OPTIONS = [
+  // GeoAI runtime scanning is disabled by backend flags; keep the UI option
+  // present but disabled so it can be re-enabled without rebuilding the flow.
   {
-    value: "geoai",
+    value: "geoai-disabled",
+    disabled: true,
     label: "GeoAI + GeoTIFF",
     description: "Quét vùng đã chọn bằng backend GeoAI."
   },
@@ -112,10 +115,13 @@ const SCAN_MODE_OPTIONS = [
   }
 ];
 const REFERENCE_LAYER_IDS = ["admin-boundaries"];
-const SAMPLE_PROPERTY_QUESTIONS = [
-  "Có bao nhiêu nhà ở phường Hòa Khánh Bắc?",
-  "Vùng nào ở Liên Chiểu có mật độ nhà dày đặc nhất?",
-  "Nhà ở đường Nguyễn Lương Bằng"
+const SUPPORTED_PROPERTY_QUERY_PATTERNS = [
+  "Tòa nhà ở quận Hải Châu",
+  "Có bao nhiêu nhà ở phường Thuận Phước?",
+  "Vùng nào ở phường Thuận Phước có mật độ nhà nhiều nhất?",
+  "Tòa nhà đang hoạt động ở quận Sơn Trà",
+  "DN-OVT-0013F341424146FB8F5F385E7B69AEDF",
+  "16.08828, 108.21860"
 ];
 
 function selectedLabel(options, value) {
@@ -127,7 +133,7 @@ export default function MapWrapper({ permissions = [] }) {
   const workspaceRef = useRef(null);
   const mapCanvasRef = useRef(null);
   const [adminArea, setAdminArea] = useState("all_da_nang");
-  const [scanMode, setScanMode] = useState("geoai");
+  const [scanMode, setScanMode] = useState("overture");
   const [selectedBasemapId, setSelectedBasemapId] = useState("satellite");
   const [layerState, setLayerState] = useState(() =>
     createDefaultLayerState(DATA_LAYERS)
@@ -154,7 +160,7 @@ export default function MapWrapper({ permissions = [] }) {
   const [visibleAssets, setVisibleAssets] = useState([]);
   const [hasLoadedAssetConfig, setHasLoadedAssetConfig] = useState(false);
   const [propertyQuery, setPropertyQuery] = useState(
-    "vùng nào ở hòa khánh bắc có số lượng nhà dày đặc nhất"
+    "Vùng nào ở phường Thuận Phước có mật độ nhà nhiều nhất?"
   );
   const [propertySearchResult, setPropertySearchResult] = useState(null);
   const [propertySearchStatus, setPropertySearchStatus] = useState(null);
@@ -572,7 +578,7 @@ export default function MapWrapper({ permissions = [] }) {
       const nextHistory = addFilterHistory(filterHistory, action, normalized);
       setAssetFilters(normalized);
       setFilterHistory(nextHistory);
-      setFilterStatus("Filters updated.");
+      setFilterStatus("Đã cập nhật bộ lọc.");
       setPropertySearchResult(null);
       setFocusedProperty(null);
       persistFilterState(normalized, filterPresets, nextHistory);
@@ -594,7 +600,7 @@ export default function MapWrapper({ permissions = [] }) {
       const nextHistory = addFilterHistory(filterHistory, "filters.preset.save", preset.filters);
       setFilterPresets(nextPresets);
       setFilterHistory(nextHistory);
-      setFilterStatus("Filter preset saved.");
+      setFilterStatus("Đã lưu bộ lọc.");
       persistFilterState(assetFilters, nextPresets, nextHistory);
     },
     [assetFilters, canUseFilters, filterHistory, filterPresets, persistFilterState]
@@ -1081,10 +1087,10 @@ export default function MapWrapper({ permissions = [] }) {
       URL.revokeObjectURL(url);
       const nextHistory = addFilterHistory(filterHistory, "filters.export", assetFilters);
       setFilterHistory(nextHistory);
-      setFilterStatus("Filtered data exported.");
+      setFilterStatus("Đã xuất dữ liệu đã lọc.");
       persistFilterState(assetFilters, filterPresets, nextHistory);
     } catch {
-      setFilterStatus("Could not export filtered data.");
+      setFilterStatus("Không thể xuất dữ liệu đã lọc.");
     }
   }, [
     assetFilters,
@@ -1257,7 +1263,7 @@ export default function MapWrapper({ permissions = [] }) {
                 }}
               >
                 {SCAN_MODE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={option.value} disabled={option.disabled}>
                     {option.label}
                   </option>
                 ))}
@@ -1320,6 +1326,7 @@ export default function MapWrapper({ permissions = [] }) {
                 className={styles.textAreaInput}
                 value={propertyQuery}
                 rows={3}
+                placeholder="VD: Tòa nhà ở quận Hải Châu"
                 list="property-search-suggestions"
                 onChange={(event) => {
                   const val = event.target.value;
@@ -1342,7 +1349,7 @@ export default function MapWrapper({ permissions = [] }) {
             </button>
           </form>
           <div className={styles.sampleQuestionChips} aria-label="Câu hỏi mẫu">
-            {SAMPLE_PROPERTY_QUESTIONS.map((question) => (
+            {SUPPORTED_PROPERTY_QUERY_PATTERNS.map((question) => (
               <button
                 key={question}
                 type="button"
@@ -1416,8 +1423,8 @@ export default function MapWrapper({ permissions = [] }) {
 
         {canUseFilters ? (
           <CollapsibleSection
-            title="Advanced filters"
-            summary={`${propertySearchResult?.meta?.total ?? propertySearchResult?.items?.length ?? 0} results`}
+            title="Bộ lọc nâng cao"
+            summary={`${(propertySearchResult?.meta?.total ?? propertySearchResult?.items?.length ?? 0).toLocaleString("vi-VN")} kết quả`}
           >
             <FilterPanel
               filters={assetFilters}
@@ -1439,7 +1446,7 @@ export default function MapWrapper({ permissions = [] }) {
 
         {canMeasure ? (
           <CollapsibleSection
-            title="Measurement tools"
+            title="Đo khoảng cách/diện tích"
             summary={measurementResult.error || measurementResult.formattedValue}
             defaultOpen
           >
@@ -1524,6 +1531,7 @@ export default function MapWrapper({ permissions = [] }) {
               onReorder={updateLayerReorder}
               onRefresh={refreshLayer}
               layerStatuses={layerStatuses}
+              canToggle={canViewLayers}
               canManage={canManageLayers}
               history={layerHistory}
               onExport={exportLayerConfig}

@@ -108,10 +108,17 @@ def resolve_ai_model_path():
 
 
 AI_MODEL_PATH, AI_MODEL_SOURCE = resolve_ai_model_path()
+LOCAL_DATA_ONLY = os.getenv("GEOAI_LOCAL_DATA_ONLY", "true").lower() in ("1", "true", "yes")
+FORCE_OVERTURE_SCAN = os.getenv("GEOAI_FORCE_OVERTURE_SCAN", "true").lower() in ("1", "true", "yes")
 PRELOAD_AI_FOOTPRINTS = os.getenv("GEOAI_PRELOAD_AI_FOOTPRINTS", "false").lower() not in ("0", "false", "no")
-ALLOW_RUNTIME_AI_EXTRACTION = os.getenv("GEOAI_ALLOW_RUNTIME_AI_EXTRACTION", "true").lower() in ("1", "true", "yes")
+ALLOW_RUNTIME_AI_EXTRACTION = os.getenv("GEOAI_ALLOW_RUNTIME_AI_EXTRACTION", "false").lower() in ("1", "true", "yes")
+SKIP_STARTUP_PRELOAD = os.getenv("GEOAI_SKIP_STARTUP_PRELOAD", "false").lower() in ("1", "true", "yes")
 PRELOAD_OVERTURE = os.getenv("GEOAI_PRELOAD_OVERTURE", "true").lower() not in ("0", "false", "no")
-DOWNLOAD_OVERTURE_IF_MISSING = os.getenv("GEOAI_DOWNLOAD_OVERTURE_IF_MISSING", "true").lower() in ("1", "true", "yes")
+PRELOAD_GEOTIFFS = os.getenv("GEOAI_PRELOAD_GEOTIFFS", "true").lower() not in ("0", "false", "no")
+DOWNLOAD_OVERTURE_IF_MISSING = os.getenv(
+    "GEOAI_DOWNLOAD_OVERTURE_IF_MISSING",
+    "false" if LOCAL_DATA_ONLY else "true",
+).lower() in ("1", "true", "yes")
 GADM_DANANG_URL = os.getenv(
     "GADM_DANANG_URL",
     "https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_VNM_3.json.zip",
@@ -121,7 +128,7 @@ DANANG_WARDS_GEOJSON = DANANG_DATA_DIR / "gadm41_danang_wards.geojson"
 DANANG_DISTRICTS_GEOJSON = DANANG_DATA_DIR / "gadm41_danang_districts.geojson"
 DEFAULT_ADMIN_AREA = os.getenv("GEOAI_DEFAULT_ADMIN_AREA", "all_da_nang")
 ALL_ADMIN_AREA = "all_da_nang"
-DEFAULT_SCAN_MODE = os.getenv("GEOAI_DEFAULT_SCAN_MODE", "geoai")
+DEFAULT_SCAN_MODE = os.getenv("GEOAI_DEFAULT_SCAN_MODE", "overture")
 SCAN_MODE_GEOAI = "geoai"
 SCAN_MODE_OVERTURE = "overture"
 SCAN_MODES = (SCAN_MODE_GEOAI, SCAN_MODE_OVERTURE)
@@ -395,6 +402,11 @@ def gpkg_digest(gpkg_path):
 
 
 def write_danang_gpkg(gpkg_path, bbox_tuple):
+    if LOCAL_DATA_ONLY:
+        # Disabled by default: keep the existing local Overture GeoPackage instead of
+        # downloading a new app/data snapshot from Overture.
+        raise RuntimeError("Overture data refresh is disabled by GEOAI_LOCAL_DATA_ONLY")
+
     logger.info(f"Downloading latest Overture data for Da Nang bbox: {bbox_tuple}")
 
     buildings_gdf = download_overture_buildings(
@@ -451,6 +463,10 @@ def write_json_file(path, payload):
 
 
 def refresh_danang_gpkg():
+    if LOCAL_DATA_ONLY:
+        logger.info("Skipping Overture GeoPackage refresh because GEOAI_LOCAL_DATA_ONLY is enabled")
+        return
+
     danang_bbox = parse_bbox(os.getenv(DANANG_BBOX_ENV), DANANG_BBOX)
     DANANG_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -481,6 +497,10 @@ def refresh_danang_gpkg():
 
 
 def cleanup_legacy_overture_artifacts():
+    if LOCAL_DATA_ONLY:
+        logger.info("Skipping legacy Overture cleanup because GEOAI_LOCAL_DATA_ONLY keeps existing data")
+        return
+
     DANANG_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     legacy_paths = []
@@ -514,9 +534,9 @@ def prepare_existing_danang_gpkg():
         logger.info(f"Using existing Da Nang Overture GeoPackage: {DANANG_GPKG}")
         return
 
-    if not DOWNLOAD_OVERTURE_IF_MISSING:
+    if LOCAL_DATA_ONLY or not DOWNLOAD_OVERTURE_IF_MISSING:
         logger.warning(
-            "Da Nang Overture GeoPackage not found and GEOAI_DOWNLOAD_OVERTURE_IF_MISSING is disabled"
+            "Da Nang Overture GeoPackage not found; new data download is disabled"
         )
         return
 
@@ -578,6 +598,13 @@ def load_or_download_danang_admin_boundaries():
 
     if DANANG_DISTRICTS_GEOJSON.exists():
         admin_boundaries_cache = gpd.read_file(DANANG_DISTRICTS_GEOJSON).to_crs("EPSG:4326")
+        return admin_boundaries_cache
+
+    if LOCAL_DATA_ONLY:
+        logger.warning(
+            "Da Nang GADM boundaries not found; using fallback bboxes because GEOAI_LOCAL_DATA_ONLY is enabled"
+        )
+        admin_boundaries_cache = fallback_admin_boundaries()
         return admin_boundaries_cache
 
     DANANG_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -748,6 +775,13 @@ def preload_zone_geotiff(zone_name, zone_bbox):
         logger.info(f"GeoTIFF cache hit: {zone_name} z{zone_zoom}")
         return output
 
+    if LOCAL_DATA_ONLY:
+        # Runtime AI is disabled by default; keep this guard so no request can
+        # silently create new satellite GeoTIFF cache files.
+        raise FileNotFoundError(
+            f"GeoTIFF cache missing for {zone_name}; new tile downloads are disabled by GEOAI_LOCAL_DATA_ONLY"
+        )
+
     logger.info(f"Downloading GeoTIFF cache for {zone_name} z{zone_zoom}: {zone_bbox}")
     try:
         leafmap.map_tiles_to_geotiff(
@@ -814,10 +848,14 @@ def preload_all_ai_building_footprints():
 
 
 def preload_startup_resources():
+    if SKIP_STARTUP_PRELOAD:
+        logger.info("Startup preload disabled by GEOAI_SKIP_STARTUP_PRELOAD")
+        return
+
     startup_steps = (
         ("Da Nang GADM boundaries", load_or_download_danang_admin_boundaries),
         ("Da Nang Overture GeoPackage", prepare_existing_danang_gpkg if PRELOAD_OVERTURE else lambda: logger.info("Overture preload disabled by GEOAI_PRELOAD_OVERTURE")),
-        ("Da Nang GeoTIFF cache", preload_all_zone_geotiffs),
+        ("Da Nang GeoTIFF cache", preload_all_zone_geotiffs if PRELOAD_GEOTIFFS else lambda: logger.info("GeoTIFF preload disabled by GEOAI_PRELOAD_GEOTIFFS")),
     )
 
     for step_name, step in startup_steps:
@@ -1386,6 +1424,13 @@ def analyze_image():
         scan_types = parse_scan_types(request.form.get('scanTypes'))
         admin_area_id = normalize_admin_area_id(request.form.get('adminArea') or DEFAULT_ADMIN_AREA)
         scan_mode = normalize_scan_mode(request.form.get('scanMode') or DEFAULT_SCAN_MODE)
+        if FORCE_OVERTURE_SCAN and scan_mode != SCAN_MODE_OVERTURE:
+            # GeoAI runtime extraction is intentionally left in the codebase, but
+            # production/local default scans must use the existing Overture data.
+            logger.info(
+                f"Forcing scanMode=overture because GEOAI_FORCE_OVERTURE_SCAN is enabled; requested={scan_mode}"
+            )
+            scan_mode = SCAN_MODE_OVERTURE
         
         logger.info(f"📸 Image received: {image_file.filename}")
         logger.info(f"📍 Bbox string: {bbox_str}")
@@ -1458,6 +1503,12 @@ def process_geoai_analysis(image_array, bbox, scan_types=None, admin_area_id=Non
     """
     Process building analysis by running runtime GeoAI extraction on GeoTIFF crops.
     """
+    if FORCE_OVERTURE_SCAN:
+        # Legacy GeoAI path is kept for future re-enable, but all current scans
+        # are routed to local Overture data.
+        logger.info("GeoAI analysis path disabled; routing request to Overture analysis")
+        return process_overture_analysis(image_array, bbox, scan_types, admin_area_id)
+
     logger.info("🔄 process_geoai_analysis() started")
     try:
         start_time = time.time()
@@ -1576,6 +1627,10 @@ def download_and_analyze_real_data(bbox_tuple, bbox_hash, scan_types=None):
     Returns:
         Dictionary with real analysis results
     """
+    if LOCAL_DATA_ONLY:
+        logger.warning("download_and_analyze_real_data disabled by GEOAI_LOCAL_DATA_ONLY")
+        return None
+
     logger.info("=" * 60)
     logger.info(f"🔄 download_and_analyze_real_data({bbox_hash}) started")
     logger.info("=" * 60)
@@ -1808,6 +1863,12 @@ def download_geoai_data():
     This integrates with the download functions from geoai-py package
     """
     try:
+        if LOCAL_DATA_ONLY:
+            return jsonify({
+                'success': False,
+                'error': 'Data download is disabled. The app is configured to use existing local Overture data only.'
+            }), 409
+
         data = request.get_json()
         bbox = data.get('bbox')
         

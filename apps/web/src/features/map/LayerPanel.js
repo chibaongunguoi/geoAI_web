@@ -3,6 +3,11 @@
 import { useMemo, useState } from "react";
 import { filterLayersByQuery, orderedLayers } from "./layers";
 
+const HISTORY_ACTION_LABELS = {
+  "map.layers.config.update": "Cập nhật cấu hình lớp",
+  "map.layers.config.export": "Xuất cấu hình lớp"
+};
+
 function LayerLegend({ legend }) {
   if (!legend?.length) {
     return null;
@@ -30,12 +35,14 @@ export default function LayerPanel({
   onReorder,
   onRefresh = () => {},
   layerStatuses = {},
+  canToggle = true,
   canManage = true,
   history = [],
   onExport = () => {}
 }) {
   const [query, setQuery] = useState("");
   const [dragLayerId, setDragLayerId] = useState(null);
+  const canChangeDisplay = canToggle || canManage;
   const displayLayers = useMemo(
     () => filterLayersByQuery(orderedLayers(layers, state), query),
     [layers, query, state]
@@ -45,11 +52,18 @@ export default function LayerPanel({
       [...new Set(layers.map((layer) => layer.group))].map((group) => {
         const groupLayers = layers.filter((layer) => layer.group === group);
         const visibleCount = groupLayers.filter((layer) => state.visible[layer.id]).length;
+        const allVisible = visibleCount === groupLayers.length;
 
         return {
           name: group,
           visible: visibleCount > 0,
-          summary: visibleCount > 0 ? "Đang chọn" : "Chọn"
+          nextVisible: !allVisible,
+          summary:
+            visibleCount === 0
+              ? "Đang ẩn"
+              : allVisible
+                ? "Đang hiện"
+                : `${visibleCount}/${groupLayers.length} lớp`
         };
       }),
     [layers, state.visible]
@@ -88,10 +102,10 @@ export default function LayerPanel({
             key={group.name}
             type="button"
             aria-pressed={group.visible}
-            disabled={!canManage}
-            onClick={() => onToggleGroup(group.name, true)}
+            disabled={!canChangeDisplay}
+            onClick={() => onToggleGroup(group.name, group.nextVisible)}
           >
-            {group.name} {group.summary}
+            {group.name}: {group.summary}
           </button>
         ))}
       </div>
@@ -100,6 +114,7 @@ export default function LayerPanel({
         <input
           type="search"
           value={query}
+          placeholder="Ví dụ: tài sản, ranh giới, kết quả quét"
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
@@ -131,13 +146,13 @@ export default function LayerPanel({
                     type="checkbox"
                     checked={Boolean(state.visible[layer.id])}
                     aria-label={`Hiển thị ${layer.label}`}
-                    disabled={!canManage}
+                    disabled={!canChangeDisplay}
                     onChange={() => onToggle(layer.id)}
                   />
                   <span>{layer.label}</span>
                 </label>
                 <small>
-                  {layer.group} | {layer.sourceType} | z{layer.minZoom}-{layer.maxZoom}
+                  {layer.group} | {layer.sourceType} | zoom {layer.minZoom}-{layer.maxZoom}
                 </small>
                 <small data-state={status?.state || "idle"}>{statusText}</small>
               </div>
@@ -150,7 +165,7 @@ export default function LayerPanel({
                   max="100"
                   step="5"
                   value={opacityValue}
-                  disabled={!canManage}
+                  disabled={!canChangeDisplay}
                   onChange={(event) =>
                     onOpacityChange(layer.id, Number(event.target.value) / 100)
                   }
@@ -192,7 +207,7 @@ export default function LayerPanel({
           <ul>
             {history.map((item) => (
               <li key={item.id}>
-                <span>{item.action}</span>
+                <span>{HISTORY_ACTION_LABELS[item.action] || item.action}</span>
                 <time dateTime={item.createdAt}>
                   {new Date(item.createdAt).toLocaleString("vi-VN")}
                 </time>

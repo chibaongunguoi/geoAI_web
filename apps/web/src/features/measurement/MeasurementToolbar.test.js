@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 
+import { MEASUREMENT_LABELS } from "../../test-utils/vn-labels";
 import { MeasurementToolbar } from "./MeasurementToolbar";
 
 const baseState = {
@@ -30,14 +31,14 @@ describe("MeasurementToolbar", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /distance/i }));
-    fireEvent.click(screen.getByRole("button", { name: /area/i }));
-    fireEvent.click(screen.getByRole("button", { name: /undo/i }));
-    fireEvent.click(screen.getByRole("button", { name: /clear/i }));
-    fireEvent.click(screen.getByRole("button", { name: /copy/i }));
-    fireEvent.click(screen.getByRole("button", { name: /save/i }));
-    fireEvent.click(screen.getByRole("button", { name: /export json/i }));
-    fireEvent.click(screen.getByRole("checkbox", { name: /snap/i }));
+    fireEvent.click(screen.getByRole("button", { name: MEASUREMENT_LABELS.distance }));
+    fireEvent.click(screen.getByRole("button", { name: MEASUREMENT_LABELS.area }));
+    fireEvent.click(screen.getByRole("button", { name: MEASUREMENT_LABELS.undo }));
+    fireEvent.click(screen.getByRole("button", { name: MEASUREMENT_LABELS.clear }));
+    fireEvent.click(screen.getByRole("button", { name: MEASUREMENT_LABELS.copy }));
+    fireEvent.click(screen.getByRole("button", { name: MEASUREMENT_LABELS.save }));
+    fireEvent.click(screen.getByRole("button", { name: MEASUREMENT_LABELS.exportJson }));
+    fireEvent.click(screen.getByRole("checkbox", { name: MEASUREMENT_LABELS.snap }));
 
     expect(handlers.onModeChange).toHaveBeenCalledWith("distance");
     expect(handlers.onModeChange).toHaveBeenCalledWith("area");
@@ -51,17 +52,39 @@ describe("MeasurementToolbar", () => {
   });
 
   it("disables controls without measurement permission", () => {
+    // The toolbar renders `result.error` via the shared `measurement-alert`
+    // paragraph, so the test keeps the same string the UI will display.
+    const permissionMessage = "Bạn không có quyền sử dụng công cụ đo.";
+
     render(
       <MeasurementToolbar
         canMeasure={false}
         state={baseState}
-        result={{ error: "Permission required." }}
+        result={{ error: permissionMessage }}
         history={[]}
         onModeChange={jest.fn()}
       />,
     );
 
-    expect(screen.getByRole("button", { name: /distance/i })).toBeDisabled();
-    expect(screen.getByText("Permission required.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: MEASUREMENT_LABELS.distance })).toBeDisabled();
+    expect(screen.getByText(permissionMessage)).toBeInTheDocument();
+  });
+
+  it("renders duplicate history timestamps without duplicate React keys", () => {
+    const duplicateHistory = [
+      { createdAt: "2026-05-11T13:38:36.798Z", action: "start" },
+      { createdAt: "2026-05-11T13:38:36.798Z", action: "start" },
+    ];
+
+    render(
+      <MeasurementToolbar
+        canMeasure
+        state={baseState}
+        result={{ formattedValue: "No measurement" }}
+        history={duplicateHistory}
+      />,
+    );
+
+    expect(screen.getAllByText("start")).toHaveLength(2);
   });
 });

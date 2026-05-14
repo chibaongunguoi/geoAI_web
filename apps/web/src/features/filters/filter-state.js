@@ -11,14 +11,14 @@ export const DEFAULT_ASSET_FILTERS = {
 };
 
 export const STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "Active" },
-  { value: "INACTIVE", label: "Inactive" },
-  { value: "REVIEW", label: "Review" },
-  { value: "ARCHIVED", label: "Archived" }
+  { value: "ACTIVE", label: "Đang hoạt động" },
+  { value: "INACTIVE", label: "Ngừng hoạt động" },
+  { value: "REVIEW", label: "Cần rà soát" },
+  { value: "ARCHIVED", label: "Đã lưu trữ" }
 ];
 
 export const PROPERTY_TYPE_OPTIONS = [
-  { value: "building", label: "Building" }
+  { value: "building", label: "Tòa nhà" }
 ];
 
 const VALID_STATUSES = new Set(STATUS_OPTIONS.map((option) => option.value));
@@ -82,10 +82,10 @@ export function assetFilterQueryString(filters = {}) {
 export function filterWarning(filters = {}, resultCount = null) {
   const count = activeFilterCount(filters);
   if (resultCount === 0 && count > 0) {
-    return "This filter set may be too narrow. Try removing one condition.";
+    return "Bộ lọc có thể quá hẹp. Hãy thử bỏ bớt một điều kiện.";
   }
   if (count === 0 && Number(resultCount) >= 100) {
-    return "This filter set may be too broad. Add a district, status, or type.";
+    return "Bộ lọc đang quá rộng. Hãy thêm quận, trạng thái hoặc loại tài sản.";
   }
   return "";
 }

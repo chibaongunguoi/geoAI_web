@@ -4,8 +4,8 @@ export const DATA_LAYERS = [
   {
     id: "admin-boundaries",
     label: "Ranh giới hành chính",
-    group: "Tham chiếu",
-    sourceType: "GeoJSON",
+    group: "Nền bản đồ",
+    sourceType: "Dữ liệu ranh giới",
     source: "/api/admin-boundaries",
     sourceKind: "geojson",
     url: "/api/admin-boundaries",
@@ -15,13 +15,13 @@ export const DATA_LAYERS = [
     minZoom: 9,
     maxZoom: 16,
     legend: [{ label: "Ranh giới quận", color: "#ef4444" }],
-    keywords: ["district", "boundary", "reference", "ranh gioi", "hanh chinh"]
+    keywords: ["district", "boundary", "reference", "ranh gioi", "hanh chinh", "nen ban do"]
   },
   {
     id: "sample-assets",
     label: "Tài sản mẫu",
     group: "Tài sản",
-    sourceType: "GeoJSON",
+    sourceType: "Điểm trên bản đồ",
     source: "/data/sample-assets.geojson",
     sourceKind: "geojson",
     url: "/data/sample-assets.geojson",
@@ -31,14 +31,14 @@ export const DATA_LAYERS = [
     minZoom: 11,
     maxZoom: 19,
     legend: [{ label: "Điểm tài sản", color: "#f59e0b" }],
-    keywords: ["asset", "geojson", "point", "tai san"]
+    keywords: ["asset", "geojson", "point", "tai san", "diem"]
   },
   {
     id: "demo-wms-states",
-    label: "WMS demo",
-    group: "Dịch vụ ngoài",
-    sourceType: "WMS",
-    source: "GeoServer demo WMS",
+    label: "Lớp ảnh từ máy chủ ngoài",
+    group: "Dữ liệu ngoài",
+    sourceType: "Ảnh bản đồ trực tuyến",
+    source: "Máy chủ bản đồ GeoServer",
     sourceKind: "wms",
     url: "https://ahocevar.com/geoserver/wms",
     wmsOptions: {
@@ -50,15 +50,15 @@ export const DATA_LAYERS = [
     defaultOpacity: 0.65,
     minZoom: 2,
     maxZoom: 19,
-    legend: [{ label: "WMS", color: "#38bdf8" }],
-    keywords: ["wms", "external", "service"]
+    legend: [{ label: "Ảnh bản đồ", color: "#38bdf8" }],
+    keywords: ["wms", "external", "service", "anh ban do", "du lieu ngoai"]
   },
   {
     id: "osm-template-overlay",
-    label: "WMTS/XYZ demo",
-    group: "Dịch vụ ngoài",
-    sourceType: "WMTS",
-    source: "OpenStreetMap tile template",
+    label: "Lớp nền OpenStreetMap",
+    group: "Dữ liệu ngoài",
+    sourceType: "Lớp nền trực tuyến",
+    source: "Mẫu tile OpenStreetMap",
     sourceKind: "wmts",
     url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     attribution: "&copy; OpenStreetMap contributors",
@@ -66,14 +66,14 @@ export const DATA_LAYERS = [
     defaultOpacity: 1,
     minZoom: 2,
     maxZoom: 19,
-    legend: [{ label: "WMTS/XYZ", color: "#22c55e" }],
-    keywords: ["wmts", "xyz", "external", "tiles"]
+    legend: [{ label: "Lớp nền", color: "#22c55e" }],
+    keywords: ["wmts", "xyz", "external", "tiles", "osm", "lop nen"]
   },
   {
     id: "analysis-results",
-    label: "Kết quả AI",
+    label: "Kết quả quét AI",
     group: "GeoAI",
-    sourceType: "Thời gian thực",
+    sourceType: "Kết quả hiện tại",
     source: "Vùng quét hiện tại",
     sourceKind: "runtime",
     renderer: "analysis-results",
@@ -82,7 +82,7 @@ export const DATA_LAYERS = [
     minZoom: 0,
     maxZoom: 19,
     legend: [{ label: "Đối tượng nhận diện", color: "#ef4444" }],
-    keywords: ["ai", "runtime", "scan", "result", "ket qua"]
+    keywords: ["ai", "runtime", "scan", "result", "ket qua", "quet"]
   }
 ];
 

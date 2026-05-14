@@ -54,7 +54,20 @@ export class DashboardService {
     const where = this.searchWhere(filters);
     const rows = await this.prisma.buildingProperty.findMany({
       where,
-      orderBy: { updatedAt: "desc" }
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        status: true,
+        propertyType: true,
+        district: true,
+        ward: true,
+        centroidLat: true,
+        centroidLng: true,
+        geometry: true,
+        updatedAt: true
+      }
     });
 
     const byStatus = new Map<string, { key: string; label: string; count: number }>();

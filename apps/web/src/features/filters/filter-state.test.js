@@ -76,7 +76,7 @@ describe("filter-state", () => {
 
   it("returns broad and narrow result warnings", () => {
     expect(activeFilterCount({ status: "ACTIVE", district: "Lien Chieu" })).toBe(2);
-    expect(filterWarning(DEFAULT_ASSET_FILTERS, 100)).toContain("too broad");
-    expect(filterWarning({ status: "ACTIVE" }, 0)).toContain("too narrow");
+    expect(filterWarning(DEFAULT_ASSET_FILTERS, 100)).toContain("quá rộng");
+    expect(filterWarning({ status: "ACTIVE" }, 0)).toContain("quá hẹp");
   });
 });

@@ -116,11 +116,11 @@ describe("SearchResultFocus", () => {
   it("runs a sample Vietnamese question", async () => {
     render(<MapWrapper permissions={["layers.view"]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Nhà ở đường Nguyễn Lương Bằng" }));
+    fireEvent.click(screen.getByRole("button", { name: "Tòa nhà ở quận Hải Châu" }));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining(encodeURIComponent("Nhà ở đường Nguyễn Lương Bằng")),
+        expect.stringContaining(encodeURIComponent("Tòa nhà ở quận Hải Châu")),
         { cache: "no-store" }
       );
     });

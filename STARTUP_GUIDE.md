@@ -1,234 +1,69 @@
-# GeoAI Startup Guide - Hướng dẫn chạy ứng dụng
+# Startup Guide
 
-## 🚀 Cách chạy nhanh nhất
+The only supported local-dev entrypoint is `start.bat`.
 
-### Option 1: Chạy tất cả (Frontend + Backend) - **KHUYÊN DÙNG**
+## Prerequisites
 
-**Windows:**
-```bash
-# Từ folder geoAI_web
-start_geoai.bat
+1. Install Docker Desktop and make sure it is running.
+2. Install Node.js (LTS) and Python 3.10 (matching `.venv310`).
+3. From this folder, create the Python venv once: `python -m venv .venv310` then `.\.venv310\Scripts\pip install -r requirements.txt`.
+
+## Run
+
+```cmd
+.\start.bat
 ```
 
-**Linux/Mac:**
-```bash
-# Từ folder geoAI_web
-chmod +x start_geoai.sh
-./start_geoai.sh
+When `start.bat` prints `ALL SERVICES READY`, open `http://localhost:3000`.
+
+## What start.bat does
+
+1. Verifies `node`, `python` (via `.venv310` > `.venv` > `python`), `docker`, and `docker info`.
+2. Warns if any of ports `3000`, `4000`, `5000`, `9200` are already bound.
+3. Runs `npm install` (if needed) and `npm run prisma:generate`.
+4. Starts Elasticsearch with `docker compose -f docker-compose.search.yml up -d` and waits on `/_cluster/health`.
+5. Starts the Python GeoAI backend on `:5000` in local-data-only mode and waits on `/health`.
+6. Starts the NestJS API on `:4000` and waits on `/auth/me` (treats `200` or `401` as alive).
+7. Starts the Next.js web on `:3000` and waits for the root to respond.
+
+If any probe fails within its deadline, the script prints a warning naming the failing service and does not print `ALL SERVICES READY`.
+
+## Default runtime mode: local Overture only
+
+`start.bat` sets these env vars for the Python backend so nothing is downloaded at runtime:
+
+| Variable                              | Default in start.bat | Meaning                                                        |
+| ------------------------------------- | -------------------- | -------------------------------------------------------------- |
+| `GEOAI_LOCAL_DATA_ONLY`               | `true`               | No Overture/GADM/GeoTIFF downloads, no GeoPackage rewrites.    |
+| `GEOAI_FORCE_OVERTURE_SCAN`           | `true`               | Any `scanMode` is coerced to `overture` before scanning.       |
+| `GEOAI_DEFAULT_SCAN_MODE`             | `overture`           | Default mode when the client sends no `scanMode`.              |
+| `GEOAI_ALLOW_RUNTIME_AI_EXTRACTION`   | `false`              | Runtime AI extraction is disabled.                             |
+| `GEOAI_DOWNLOAD_OVERTURE_IF_MISSING`  | `false`              | Never lazy-download Overture.                                  |
+| `GEOAI_SKIP_STARTUP_PRELOAD`          | `true`               | Skip heavy preload on boot.                                    |
+| `GEOAI_PRELOAD_OVERTURE`              | `false`              | No Overture preload.                                           |
+| `GEOAI_PRELOAD_GEOTIFFS`              | `false`              | No GeoTIFF preload.                                            |
+
+To re-enable the AI scan path for an experiment, unset `GEOAI_FORCE_OVERTURE_SCAN` and `GEOAI_ALLOW_RUNTIME_AI_EXTRACTION=true`, then restart the backend. The AI code itself is left in `geoai_backend.py`, just flag-disabled.
+
+## Optional: Elasticsearch semantic search
+
+Elasticsearch runs as part of `start.bat`, but the Nest API only uses it as the search provider if you opt in:
+
+```cmd
+set USE_ELASTICSEARCH=1
+.\start.bat
 ```
 
----
+Without `USE_ELASTICSEARCH=1`, the API serves search from the SQLite/default provider.
 
-## 📂 Cấu trúc thư mục
+## Troubleshooting
 
-```
-c:\xampp\htdocs\geoAI_web/                          # Thư mục chính
-├── start_geoai.bat                 # ✅ Chạy cả frontend + backend
-├── start_geoai.sh                  # ✅ Chạy cả frontend + backend (Linux/Mac)
-├── start_frontend_only.bat         # Chạy chỉ frontend
-├── start_backend.bat               # Chạy chỉ backend
-├── start_backend.sh                # Chạy chỉ backend (Linux/Mac)
-├── geoai_backend.py               # Flask server (Python backend)
-├── requirements.txt                # Dependencies Python
-├── src/
-│   ├── app/
-│   │   └── api/analyze/route.js   # Node.js API gateway
-│   └── components/
-│       ├── Map.js
-│       └── MapWrapper.js
-└── package.json
-```
+- **Docker Desktop not running** — `start.bat` exits early and tells you to start Docker.
+- **A port is already listening** — `start.bat` prints which ports and asks you to close the matching process.
+- **A probe warning appears** — the named service window has the actual error log. Read that window first.
+- **UI spins forever** — check the `GeoAI Python Backend :5000`, `GeoAI NestJS API :4000`, and `GeoAI Web Frontend :3000` windows in order.
 
----
+## Notes
 
-## 3️⃣ Các cách chạy
-
-### Cách 1: Chạy tất cả cùng lúc (KHUYÊN DÙNG)
-
-**Windows:**
-```bash
-cd c:\xampp\htdocs\geoAI_web
-start_geoai.bat
-```
-
-- Sẽ tự động:
-  - ✅ Cài dependencies (npm, pip)
-  - ✅ Start Python backend trên port 5000
-  - ✅ Start Web frontend trên port 3000
-  - ✅ Mở trang http://localhost:3000
-
-**Linux/Mac:**
-```bash
-cd /path/to/geoAI_web
-./start_geoai.sh
-```
-
----
-
-### Cách 2: Chạy riêng rẽ (từng terminal)
-
-**Terminal 1 - Python Backend:**
-
-Windows:
-```bash
-cd c:\xampp\htdocs\geoAI_web
-start_backend.bat
-```
-
-Linux/Mac:
-```bash
-cd /path/to/geoAI_web
-chmod +x start_backend.sh
-./start_backend.sh
-```
-
-Output sẽ hiển thị:
-```
-WARNING in werkzeug: Running on http://0.0.0.0:5000
-```
-
-**Terminal 2 - Web Frontend:**
-
-Windows:
-```bash
-cd c:\xampp\htdocs\geoAI_web
-start_frontend_only.bat
-```
-
-Linux/Mac:
-```bash
-cd /path/to/geoAI_web
-npm run dev
-```
-
-Output sẽ hiển thị:
-```
-▲ Next.js 16.2.2
-- Local: http://localhost:3000
-✓ Ready in 652ms
-```
-
----
-
-## ⚡ Troubleshooting
-
-### ❌ "bash: start_geoai.bat: command not found"
-
-**Nguyên nhân:** Bạn đang chạy trong bash terminal, không phải Command Prompt
-
-**Giải pháp:**
-- Windows: Chạy từ **Command Prompt (cmd)** hoặc **PowerShell**
-- Linux/Mac: Dùng `start_geoai.sh` thay vì `.bat`
-
-```bash
-# Windows - Mở Command Prompt sau đó:
-cd c:\xampp\htdocs\geoAI_web
-start_geoai.bat
-
-# Linux/Mac:
-chmod +x /path/to/geoAI_web/start_geoai.sh
-./start_geoai.sh
-```
-
----
-
-### ❌ "ModuleNotFoundError: No module named 'flask'"
-
-**Giải pháp:**
-```bash
-cd c:\xampp\htdocs\qlda_geoAI
-pip install -r requirements.txt
-```
-
----
-
-### ❌ "Port 3000 is already in use"
-
-**Giải pháp:**
-```bash
-# Windows
-netstat -aon | find "3000"
-taskkill /F /PID <PID>
-
-# Linux/Mac
-lsof -ti :3000 | xargs kill -9
-```
-
----
-
-### ❌ "GeoAI backend không khả dụng"
-
-**Kiểm tra:**
-1. Python backend đã start chưa?
-   ```bash
-   curl http://localhost:5000/health
-   ```
-
-2. Port 5000 có bị chiếm không?
-   ```bash
-   # Windows
-   netstat -aon | find "5000"
-   
-   # Linux/Mac
-   lsof -ti :5000
-   ```
-
-3. Dependencies đã cài chưa?
-   ```bash
-   pip install -r requirements.txt
-   ```
-
----
-
-## 📊 Kiểm tra trạng thái
-
-### Python Backend Health Check
-```bash
-curl http://localhost:5000/health
-```
-
-Kết quả: `{"status": "ok", "message": "GeoAI Backend is running"}`
-
-### Web Frontend
-Truy cập: `http://localhost:3000`
-
----
-
-## 🔧 Cài đặt dependencies (nếu cần)
-
-**Node.js / npm** (Frontend):
-```bash
-cd c:\xampp\htdocs\geoAI_web
-npm install
-```
-
-**Python** (Backend):
-```bash
-cd c:\xampp\htdocs\geoAI_web
-pip install -r requirements.txt
-```
-
----
-
-## 📝 Ghi chú
-
-- Script `start_geoai.bat/sh` sẽ tự động cài dependencies nếu chưa có
-- Python backend sẽ chạy trong cửa sổ riêng (Windows)
-- Nếu stop web server, Python backend cũng sẽ dừng (khi dùng `start_geoai.bat/sh`)
-- Để chỉ test frontend mà không cần backend mock, dùng `start_frontend_only.bat`
-
----
-
-## ✅ Khi chạy thành công
-
-1. Python backend chạy trên `http://localhost:5000`
-2. Web frontend chạy trên `http://localhost:3000`
-3. Mở browser vào `http://localhost:3000`
-4. Vẽ rectangle trên bản đồ để test
-
----
-
-Bất kỳ vấn đề gì, kiểm tra:
-- ✅ Terminal output
-- ✅ Browser console (F12)
-- ✅ Các port (3000, 5000) có bị chiếm không
+- `geoai_data/`, `.env`, `.venv`, and `.venv310` are never touched by `start.bat`.
+- Older scripts (`start_geoai.bat`, `start_backend.bat`, `start_frontend_only.bat`, and their `.sh` variants) have been removed. Use `start.bat`.

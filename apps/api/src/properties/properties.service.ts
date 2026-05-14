@@ -85,6 +85,10 @@ type PropertySearchMap = {
 type PropertyDensityObject = {
   id: string;
   type: "building";
+  center?: {
+    lat: number;
+    lng: number;
+  };
   bbox?: [number, number, number, number];
   geometry?: unknown;
   geometrySource: "overture_property_search";
@@ -207,7 +211,7 @@ const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 20;
 const DEFAULT_DENSITY_GRID_SIZE = 0.002;
 const DEFAULT_DENSITY_REGION_LIMIT = 6;
-const DEFAULT_DENSITY_OBJECT_LIMIT = 2000;
+const DEFAULT_DENSITY_OBJECT_LIMIT = 350;
 const DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
 const VALID_STATUSES = new Set<PropertyStatus>([
   "ACTIVE",
@@ -292,6 +296,10 @@ export const PROPERTIES_SERVICE_OPTIONS = "PROPERTIES_SERVICE_OPTIONS";
 export class PropertiesService {
   private readonly configuredElasticsearchProvider?: PropertySearchProvider;
   private readonly propertySearchProvider?: "postgres" | "elasticsearch";
+  private locationNameCache?: {
+    wards: Map<string, string>;
+    districts: Map<string, string>;
+  };
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PropertiesPrisma,
@@ -389,11 +397,31 @@ export class PropertiesService {
     tokens: string[],
     source: string
   ) {
+    if (intent.type === "density") {
+      const densityRegions = await this.densityRegions(intent, tokens, DEFAULT_DENSITY_REGION_LIMIT, source);
+      const total = this.densityTotal(intent, tokens, source);
+
+      return {
+        items: [],
+        answer: this.searchAnswer(total, intent, densityRegions),
+        map: {
+          type: "property-density",
+          regions: densityRegions
+        },
+        meta: {
+          limit,
+          tokens,
+          normalizedQuery: normalizeSearchText(input.query || ""),
+          searchMode: "postgres-normalized-vietnamese-nl-fuzzy-density",
+          semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
+          warnings: [] as string[],
+          total,
+          ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
+        }
+      };
+    }
+
     const where = this.searchWhere(input, tokens, intent, source);
-    const densityRegions =
-      intent.type === "density"
-        ? await this.densityRegions(intent, tokens, DEFAULT_DENSITY_REGION_LIMIT, source)
-        : [];
     const total = await this.prisma.buildingProperty.count({ where });
     let rows = (await this.prisma.buildingProperty.findMany({
       where,
@@ -411,30 +439,17 @@ export class PropertiesService {
       rankedRows = this.rankRows(rows, tokens).slice(0, limit);
     }
 
-    const answer =
-      intent.type === "count" || intent.type === "density"
-        ? this.searchAnswer(total, intent, densityRegions)
-        : undefined;
-    const map =
-      intent.type === "density"
-        ? {
-            type: "property-density",
-            regions: densityRegions
-          }
-        : undefined;
+    const answer = intent.type === "count" ? this.searchAnswer(total, intent) : undefined;
 
     return {
       items: rankedRows,
       answer,
-      map,
       meta: {
         limit,
         tokens,
         normalizedQuery: normalizeSearchText(input.query || ""),
         searchMode:
-          intent.type === "density"
-            ? "postgres-normalized-vietnamese-nl-fuzzy-density"
-            : intent.type === "count"
+          intent.type === "count"
             ? "postgres-normalized-vietnamese-nl"
             : "postgres-normalized-lexical",
         semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
@@ -1046,7 +1061,15 @@ export class PropertiesService {
       return [];
     }
 
-    const terms = this.densitySearchTerms(intent, tokens);
+    const locationFilters = this.densityLocationFilters(intent);
+    const terms =
+      locationFilters.ward || locationFilters.district
+        ? []
+        : this.densitySearchTerms(intent, tokens);
+    const exactFilters = [
+      locationFilters.ward ? `AND "ward" = ?` : "",
+      locationFilters.district ? `AND "district" = ?` : ""
+    ].join(" ");
     const termFilters = terms.map(() => `AND "searchTextNormalized" LIKE ?`).join(" ");
     const sql = `
       WITH filtered AS (
@@ -1060,6 +1083,7 @@ export class PropertiesService {
           AND "source" = ?
           AND "centroidLat" IS NOT NULL
           AND "centroidLng" IS NOT NULL
+          ${exactFilters}
           ${termFilters}
       ),
       cells AS (
@@ -1099,6 +1123,9 @@ export class PropertiesService {
     `;
     const params = [
       source,
+      ...[locationFilters.ward, locationFilters.district].filter(
+        (value): value is string => Boolean(value)
+      ),
       ...terms.map((term) => `%${term}%`),
       DEFAULT_DENSITY_GRID_SIZE,
       DEFAULT_DENSITY_GRID_SIZE,
@@ -1111,9 +1138,49 @@ export class PropertiesService {
     const rows = this.sqlite.all<DensityRegionRow>(sql, ...params);
 
     const regions = rows.map((row, index) => this.densityRegion(row, index));
-    await this.attachDensityObjects(regions, terms, source);
+    await this.attachDensityObjects(regions, terms, source, locationFilters);
 
     return regions;
+  }
+
+  private densityLocationFilters(intent: SearchIntent) {
+    const cache = this.locationNames();
+    const ward = intent.filters.ward
+      ? cache.wards.get(normalizeSearchText(intent.filters.ward))
+      : undefined;
+    const district = intent.filters.district
+      ? cache.districts.get(normalizeSearchText(intent.filters.district))
+      : undefined;
+
+    return { ward, district };
+  }
+
+  private locationNames() {
+    if (this.locationNameCache || !this.sqlite) {
+      return this.locationNameCache || { wards: new Map(), districts: new Map() };
+    }
+
+    const rows = this.sqlite.all<{ ward?: string | null; district?: string | null }>(
+      `
+        SELECT "ward", "district"
+        FROM "BuildingProperty"
+        WHERE "deletedAt" IS NULL
+          AND ("ward" IS NOT NULL OR "district" IS NOT NULL)
+        GROUP BY "ward", "district"
+      `
+    );
+    const wards = new Map<string, string>();
+    const districts = new Map<string, string>();
+
+    for (const row of rows) {
+      const ward = this.cleanString(row.ward);
+      const district = this.cleanString(row.district);
+      if (ward) wards.set(normalizeSearchText(ward), ward);
+      if (district) districts.set(normalizeSearchText(district), district);
+    }
+
+    this.locationNameCache = { wards, districts };
+    return this.locationNameCache;
   }
 
   private densitySearchTerms(intent: SearchIntent, tokens: string[]) {
@@ -1122,6 +1189,40 @@ export class PropertiesService {
     );
 
     return [...new Set(terms.map((term) => normalizeSearchText(term)))];
+  }
+
+  private densityTotal(intent: SearchIntent, tokens: string[], source: string) {
+    if (!this.sqlite) {
+      return 0;
+    }
+
+    const locationFilters = this.densityLocationFilters(intent);
+    const terms =
+      locationFilters.ward || locationFilters.district
+        ? []
+        : this.densitySearchTerms(intent, tokens);
+    const exactFilters = [
+      locationFilters.ward ? `AND "ward" = ?` : "",
+      locationFilters.district ? `AND "district" = ?` : ""
+    ].join(" ");
+    const termFilters = terms.map(() => `AND "searchTextNormalized" LIKE ?`).join(" ");
+    const rows = this.sqlite.all<{ count?: number }>(
+      `
+        SELECT COUNT(*) AS count
+        FROM "BuildingProperty"
+        WHERE "deletedAt" IS NULL
+          AND "source" = ?
+          ${exactFilters}
+          ${termFilters}
+      `,
+      source,
+      ...[locationFilters.ward, locationFilters.district].filter(
+        (value): value is string => Boolean(value)
+      ),
+      ...terms.map((term) => `%${term}%`)
+    );
+
+    return Number(rows[0]?.count || 0);
   }
 
   private densityRegion(row: DensityRegionRow, index: number): PropertyDensityRegion {
@@ -1149,7 +1250,8 @@ export class PropertiesService {
   private async attachDensityObjects(
     regions: PropertyDensityRegion[],
     terms: string[],
-    source: string
+    source: string,
+    locationFilters: { ward?: string; district?: string } = {}
   ) {
     if (regions.length === 0) {
       return;
@@ -1163,6 +1265,14 @@ export class PropertiesService {
 
     for (const term of terms) {
       this.addNormalizedPhraseFilter(andFilters, term);
+    }
+
+    if (locationFilters.ward) {
+      andFilters.push({ ward: locationFilters.ward });
+    }
+
+    if (locationFilters.district) {
+      andFilters.push({ district: locationFilters.district });
     }
 
     const rows = (await this.prisma.buildingProperty.findMany({
@@ -1183,14 +1293,16 @@ export class PropertiesService {
   private densityObject(row: BuildingPropertyRow): PropertyDensityObject | null {
     const bbox = this.propertyObjectBbox(row);
     const geometry = this.validGeoJsonGeometry(row.geometry);
+    const center = this.propertyObjectCenter(row);
 
-    if (!bbox && !geometry) {
+    if (!bbox && !geometry && !center) {
       return null;
     }
 
     return {
       id: row.id,
       type: "building",
+      center,
       bbox,
       geometry,
       geometrySource: "overture_property_search",
@@ -1201,6 +1313,20 @@ export class PropertiesService {
         district: row.district,
         source: row.source
       }
+    };
+  }
+
+  private propertyObjectCenter(row: BuildingPropertyRow) {
+    const lat = Number(row.centroidLat);
+    const lng = Number(row.centroidLng);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return undefined;
+    }
+
+    return {
+      lat: this.roundCoordinate(lat),
+      lng: this.roundCoordinate(lng)
     };
   }
 

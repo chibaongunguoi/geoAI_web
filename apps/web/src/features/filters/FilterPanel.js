@@ -11,14 +11,24 @@ import {
 } from "./filter-state";
 
 const DISTRICT_OPTIONS = [
-  "Hai Chau",
-  "Thanh Khe",
-  "Son Tra",
-  "Ngu Hanh Son",
-  "Lien Chieu",
-  "Cam Le",
-  "Hoa Vang"
+  "Hải Châu",
+  "Thanh Khê",
+  "Sơn Trà",
+  "Ngũ Hành Sơn",
+  "Liên Chiểu",
+  "Cẩm Lệ",
+  "Hòa Vang"
 ];
+
+const FILTER_ACTION_LABELS = {
+  "filters.apply": "Áp dụng bộ lọc",
+  "filters.reset": "Đặt lại bộ lọc",
+  "filters.quick.status": "Lọc nhanh theo trạng thái",
+  "filters.quick.type": "Lọc nhanh theo loại",
+  "filters.preset.save": "Lưu bộ lọc",
+  "filters.preset.load": "Dùng bộ lọc đã lưu",
+  "filters.export": "Xuất dữ liệu đã lọc"
+};
 
 export default function FilterPanel({
   filters,
@@ -51,16 +61,20 @@ export default function FilterPanel({
   };
 
   return (
-    <section className="filter-panel" aria-label="Advanced filters">
+    <section className="filter-panel" aria-label="Bộ lọc nâng cao">
       {!canUseFilters ? (
         <p className="filter-alert" role="alert">
-          You do not have permission to use filters.
+          Bạn không có quyền dùng bộ lọc.
         </p>
       ) : null}
 
       <div className="filter-summary">
-        <span>{resultCount === undefined || resultCount === null ? "No result count" : `${resultCount} results`}</span>
-        <span>{activeFilterCount(draft)} active filters</span>
+        <span>
+          {resultCount === undefined || resultCount === null
+            ? "Chưa có số lượng kết quả"
+            : `${resultCount.toLocaleString("vi-VN")} kết quả`}
+        </span>
+        <span>{activeFilterCount(draft)} điều kiện đang bật</span>
       </div>
 
       {warning ? (
@@ -71,13 +85,13 @@ export default function FilterPanel({
 
       <div className="filter-grid">
         <label>
-          Status
+          Trạng thái
           <select
             value={draft.status}
             disabled={!canUseFilters}
             onChange={(event) => updateDraft({ status: event.target.value })}
           >
-            <option value="">All statuses</option>
+            <option value="">Tất cả trạng thái</option>
             {STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -87,13 +101,13 @@ export default function FilterPanel({
         </label>
 
         <label>
-          Type
+          Loại tài sản
           <select
             value={draft.propertyType}
             disabled={!canUseFilters}
             onChange={(event) => updateDraft({ propertyType: event.target.value })}
           >
-            <option value="">All types</option>
+            <option value="">Tất cả loại</option>
             {PROPERTY_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -103,7 +117,7 @@ export default function FilterPanel({
         </label>
 
         <label>
-          District
+          Quận/huyện
           <input
             list="filter-district-options"
             value={draft.district}
@@ -118,7 +132,7 @@ export default function FilterPanel({
         </label>
 
         <label>
-          Ward
+          Phường/xã
           <input
             value={draft.ward}
             disabled={!canUseFilters}
@@ -127,7 +141,7 @@ export default function FilterPanel({
         </label>
 
         <label>
-          Updated from
+          Cập nhật từ ngày
           <input
             type="date"
             value={draft.updatedFrom}
@@ -137,7 +151,7 @@ export default function FilterPanel({
         </label>
 
         <label>
-          Updated to
+          Cập nhật đến ngày
           <input
             type="date"
             value={draft.updatedTo}
@@ -147,7 +161,7 @@ export default function FilterPanel({
         </label>
       </div>
 
-      <div className="filter-chip-row" aria-label="Quick filters">
+      <div className="filter-chip-row" aria-label="Lọc nhanh">
         {STATUS_OPTIONS.slice(0, 3).map((option) => (
           <button
             key={option.value}
@@ -176,33 +190,37 @@ export default function FilterPanel({
           disabled={!canUseFilters}
           onClick={() => apply(draft, "filters.apply")}
         >
-          Apply filters
+          Áp dụng
         </button>
         <button
           type="button"
           disabled={!canUseFilters}
           onClick={() => apply(DEFAULT_ASSET_FILTERS, "filters.reset")}
         >
-          Reset filters
+          Đặt lại
         </button>
         <button
           type="button"
           disabled={!canUseFilters}
           onClick={onExport}
         >
-          Export filtered data
+          Xuất dữ liệu đã lọc
         </button>
       </div>
 
       <div className="filter-presets">
         <label>
-          Preset name
+          Tên bộ lọc đã lưu
           <input
             value={presetName}
             disabled={!canUseFilters}
+            placeholder="Ví dụ: Nhà đang hoạt động ở Liên Chiểu"
             onChange={(event) => setPresetName(event.target.value)}
           />
         </label>
+        <p className="filter-alert">
+          Bộ lọc đã lưu giúp lưu các điều kiện hiện tại để dùng lại sau.
+        </p>
         <button
           type="button"
           disabled={!canUseFilters || !presetName.trim()}
@@ -211,10 +229,10 @@ export default function FilterPanel({
             setPresetName("");
           }}
         >
-          Save preset
+          Lưu bộ lọc
         </button>
         <label>
-          Saved presets
+          Dùng bộ lọc đã lưu
           <select
             value=""
             disabled={!canUseFilters || presets.length === 0}
@@ -223,7 +241,7 @@ export default function FilterPanel({
               if (preset) apply(preset.filters, "filters.preset.load");
             }}
           >
-            <option value="">Choose preset</option>
+            <option value="">Chọn bộ lọc đã lưu</option>
             {presets.map((preset) => (
               <option key={preset.name} value={preset.name}>
                 {preset.name}
@@ -234,12 +252,12 @@ export default function FilterPanel({
       </div>
 
       {history.length > 0 ? (
-        <div className="filter-history" aria-label="Filter history">
-          <h3>Filter history</h3>
+        <div className="filter-history" aria-label="Lịch sử bộ lọc">
+          <h3>Lịch sử bộ lọc</h3>
           <ul>
             {history.slice(0, 5).map((item) => (
               <li key={item.id || item.createdAt}>
-                <span>{item.action}</span>
+                <span>{FILTER_ACTION_LABELS[item.action] || item.action}</span>
                 {item.createdAt ? (
                   <time dateTime={item.createdAt}>
                     {new Date(item.createdAt).toLocaleString("vi-VN")}

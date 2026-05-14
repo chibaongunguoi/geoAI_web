@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import LayerPanel from "./LayerPanel";
 import { DATA_LAYERS, createDefaultLayerState, selectLayerVisibility } from "./layers";
+import {
+  LAYER_GROUP_LABELS,
+  LAYER_HISTORY_LABELS,
+} from "../../test-utils/vn-labels";
 
 function layerById(id) {
   return DATA_LAYERS.find((layer) => layer.id === id);
@@ -107,6 +111,7 @@ describe("LayerPanel", () => {
         onMove={jest.fn()}
         onReorder={jest.fn()}
         onRefresh={jest.fn()}
+        canToggle={false}
         canManage={false}
       />
     );
@@ -144,7 +149,9 @@ describe("LayerPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /Xuất cấu hình lớp/ }));
 
     expect(onExport).toHaveBeenCalled();
-    expect(screen.getByText("map.layers.config.update")).toBeInTheDocument();
+    expect(
+      screen.getByText(LAYER_HISTORY_LABELS["map.layers.config.update"])
+    ).toBeInTheDocument();
   });
 
   it("renders visible layer error alerts", () => {
@@ -184,11 +191,11 @@ describe("LayerPanel", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Tham chi/ }));
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(LAYER_GROUP_LABELS.geoai) }));
     fireEvent.dragStart(screen.getAllByText(layerById("analysis-results").label)[0].closest("article"));
     fireEvent.drop(screen.getAllByText(layerById("admin-boundaries").label)[0].closest("article"));
 
-    expect(onToggleGroup).toHaveBeenCalledWith(expect.stringMatching(/Tham chi/), true);
+    expect(onToggleGroup).toHaveBeenCalledWith(LAYER_GROUP_LABELS.geoai, expect.any(Boolean));
     expect(onReorder).toHaveBeenCalledWith("analysis-results", "admin-boundaries");
   });
 

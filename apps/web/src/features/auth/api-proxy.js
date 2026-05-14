@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 
 const API_URL = process.env.NEST_API_URL || "http://localhost:4000";
 
+export function splitSetCookieHeader(value) {
+  if (!value) return [];
+  return String(value)
+    .split(/,(?=\s*[^;,]+=)/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export async function proxyToApi(request, path, options = {}) {
   const headers = new Headers(options.headers || {});
   const cookie = request.headers.get("cookie");
@@ -31,10 +39,13 @@ export async function proxyToApi(request, path, options = {}) {
   }
 
   const responseHeaders = new Headers();
-  const setCookie = response.headers.get("set-cookie");
+  const setCookies =
+    typeof response.headers.getSetCookie === "function"
+      ? response.headers.getSetCookie()
+      : splitSetCookieHeader(response.headers.get("set-cookie"));
 
-  if (setCookie) {
-    responseHeaders.set("set-cookie", setCookie);
+  for (const cookie of setCookies) {
+    responseHeaders.append("set-cookie", cookie);
   }
 
   const contentType = response.headers.get("content-type") || "";

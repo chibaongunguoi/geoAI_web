@@ -1514,6 +1514,22 @@ function MapComponent({
         return;
       }
 
+      if (object.geometrySource === "overture_property_search" && object.center) {
+        const marker = L.circleMarker([object.center.lat, object.center.lng], {
+          radius: 2.5,
+          color: objectColor(object.type),
+          weight: 1,
+          opacity: 0.9 * layerOpacity,
+          fill: true,
+          fillColor: objectColor(object.type),
+          fillOpacity: 0.55 * layerOpacity,
+          interactive: false,
+        });
+
+        objectBoxes.addLayer(marker);
+        return;
+      }
+
       if (!object.bbox || object.bbox.length !== 4) return;
 
       const [minLng, minLat, maxLng, maxLat] = object.bbox;

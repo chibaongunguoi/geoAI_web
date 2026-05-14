@@ -14,13 +14,13 @@ describe("FilterPanel", () => {
       />
     );
 
-    fireEvent.change(screen.getByLabelText("Status"), {
+    fireEvent.change(screen.getByLabelText("Trạng thái"), {
       target: { value: "ACTIVE" }
     });
-    fireEvent.change(screen.getByLabelText("Type"), {
+    fireEvent.change(screen.getByLabelText("Loại tài sản"), {
       target: { value: "building" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+    fireEvent.click(screen.getByRole("button", { name: "Áp dụng" }));
 
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -29,7 +29,7 @@ describe("FilterPanel", () => {
       }),
       "filters.apply"
     );
-    expect(screen.getByText("12 results")).toBeInTheDocument();
+    expect(screen.getByText("12 kết quả")).toBeInTheDocument();
   });
 
   it("resets, saves presets, loads presets, and exports", () => {
@@ -47,15 +47,15 @@ describe("FilterPanel", () => {
       />
     );
 
-    fireEvent.change(screen.getByLabelText("Preset name"), {
+    fireEvent.change(screen.getByLabelText("Tên bộ lọc đã lưu"), {
       target: { value: "My preset" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save preset" }));
-    fireEvent.change(screen.getByLabelText("Saved presets"), {
+    fireEvent.click(screen.getByRole("button", { name: "Lưu bộ lọc" }));
+    fireEvent.change(screen.getByLabelText("Dùng bộ lọc đã lưu"), {
       target: { value: "Active" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
-    fireEvent.click(screen.getByRole("button", { name: "Export filtered data" }));
+    fireEvent.click(screen.getByRole("button", { name: "Đặt lại" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xuất dữ liệu đã lọc" }));
 
     expect(onSavePreset).toHaveBeenCalledWith("My preset", expect.any(Object));
     expect(onApply).toHaveBeenCalledWith(
@@ -69,7 +69,7 @@ describe("FilterPanel", () => {
   it("disables filter actions when permission is missing", () => {
     render(<FilterPanel filters={{}} canUseFilters={false} />);
 
-    expect(screen.getByRole("button", { name: "Apply filters" })).toBeDisabled();
-    expect(screen.getByText("You do not have permission to use filters.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Áp dụng" })).toBeDisabled();
+    expect(screen.getByText("Bạn không có quyền dùng bộ lọc.")).toBeInTheDocument();
   });
 });

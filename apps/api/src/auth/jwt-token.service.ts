@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
+import { randomUUID } from "crypto";
 import { AuthenticatedUser, TokenIssuer } from "./auth.types";
 
 @Injectable()
@@ -18,7 +19,7 @@ export class JwtTokenService implements TokenIssuer {
   }
 
   signRefreshToken(user: AuthenticatedUser): Promise<string> {
-    return this.jwt.signAsync({ sub: user.id }, {
+    return this.jwt.signAsync({ sub: user.id, jti: randomUUID() }, {
       secret: this.refreshSecret,
       expiresIn: "30d"
     });

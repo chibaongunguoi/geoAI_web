@@ -32,20 +32,16 @@ Set `NEST_API_URL=http://localhost:4000` for the web BFF when the API is not on 
 
 ## 🚀 Quick Start
 
-### Windows (Easiest)
+1. Start Docker Desktop.
+2. From this folder, run `start.bat`:
 
-```bash
-start_geoai.bat
+```cmd
+.\start.bat
 ```
 
-### Linux/Mac
+3. When the script prints `ALL SERVICES READY`, open `http://localhost:3000`.
 
-```bash
-chmod +x start_geoai.sh
-./start_geoai.sh
-```
-
-**That's it! Browser will open at http://localhost:3000**
+Runs in local-Overture-only mode by default: no Overture, GADM, or GeoTIFF downloads at runtime. See `STARTUP_GUIDE.md` for the env flags and how to re-enable the AI scan path.
 
 ---
 
@@ -92,7 +88,7 @@ When you draw a rectangle:
 
 ## 🔧 Detailed Installation
 
-The easiest path is still `start_geoai.bat` on Windows or `./start_geoai.sh` on Linux/Mac. Use the steps below when setting up a new machine or when you want to run backend/frontend separately.
+The easiest path is `.\start.bat` on Windows with Docker Desktop running. Use the steps below when setting up a new machine or when you want to run backend and frontend separately.
 
 ### 1. Install system requirements
 
@@ -185,32 +181,11 @@ GEOAI_ALLOW_RUNTIME_AI_EXTRACTION=true
 
 ### 7. Run the app
 
-Option A, start everything with scripts:
-
-```bash
-# Windows
-start_geoai.bat
-
-# Linux/Mac
-chmod +x start_geoai.sh
-./start_geoai.sh
+```cmd
+.\start.bat
 ```
 
-Option B, run backend and frontend separately:
-
-Terminal 1:
-
-```bash
-python geoai_backend.py
-```
-
-Terminal 2:
-
-```bash
-npm run dev
-```
-
-Open `http://localhost:3000`.
+Open `http://localhost:3000` when the script prints `ALL SERVICES READY`. See `STARTUP_GUIDE.md` for the full service-by-service breakdown.
 
 ### 8. First startup behavior
 
@@ -250,10 +225,9 @@ Building scans inside that bbox use cached district GeoTIFF files as the raster 
 | File                           | Purpose                                                      |
 | ------------------------------ | ------------------------------------------------------------ |
 | **GEOAI_MODEL.md**             | 🤖 Real GeoAI model integration guide ⭐ **READ THIS FIRST** |
-| `start_geoai.bat`              | ✅ Start all (Windows)                                       |
-| `start_geoai.sh`               | ✅ Start all (Linux/Mac)                                     |
-| `start_frontend_only.bat`      | Start only web frontend                                      |
+| `start.bat`                    | ✅ Start all services (Docker Desktop required)              |
 | `STARTUP_GUIDE.md`             | Detailed startup instructions                                |
+| `BACKEND_COMMANDS.md`          | Verification and smoke-test commands                         |
 | `geoai_backend.py`             | Python Flask backend with real GeoAI model                   |
 | `src/app/page.js`              | Home page                                                    |
 | `src/app/api/analyze/route.js` | API Gateway                                                  |
@@ -287,11 +261,7 @@ lsof -ti :3000 | xargs kill -9
 geoAI_web/
 ├── geoai_backend.py          # Python Flask backend
 ├── requirements.txt          # Python dependencies
-├── start_geoai.bat          # Start all (Windows)
-├── start_geoai.sh           # Start all (Linux/Mac)
-├── start_backend.bat        # Backend only (Windows)
-├── start_backend.sh         # Backend only (Linux/Mac)
-├── start_frontend_only.bat  # Frontend only
+├── start.bat                 # Start all services (Windows, Docker required)
 ├── src/
 │   ├── app/
 │   │   ├── api/analyze/route.js    # API Gateway

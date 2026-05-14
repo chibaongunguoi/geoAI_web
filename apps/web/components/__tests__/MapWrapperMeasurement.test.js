@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
+import { MEASUREMENT_LABELS } from "../../src/test-utils/vn-labels";
 import MapWrapper from "../MapWrapper";
 
 jest.mock("next/dynamic", () => () => {
@@ -56,8 +57,12 @@ describe("MapWrapper measurement tools", () => {
   it("renders measurement tools and passes mode to Map when permission is present", async () => {
     render(<MapWrapper permissions={["measurement.use"]} />);
 
-    expect(screen.getByText("Measurement tools")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /distance/i }));
+    // CollapsibleSection renders its title; defaultOpen=true keeps the toolbar
+    // mounted without needing an explicit click in the test. Use the exact
+    // label to avoid matching other buttons whose `title` starts with
+    // "Đo khoảng cách..." (e.g. SpatialDrawToolbar or filter hints).
+    expect(screen.getByText(MEASUREMENT_LABELS.sectionTitle)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Đo khoảng cách" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("mock-map")).toHaveAttribute("data-measurement-mode", "distance");
@@ -67,7 +72,7 @@ describe("MapWrapper measurement tools", () => {
   it("hides measurement tools when permission is missing", () => {
     render(<MapWrapper permissions={[]} />);
 
-    expect(screen.queryByText("Measurement tools")).not.toBeInTheDocument();
+    expect(screen.queryByText(MEASUREMENT_LABELS.sectionTitle)).not.toBeInTheDocument();
     expect(screen.getByTestId("mock-map")).toHaveAttribute("data-measurement-mode", "idle");
   });
 });

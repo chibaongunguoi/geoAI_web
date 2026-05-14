@@ -63,20 +63,6 @@ The project is a GIS asset management platform (Next.js 16 web + NestJS API + Pr
 
 ---
 
-## Next 5 Priority Phases
-
-### Phase 10 - Asset Dossier/Profile (`EP03-018 -> EP03-034`)
-
-**Big task**: turn the current basic asset detail page into an operational dossier.
-
-- `TASK-1001` Dossier tabs: add Overview, Documents, Inspections, Maintenance, Timeline, Links tabs to the asset detail page for `EP03-018 -> EP03-025`, `EP03-028`.
-- `TASK-1002` Status/value panel: add editable current status and value history placeholder/table for `EP03-021 -> EP03-022`.
-- `TASK-1003` Document list UI: add Upload button, document type filter, file list, and delete/download buttons backed by local/server-compatible placeholders for `EP03-020`, `EP03-023`.
-- `TASK-1004` Inspection form: add Add Inspection button, date/result/notes fields, attachment placeholder, and inspection list for `EP03-024`.
-- `TASK-1005` Timeline builder: combine asset updates, inspections, maintenance entries, incidents, and replacements into one timeline for `EP03-019`, `EP03-025`.
-- `TASK-1006` Dossier search/export: add keyword search within dossier sections and Export/Download Package buttons for `EP03-026 -> EP03-027`, `EP03-032`.
-- `TASK-1007` Dossier safety: add missing-document warnings, last-used config, local operation history, permission gates, and visible error states for `EP03-029 -> EP03-034`.
-
 ### Phase 11 - Asset Import/Export Pipeline (`EP03-052 -> EP03-068`)
 
 **Big task**: make admin import/export usable beyond the current Overture path.

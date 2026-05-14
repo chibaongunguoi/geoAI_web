@@ -50,6 +50,12 @@ describe("DashboardService", () => {
           deletedAt: null,
           district: { contains: "Lien Chieu" },
           updatedAt: expect.objectContaining({ gte: expect.any(Date) })
+        }),
+        select: expect.objectContaining({
+          id: true,
+          code: true,
+          geometry: true,
+          updatedAt: true
         })
       })
     );

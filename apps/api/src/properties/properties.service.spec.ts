@@ -395,7 +395,11 @@ describe("PropertiesService", () => {
       ward: "Hoa Khanh Bac",
       district: "Lien Chieu"
     };
-    const sqlite = sqliteStub([densityRow]);
+    const sqlite = sqliteStub();
+    sqlite.all
+      .mockReturnValueOnce([{ ward: "Hoa Khanh Bac", district: "Lien Chieu" }])
+      .mockReturnValueOnce([densityRow])
+      .mockReturnValueOnce([{ count: 10308 }]);
     const prisma = prismaStub({
       buildingProperty: {
         findMany: jest.fn().mockResolvedValue([
@@ -453,25 +457,27 @@ describe("PropertiesService", () => {
     );
     expect(result.map.regions[0].objects[0].geometry).toBeUndefined();
     expect(result.meta.searchMode).toBe("postgres-normalized-vietnamese-nl-fuzzy-density");
-    expect(sqlite.all).toHaveBeenCalledWith(
-      expect.stringContaining("CAST"),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything()
-    );
+    expect(sqlite.all.mock.calls[1][0]).toEqual(expect.stringContaining("CAST"));
+    expect(sqlite.all.mock.calls[1].slice(1)).toEqual([
+      "overture",
+      "Hoa Khanh Bac",
+      0.002,
+      0.002,
+      0.002,
+      0.002,
+      0.002,
+      0.002,
+      6
+    ]);
+    expect(prisma.buildingProperty.count).not.toHaveBeenCalled();
   });
 
   it("excludes demo property rows from default density answers", async () => {
-    const sqlite = sqliteStub([]);
+    const sqlite = sqliteStub();
+    sqlite.all
+      .mockReturnValueOnce([{ ward: "Hoa Khanh Bac", district: "Lien Chieu" }])
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce([{ count: 0 }]);
     const prisma = prismaStub({
       buildingProperty: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -489,28 +495,25 @@ describe("PropertiesService", () => {
       limit: 5
     });
 
-    expect(sqlite.all).toHaveBeenCalledWith(
-      expect.stringContaining('"source" = ?'),
+    expect(sqlite.all.mock.calls[1][0]).toEqual(expect.stringContaining('"source" = ?'));
+    expect(sqlite.all.mock.calls[1].slice(1)).toEqual([
       "overture",
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything()
+      "Hoa Khanh Bac",
+      0.002,
+      0.002,
+      0.002,
+      0.002,
+      0.002,
+      0.002,
+      6
+    ]);
+    expect(sqlite.all).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('SELECT COUNT(*) AS count'),
+      "overture",
+      "Hoa Khanh Bac"
     );
-    expect(prisma.buildingProperty.count).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          source: "overture"
-        })
-      })
-    );
+    expect(prisma.buildingProperty.count).not.toHaveBeenCalled();
   });
 
   it("uses Elasticsearch lexical and MiniLM semantic search then hydrates unique PostgreSQL rows", async () => {
@@ -579,16 +582,17 @@ describe("PropertiesService", () => {
       expect.objectContaining({
         index: "building_properties_v1",
         size: 20,
-        knn: expect.objectContaining({
-          field: "embedding",
-          query_vector: embedding,
-          k: 20,
-          num_candidates: 100
-        }),
         query: expect.objectContaining({
-          bool: expect.objectContaining({
-            must: expect.arrayContaining([expect.objectContaining({ multi_match: expect.any(Object) })]),
-            filter: [{ term: { deleted: false } }]
+          script_score: expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                should: expect.arrayContaining([expect.objectContaining({ multi_match: expect.any(Object) })]),
+                filter: [{ term: { deleted: false } }]
+              })
+            }),
+            script: expect.objectContaining({
+              params: { query_vector: embedding }
+            })
           })
         })
       })
