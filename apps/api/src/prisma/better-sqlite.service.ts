@@ -20,11 +20,7 @@ export class BetterSqliteService implements OnModuleDestroy {
       this.db = new Database(this.resolveDbPath());
       this.db.pragma("journal_mode = WAL");
       this.db.pragma("foreign_keys = ON");
-      this.db.exec(`
-        CREATE INDEX IF NOT EXISTS BuildingProperty_density_source_ward_district_centroid_idx
-        ON BuildingProperty(source, ward, district, centroidLat, centroidLng)
-        WHERE deletedAt IS NULL
-      `);
+      this.ensureRuntimeIndexes(this.db);
     }
     return this.db;
   }
@@ -95,5 +91,24 @@ export class BetterSqliteService implements OnModuleDestroy {
 
     // Fallback: project root geoai_data/geoai.db
     return resolve(__dirname, "..", "..", "..", "..", "geoai_data", "geoai.db");
+  }
+
+  private ensureRuntimeIndexes(db: Database.Database) {
+    try {
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS BuildingProperty_density_source_ward_district_centroid_idx
+        ON BuildingProperty(source, ward, district, centroidLat, centroidLng)
+        WHERE deletedAt IS NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_buildingproperty_ward_district
+        ON BuildingProperty(deletedAt, source, ward, district);
+
+        CREATE INDEX IF NOT EXISTS idx_buildingproperty_centroid
+        ON BuildingProperty(centroidLat, centroidLng)
+        WHERE deletedAt IS NULL;
+      `);
+    } catch (error) {
+      console.warn("Could not ensure BuildingProperty runtime indexes.", error);
+    }
   }
 }

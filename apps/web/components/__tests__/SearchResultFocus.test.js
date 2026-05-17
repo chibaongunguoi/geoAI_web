@@ -116,12 +116,14 @@ describe("SearchResultFocus", () => {
   it("runs a sample Vietnamese question", async () => {
     render(<MapWrapper permissions={["layers.view"]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Tòa nhà ở quận Hải Châu" }));
+    const sampleQuery = "Vùng nào nhiều nhà nhất ở Hòa Khánh Bắc";
+
+    fireEvent.click(screen.getByRole("button", { name: sampleQuery }));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining(encodeURIComponent("Tòa nhà ở quận Hải Châu")),
-        { cache: "no-store" }
+        expect.stringContaining(encodeURIComponent(sampleQuery)),
+        expect.objectContaining({ cache: "no-store", signal: expect.any(AbortSignal) })
       );
     });
   });

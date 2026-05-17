@@ -14,7 +14,7 @@ type HydrationPrisma = {
 
 type ElasticsearchClient = {
   ping: () => Promise<unknown>;
-  search: (args: unknown) => Promise<{
+  search: (args: unknown, options?: unknown) => Promise<{
     hits?: {
       hits?: Array<{
         _id?: string;
@@ -31,6 +31,7 @@ type FetchLike = (
     method?: string;
     headers?: Record<string, string>;
     body?: string;
+    signal?: AbortSignal;
   }
 ) => Promise<{
   ok: boolean;
@@ -50,6 +51,8 @@ const DEFAULT_INDEX_NAME = "building_properties_v1";
 const DEFAULT_EMBEDDING_SERVICE_URL = "http://localhost:5055";
 const DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
 const EMBEDDING_DIMENSIONS = 384;
+const EMBEDDING_TIMEOUT_MS = Number(process.env.EMBEDDING_TIMEOUT_MS || 4000);
+const ELASTICSEARCH_TIMEOUT_MS = Number(process.env.ELASTICSEARCH_TIMEOUT_MS || 5000);
 
 export class ElasticsearchPropertySearchProvider implements PropertySearchProvider {
   private readonly client: ElasticsearchClient;
@@ -123,14 +126,23 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
   }
 
   private async embed(text: string) {
-    const response = await this.fetchImpl(`${this.embeddingServiceUrl.replace(/\/$/, "")}/embed`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        texts: [text],
-        model: this.embeddingModel
-      })
-    });
+    let response: Awaited<ReturnType<FetchLike>>;
+    try {
+      response = await this.fetchImpl(`${this.embeddingServiceUrl.replace(/\/$/, "")}/embed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          texts: [text],
+          model: this.embeddingModel
+        }),
+        signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS)
+      });
+    } catch (error) {
+      if (this.isTimeoutError(error)) {
+        throw new Error(`Embedding service timed out after ${EMBEDDING_TIMEOUT_MS}ms`);
+      }
+      throw error;
+    }
 
     if (!response.ok) {
       throw new Error(`Embedding service failed with HTTP ${response.status || "unknown"}`);
@@ -183,26 +195,37 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
       filters.push({ match_phrase: { searchTextNormalized: term } });
     }
 
-    const response = await this.client.search({
-      index: this.indexName,
-      size: Math.max(input.limit * 2, input.limit),
-      query: {
-        script_score: {
+    let response: Awaited<ReturnType<ElasticsearchClient["search"]>>;
+    try {
+      response = await this.client.search(
+        {
+          index: this.indexName,
+          size: Math.max(input.limit * 2, input.limit),
           query: {
-            bool: {
-              filter: filters,
-              should
-            }
-          },
-          script: {
-            source: "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
-            params: {
-              query_vector: queryVector
+            script_score: {
+              query: {
+                bool: {
+                  filter: filters,
+                  should
+                }
+              },
+              script: {
+                source: "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+                params: {
+                  query_vector: queryVector
+                }
+              }
             }
           }
-        }
+        },
+        { requestTimeout: ELASTICSEARCH_TIMEOUT_MS }
+      );
+    } catch (error) {
+      if (this.isTimeoutError(error)) {
+        throw new Error(`Elasticsearch search timed out after ${ELASTICSEARCH_TIMEOUT_MS}ms`);
       }
-    });
+      throw error;
+    }
 
     return response.hits?.hits || [];
   }
@@ -240,6 +263,16 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
     }
 
     return ids;
+  }
+
+  private isTimeoutError(error: unknown) {
+    const candidate = error as { name?: string; message?: string; code?: string };
+    return (
+      candidate?.name === "AbortError" ||
+      candidate?.name === "TimeoutError" ||
+      candidate?.code === "TimeoutError" ||
+      /timeout|timed out|abort/i.test(candidate?.message || "")
+    );
   }
 }
 

@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
-import { PropertiesService } from "./properties.service";
+import { INTENT_KEYWORDS, PropertiesService, STOP_WORDS_FOR_TOKENS } from "./properties.service";
 
 function prismaStub(overrides = {}) {
   return {
@@ -65,6 +65,13 @@ const propertyRow = {
 describe("PropertiesService", () => {
   afterEach(() => {
     delete process.env.PROPERTY_SEARCH_PROVIDER;
+    jest.useRealTimers();
+  });
+
+  it("keeps intent keywords separate from token stop words", () => {
+    const overlap = [...INTENT_KEYWORDS].filter((keyword) => STOP_WORDS_FOR_TOKENS.has(keyword));
+
+    expect(overlap).toEqual([]);
   });
 
   it("searches Vietnamese natural-language property queries with accent-insensitive tokens", async () => {
@@ -190,7 +197,14 @@ describe("PropertiesService", () => {
   it("combines explicit advanced filters including update date range", async () => {
     const prisma = prismaStub({
       buildingProperty: {
-        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            ...propertyRow,
+            ward: "Hai Chau",
+            district: "Hai Chau",
+            searchTextNormalized: "nha hai chau hai chau da nang"
+          }
+        ]),
         findUnique: jest.fn(),
         count: jest.fn().mockResolvedValue(1),
         create: jest.fn(),
@@ -472,6 +486,421 @@ describe("PropertiesService", () => {
     expect(prisma.buildingProperty.count).not.toHaveBeenCalled();
   });
 
+  it("recognizes expanded lowest-density questions and orders density cells ascending", async () => {
+    const sparseRow = {
+      cellId: "16070:108150",
+      count: 5,
+      centerLat: 16.071,
+      centerLng: 108.151,
+      minLat: 16.07,
+      minLng: 108.15,
+      maxLat: 16.072,
+      maxLng: 108.152,
+      cellSouth: 16.07,
+      cellWest: 108.15,
+      cellNorth: 16.072,
+      cellEast: 108.152,
+      ward: "Hoa Khanh Bac",
+      district: "Lien Chieu"
+    };
+    const sqlite = sqliteStub();
+    sqlite.all
+      .mockReturnValueOnce([{ ward: "Hoa Khanh Bac", district: "Lien Chieu" }])
+      .mockReturnValueOnce([sparseRow])
+      .mockReturnValueOnce([{ count: 5 }]);
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(5),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma, sqlite as any);
+
+    const result = await service.searchProperties({
+      query: "vung nao thua thot nhat o lien chieu",
+      limit: 5
+    });
+
+    expect(result.answer).toEqual(expect.objectContaining({ type: "density" }));
+    expect(result.answer.text).toMatch(/thua|it/i);
+    expect(result.meta.densityDirection).toBe("lowest");
+    expect(result.map.type).toBe("property-density");
+    expect(sqlite.all.mock.calls[1][0]).toEqual(expect.stringContaining("ORDER BY count ASC"));
+  });
+
+  it("hydrates every density region with a proportional object budget", async () => {
+    const densityRows = [
+      {
+        cellId: "1",
+        count: 100,
+        centerLat: 16.071,
+        centerLng: 108.151,
+        minLat: 16.07,
+        minLng: 108.15,
+        maxLat: 16.072,
+        maxLng: 108.152,
+        cellSouth: 16.07,
+        cellWest: 108.15,
+        cellNorth: 16.072,
+        cellEast: 108.152,
+        ward: "Hoa Khanh Bac",
+        district: "Lien Chieu"
+      },
+      {
+        cellId: "2",
+        count: 50,
+        centerLat: 16.081,
+        centerLng: 108.161,
+        minLat: 16.08,
+        minLng: 108.16,
+        maxLat: 16.082,
+        maxLng: 108.162,
+        cellSouth: 16.08,
+        cellWest: 108.16,
+        cellNorth: 16.082,
+        cellEast: 108.162,
+        ward: "Hoa Khanh Bac",
+        district: "Lien Chieu"
+      },
+      {
+        cellId: "3",
+        count: 10,
+        centerLat: 16.091,
+        centerLng: 108.171,
+        minLat: 16.09,
+        minLng: 108.17,
+        maxLat: 16.092,
+        maxLng: 108.172,
+        cellSouth: 16.09,
+        cellWest: 108.17,
+        cellNorth: 16.092,
+        cellEast: 108.172,
+        ward: "Hoa Khanh Bac",
+        district: "Lien Chieu"
+      }
+    ];
+    const sqlite = sqliteStub();
+    sqlite.all
+      .mockReturnValueOnce([{ ward: "Hoa Khanh Bac", district: "Lien Chieu" }])
+      .mockReturnValueOnce(densityRows)
+      .mockReturnValueOnce([{ count: 160 }]);
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest
+          .fn()
+          .mockResolvedValueOnce([{ ...propertyRow, id: "object-1" }])
+          .mockResolvedValueOnce([{ ...propertyRow, id: "object-2", centroidLat: 16.081, centroidLng: 108.161 }])
+          .mockResolvedValueOnce([{ ...propertyRow, id: "object-3", centroidLat: 16.091, centroidLng: 108.171 }]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(160),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma, sqlite as any);
+
+    const result = await service.searchProperties({
+      query: "vung nao nhieu nha nhat o hoa khanh bac",
+      limit: 5
+    });
+
+    expect(result.map.regions).toHaveLength(3);
+    expect(result.map.regions.every((region: any) => region.objects.length > 0)).toBe(true);
+    expect(prisma.buildingProperty.findMany).toHaveBeenCalledTimes(3);
+    expect(prisma.buildingProperty.findMany.mock.calls.map(([call]) => call.take)).toEqual([
+      220,
+      109,
+      21
+    ]);
+  });
+
+  it("uses light projections for search result and density object queries", async () => {
+    const densityRow = {
+      cellId: "16070:108150",
+      count: 1,
+      centerLat: 16.071,
+      centerLng: 108.151,
+      minLat: 16.07,
+      minLng: 108.15,
+      maxLat: 16.072,
+      maxLng: 108.152,
+      cellSouth: 16.07,
+      cellWest: 108.15,
+      cellNorth: 16.072,
+      cellEast: 108.152,
+      ward: "Hoa Khanh Bac",
+      district: "Lien Chieu"
+    };
+    const sqlite = sqliteStub();
+    sqlite.all
+      .mockReturnValueOnce([{ ward: "Hoa Khanh Bac", district: "Lien Chieu" }])
+      .mockReturnValueOnce([densityRow])
+      .mockReturnValueOnce([{ count: 1 }]);
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma, sqlite as any);
+
+    await service.searchProperties({ query: "cho toi danh sach nha o hai chau", limit: 10 });
+    await service.searchProperties({ query: "vung nao nhieu nha nhat o hoa khanh bac", limit: 5 });
+
+    expect(prisma.buildingProperty.findMany.mock.calls[0][0].select).toBeDefined();
+    expect(prisma.buildingProperty.findMany.mock.calls[0][0].select.geometry).toBeUndefined();
+    expect(prisma.buildingProperty.findMany.mock.calls[1][0].select).toBeDefined();
+    expect(prisma.buildingProperty.findMany.mock.calls[1][0].select.embedding).toBeUndefined();
+  });
+
+  it("uses exact ward equality instead of LIKE scans for density location matches", async () => {
+    const densityRow = {
+      cellId: "16070:108150",
+      count: 81,
+      centerLat: 16.071,
+      centerLng: 108.151,
+      minLat: 16.07,
+      minLng: 108.15,
+      maxLat: 16.072,
+      maxLng: 108.152,
+      cellSouth: 16.07,
+      cellWest: 108.15,
+      cellNorth: 16.072,
+      cellEast: 108.152,
+      ward: "Hoa Khanh Bac",
+      district: "Lien Chieu"
+    };
+    const sqlite = sqliteStub();
+    sqlite.all
+      .mockReturnValueOnce([{ ward: "Hoa Khanh Bac", district: "Lien Chieu" }])
+      .mockReturnValueOnce([densityRow])
+      .mockReturnValueOnce([{ count: 81 }]);
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(81),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma, sqlite as any);
+
+    await service.searchProperties({
+      query: "vung nao nhieu nha nhat o hoa khanh bac",
+      limit: 5
+    });
+
+    const densitySql = sqlite.all.mock.calls[1][0];
+    const totalSql = sqlite.all.mock.calls[2][0];
+    expect(densitySql).toContain('AND "ward" = ?');
+    expect(densitySql).not.toContain('LIKE ?');
+    expect(totalSql).toContain('AND "ward" = ?');
+    expect(totalSql).not.toContain('LIKE ?');
+    expect(sqlite.all.mock.calls[1]).toEqual(
+      expect.arrayContaining(["overture", "Hoa Khanh Bac"])
+    );
+  });
+
+  it("matches known wards before location fallback and keeps district when both are present", async () => {
+    const sqlite = sqliteStub();
+    sqlite.all.mockReturnValueOnce([
+      { ward: "Hoa Khanh Bac", district: "Lien Chieu" },
+      { ward: "Khue My", district: "Ngu Hanh Son" }
+    ]);
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma, sqlite as any);
+
+    await service.searchProperties({
+      query: "o hoa khanh bac, quan lien chieu",
+      limit: 10
+    });
+
+    expect(prisma.buildingProperty.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            { ward: "Hoa Khanh Bac" },
+            { district: "Lien Chieu" }
+          ])
+        })
+      })
+    );
+  });
+
+  it("keeps density intent before token stop-word filtering removes density words", async () => {
+    const sqlite = sqliteStub();
+    sqlite.all.mockReturnValueOnce([]);
+    const service = new PropertiesService(prismaStub(), sqlite as any);
+
+    const result = await service.searchProperties({
+      query: "vung nao nhieu nha nhat",
+      limit: 5
+    });
+
+    expect(result.answer).toEqual(expect.objectContaining({ type: "density" }));
+    expect(result.meta.tokens).toEqual([]);
+    expect(result.meta.warnings).toEqual(
+      expect.arrayContaining(["Density query requires a ward or district; none detected."])
+    );
+  });
+
+  it("falls back quickly for density questions without a ward, district, or useful term", async () => {
+    const sqlite = sqliteStub();
+    const prisma = prismaStub();
+    const service = new PropertiesService(prisma, sqlite as any);
+
+    const startedAt = Date.now();
+    const result = await service.searchProperties({
+      query: "vung nao nhieu nha nhat",
+      limit: 5
+    });
+
+    expect(Date.now() - startedAt).toBeLessThan(50);
+    expect(result.answer.text).toMatch(/thu hep/i);
+    expect(result.meta.warnings).toEqual(
+      expect.arrayContaining(["Density query requires a ward or district; none detected."])
+    );
+    expect(sqlite.all).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws a clear timeout error when the MiniLM embedding request is aborted", async () => {
+    jest.useFakeTimers();
+    const fetchMock = jest.fn((_url: string, init?: { signal?: AbortSignal }): Promise<never> => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const error = new Error("aborted");
+          error.name = "AbortError";
+          reject(error);
+        });
+      });
+    });
+    const provider = new ElasticsearchPropertySearchProvider(prismaStub(), {
+      client: { ping: jest.fn().mockResolvedValue(true), search: jest.fn() },
+      fetch: fetchMock,
+      embeddingServiceUrl: "http://localhost:5055"
+    });
+
+    const promise = provider.search({
+      query: "nha hai chau",
+      normalizedQuery: "nha hai chau",
+      tokens: ["hai", "chau"],
+      limit: 10
+    });
+
+    jest.advanceTimersByTime(4100);
+
+    await expect(promise).rejects.toThrow("Embedding service timed out after");
+    jest.useRealTimers();
+  });
+
+  it("throws a clear timeout error when Elasticsearch search times out", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ embeddings: [new Array(384).fill(0.2)] })
+    });
+    const provider = new ElasticsearchPropertySearchProvider(prismaStub(), {
+      client: {
+        ping: jest.fn().mockResolvedValue(true),
+        search: jest.fn().mockRejectedValue(Object.assign(new Error("request timeout"), { name: "TimeoutError" }))
+      },
+      fetch: fetchMock,
+      embeddingServiceUrl: "http://localhost:5055"
+    });
+
+    await expect(
+      provider.search({
+        query: "nha hai chau",
+        normalizedQuery: "nha hai chau",
+        tokens: ["hai", "chau"],
+        limit: 10
+      })
+    ).rejects.toThrow("Elasticsearch search timed out after");
+  });
+
+  it("falls back to PostgreSQL with a specific warning when semantic search times out", async () => {
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma, undefined, {
+      propertySearchProvider: "elasticsearch",
+      elasticsearchProvider: {
+        search: jest.fn().mockRejectedValue(new Error("Embedding service timed out after 4000ms"))
+      }
+    });
+
+    const result = await service.searchProperties({
+      query: "Nguyen Luong Bang",
+      limit: 10
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.meta.searchMode).toBe("postgres-normalized-lexical");
+    expect(result.meta.warnings).toEqual([
+      "MiniLM embedding timed out; used PostgreSQL fallback."
+    ]);
+  });
+
+  it("caps total semantic provider latency before falling back to PostgreSQL", async () => {
+    jest.useFakeTimers();
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([propertyRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const service = new PropertiesService(prisma, undefined, {
+      propertySearchProvider: "elasticsearch",
+      elasticsearchProvider: {
+        search: jest.fn(() => new Promise(() => undefined))
+      }
+    });
+
+    const promise = service.searchProperties({
+      query: "Nguyen Luong Bang",
+      limit: 10
+    });
+    await jest.advanceTimersByTimeAsync(2600);
+
+    const result = await promise;
+
+    expect(result.items).toHaveLength(1);
+    expect(result.meta.searchMode).toBe("postgres-normalized-lexical");
+    expect(result.meta.warnings).toEqual([
+      "Elasticsearch/MiniLM search timed out; used PostgreSQL fallback."
+    ]);
+  });
+
   it("excludes demo property rows from default density answers", async () => {
     const sqlite = sqliteStub();
     sqlite.all
@@ -595,7 +1024,8 @@ describe("PropertiesService", () => {
             })
           })
         })
-      })
+      }),
+      expect.objectContaining({ requestTimeout: expect.any(Number) })
     );
     expect(prisma.buildingProperty.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -645,6 +1075,42 @@ describe("PropertiesService", () => {
         }
       })
     );
+  });
+
+  it("uses PostgreSQL directly for explicit list queries with a matched location", async () => {
+    const haiChauRow = {
+      ...propertyRow,
+      ward: "Hai Chau",
+      district: "Hai Chau",
+      searchTextNormalized: "nha hai chau hai chau da nang"
+    };
+    const prisma = prismaStub({
+      buildingProperty: {
+        findMany: jest.fn().mockResolvedValue([haiChauRow]),
+        findUnique: jest.fn(),
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn(),
+        update: jest.fn(),
+        upsert: jest.fn()
+      }
+    });
+    const search = jest.fn().mockResolvedValue({
+      items: [],
+      searchMode: "elasticsearch-minilm-hybrid"
+    });
+    const service = new PropertiesService(prisma, undefined, {
+      propertySearchProvider: "elasticsearch",
+      elasticsearchProvider: { search }
+    });
+
+    const result = await service.searchProperties({
+      query: "cho toi danh sach nha o hai chau",
+      limit: 10
+    });
+
+    expect(search).not.toHaveBeenCalled();
+    expect(result.items).toHaveLength(1);
+    expect(result.meta.searchMode).toBe("postgres-normalized-lexical");
   });
 
   it("hydrates Elasticsearch hits with parsed location filters so semantic search stays in the requested area", async () => {

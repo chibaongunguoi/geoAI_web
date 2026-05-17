@@ -27,6 +27,8 @@ Compact tracker for what is done, partially done, and still open. Source task ID
 ### EP04 - Vietnamese NL Query And AI Features
 
 - Done: `EP04-001 -> EP04-016`.
+- Done/stabilized semantic search: expanded Vietnamese density intent recognition for high/low density queries, exact ward/district-backed density search, multi-region density object hydration, light projection for search payloads, backend timeout/fallback warnings, frontend request cancellation with an 8s UI deadline, and refreshed in-app sample query chips.
+- Current semantic search sample queries: `Vùng nào nhiều nhà nhất ở Hòa Khánh Bắc`; `Vùng nào thưa thớt nhất ở Liên Chiểu`; `Cho tôi danh sách nhà ở Hải Châu`; `Có bao nhiêu tòa nhà ở Hòa Khánh Bắc, Liên Chiểu?`; `Tìm nhà đang hoạt động ở Sơn Trà`; `16.08828, 108.21860`. Query không dấu vẫn được hỗ trợ qua `searchTextNormalized`.
 - Not done: SQL review/editing `EP04-017 -> EP04-032`; predictive maintenance `EP04-033 -> EP04-048`; image recognition `EP04-049 -> EP04-064`; AI report generation `EP04-065 -> EP04-080`.
 
 ### EP05 - Spatial Analytics

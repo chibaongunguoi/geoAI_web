@@ -114,6 +114,7 @@ type PropertySearchAnswer = {
 
 type SearchIntent = {
   type: "list" | "count" | "density";
+  direction?: "highest" | "lowest";
   filters: {
     ward?: string;
     district?: string;
@@ -212,6 +213,9 @@ const DEFAULT_LIMIT = 20;
 const DEFAULT_DENSITY_GRID_SIZE = 0.002;
 const DEFAULT_DENSITY_REGION_LIMIT = 6;
 const DEFAULT_DENSITY_OBJECT_LIMIT = 350;
+const DENSITY_BACKEND_TIMEOUT_MS = Number(process.env.DENSITY_BACKEND_TIMEOUT_MS || 5000);
+const SEMANTIC_PROVIDER_TIMEOUT_MS = Number(process.env.SEMANTIC_PROVIDER_TIMEOUT_MS || 2500);
+const LIST_SEARCH_TIMEOUT_MS = Number(process.env.LIST_SEARCH_TIMEOUT_MS || 2000);
 const DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
 const VALID_STATUSES = new Set<PropertyStatus>([
   "ACTIVE",
@@ -219,7 +223,7 @@ const VALID_STATUSES = new Set<PropertyStatus>([
   "REVIEW",
   "ARCHIVED"
 ]);
-const STOP_WORDS = new Set([
+export const STOP_WORDS_FOR_TOKENS = new Set([
   "cho",
   "toi",
   "toi",
@@ -274,6 +278,26 @@ const STOP_WORDS = new Set([
   "luu",
   "tru",
   "building"
+]);
+
+const LOWEST_DENSITY_PHRASES = ["thua thot", "it nha", "it nhat", "vang nha", "vang", "thap nhat"];
+const HIGHEST_DENSITY_PHRASES = [
+  "day dac",
+  "mat do",
+  "dong nhat",
+  "nhieu nhat",
+  "dong duc",
+  "nhieu nha nhat",
+  "cao nhat"
+];
+const DENSITY_INTENT_KEYWORDS = [...HIGHEST_DENSITY_PHRASES, ...LOWEST_DENSITY_PHRASES];
+export const INTENT_KEYWORDS = new Set([
+  ...DENSITY_INTENT_KEYWORDS,
+  "bao nhieu",
+  "so luong",
+  "toa nha",
+  "can nha",
+  "bat dong san"
 ]);
 
 const DANANG_DISTRICTS = [
@@ -347,19 +371,21 @@ export class PropertiesService {
 
     if (this.shouldUseElasticsearch(intent, input, tokens)) {
       try {
-        const providerResult = await this.elasticsearchProvider().search({
-          query: input.query,
-          status: this.searchStatus(input.status, intent),
-          propertyType: this.searchPropertyType(input.propertyType, intent),
-          source,
-          limit,
-          tokens,
-          normalizedQuery: normalizeSearchText(input.query || ""),
-          filters: {
-            ward: intent.filters.ward,
-            district: intent.filters.district
-          }
-        });
+        const providerResult = await this.withSemanticProviderTimeout(
+          this.elasticsearchProvider().search({
+            query: input.query,
+            status: this.searchStatus(input.status, intent),
+            propertyType: this.searchPropertyType(input.propertyType, intent),
+            source,
+            limit,
+            tokens,
+            normalizedQuery: normalizeSearchText(input.query || ""),
+            filters: {
+              ward: intent.filters.ward,
+              district: intent.filters.district
+            }
+          })
+        );
 
         return {
           items: providerResult.items,
@@ -372,15 +398,16 @@ export class PropertiesService {
             ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
           }
         };
-      } catch {
+      } catch (error) {
         const result = await this.searchPropertiesPostgres(input, limit, intent, tokens, source);
+        const warning = this.semanticSearchFallbackWarning(error);
         return {
           ...result,
           meta: {
             ...result.meta,
             warnings: [
               ...(result.meta.warnings || []),
-              "Elasticsearch/MiniLM search unavailable; used PostgreSQL fallback."
+              warning
             ]
           }
         };
@@ -398,8 +425,51 @@ export class PropertiesService {
     source: string
   ) {
     if (intent.type === "density") {
-      const densityRegions = await this.densityRegions(intent, tokens, DEFAULT_DENSITY_REGION_LIMIT, source);
-      const total = this.densityTotal(intent, tokens, source);
+      const locationFilters = this.densityLocationFilters(intent);
+      const terms =
+        locationFilters.ward || locationFilters.district
+          ? []
+          : this.densitySearchTerms(intent, tokens);
+
+      if (!this.sqlite) {
+        return this.densityFallbackResponse(input, limit, intent, tokens, 0, [
+          "BetterSqliteService unavailable for density query."
+        ]);
+      }
+
+      if (!locationFilters.ward && !locationFilters.district && terms.length === 0) {
+        return this.densityFallbackResponse(input, limit, intent, tokens, 0, [
+          "Density query requires a ward or district; none detected."
+        ]);
+      }
+
+      let densityRegions: PropertyDensityRegion[] = [];
+      let total = 0;
+      let warnings: string[] = [];
+      let timedOut = false;
+
+      try {
+        [densityRegions, total] = await this.withDensityTimeout(
+          Promise.all([
+            this.densityRegions(
+              intent,
+              tokens,
+              DEFAULT_DENSITY_REGION_LIMIT,
+              source,
+              locationFilters,
+              terms
+            ),
+            Promise.resolve(this.densityTotal(intent, tokens, source, locationFilters, terms))
+          ])
+        );
+      } catch {
+        warnings = ["Density query timed out; please specify ward or district."];
+        timedOut = true;
+      }
+
+      if (timedOut) {
+        return this.densityFallbackResponse(input, limit, intent, tokens, 0, warnings, true);
+      }
 
       return {
         items: [],
@@ -415,46 +485,163 @@ export class PropertiesService {
           searchMode: "postgres-normalized-vietnamese-nl-fuzzy-density",
           semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
           warnings: [] as string[],
+          densityDirection: intent.direction || "highest",
+          timedOut: false,
           total,
           ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
         }
       };
     }
 
+    if (intent.type === "list") {
+      try {
+        return await this.withListSearchTimeout(
+          this.searchPropertiesPostgresList(input, limit, intent, tokens, source)
+        );
+      } catch {
+        return this.listSearchFallbackResponse(input, limit, intent, tokens, [
+          "Property list search timed out; please narrow the area or query."
+        ]);
+      }
+    }
+
     const where = this.searchWhere(input, tokens, intent, source);
     const total = await this.prisma.buildingProperty.count({ where });
+    const answer = this.searchAnswer(total, intent);
+
+    return {
+      items: [],
+      answer,
+      meta: {
+        limit,
+        tokens,
+        normalizedQuery: normalizeSearchText(input.query || ""),
+        searchMode: "postgres-normalized-vietnamese-nl",
+        semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
+        warnings: [] as string[],
+        total,
+        ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
+      }
+    };
+  }
+
+  private async searchPropertiesPostgresList(
+    input: PropertySearchInput,
+    limit: number,
+    intent: SearchIntent,
+    tokens: string[],
+    source: string
+  ) {
+    const sqliteResult = this.searchPropertiesSqliteList(input, limit, intent, tokens, source);
+    if (sqliteResult) {
+      return sqliteResult;
+    }
+
+    const where = this.searchWhere(input, tokens, intent, source);
     let rows = (await this.prisma.buildingProperty.findMany({
       where,
+      select: this.selectLightPropertyFields(),
       orderBy: [{ updatedAt: "desc" }],
       take: Math.min(MAX_LIMIT, limit + 15)
     })) as BuildingPropertyRow[];
     let rankedRows = this.rankRows(rows, tokens).slice(0, limit);
 
-    if (rankedRows.length === 0 && tokens.length > 0 && intent.type === "list") {
+    if (rankedRows.length === 0 && tokens.length > 0) {
       rows = (await this.prisma.buildingProperty.findMany({
         where: this.fuzzySearchWhere(input, tokens, source, intent),
+        select: this.selectLightPropertyFields(),
         orderBy: [{ updatedAt: "desc" }],
         take: MAX_LIMIT
       })) as BuildingPropertyRow[];
       rankedRows = this.rankRows(rows, tokens).slice(0, limit);
     }
 
-    const answer = intent.type === "count" ? this.searchAnswer(total, intent) : undefined;
-
     return {
       items: rankedRows,
-      answer,
       meta: {
         limit,
         tokens,
         normalizedQuery: normalizeSearchText(input.query || ""),
-        searchMode:
-          intent.type === "count"
-            ? "postgres-normalized-vietnamese-nl"
-            : "postgres-normalized-lexical",
+        searchMode: "postgres-normalized-lexical",
         semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
         warnings: [] as string[],
-        total,
+        total: rankedRows.length,
+        ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
+      }
+    };
+  }
+
+  private searchPropertiesSqliteList(
+    input: PropertySearchInput,
+    limit: number,
+    intent: SearchIntent,
+    tokens: string[],
+    source: string
+  ) {
+    if (
+      !this.sqlite ||
+      !this.isExplicitListQuery(input.query) ||
+      !this.shouldUseExactLocationColumns(intent)
+    ) {
+      return undefined;
+    }
+
+    const exactFilters = [
+      intent.filters.ward ? `AND "ward" = ?` : "",
+      intent.filters.district ? `AND "district" = ?` : ""
+    ].join(" ");
+    const rows = this.sqlite.all<BuildingPropertyRow>(
+      `
+        SELECT
+          "id",
+          "code",
+          "overtureId",
+          "name",
+          "addressLine",
+          "street",
+          "ward",
+          "district",
+          "city",
+          "propertyType",
+          "status",
+          "source",
+          "sourceVersion",
+          "level",
+          "height",
+          "floors",
+          "areaSqm",
+          "centroidLat",
+          "centroidLng",
+          "bbox",
+          "searchText",
+          "searchTextNormalized",
+          "createdAt",
+          "updatedAt",
+          "deletedAt"
+        FROM "BuildingProperty"
+        WHERE "deletedAt" IS NULL
+          AND "source" = ?
+          ${exactFilters}
+        LIMIT ?
+      `,
+      source,
+      ...[intent.filters.ward, intent.filters.district].filter(
+        (value): value is string => Boolean(value)
+      ),
+      Math.min(MAX_LIMIT, limit + 15)
+    );
+    const rankedRows = this.rankRows(rows, tokens).slice(0, limit);
+
+    return {
+      items: rankedRows,
+      meta: {
+        limit,
+        tokens,
+        normalizedQuery: normalizeSearchText(input.query || ""),
+        searchMode: "sqlite-exact-location-list",
+        semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
+        warnings: [] as string[],
+        total: rankedRows.length,
         ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
       }
     };
@@ -466,9 +653,69 @@ export class PropertiesService {
       provider === "elasticsearch" &&
       intent.type === "list" &&
       Boolean(input.query?.trim()) &&
+      !this.isExplicitListQuery(input.query) &&
       tokens.length > 0 &&
       !this.validDateRange(input.updatedFrom, input.updatedTo)
     );
+  }
+
+  private isExplicitListQuery(query?: string) {
+    const normalizedQuery = normalizeSearchText(query || "");
+    return /\b(danh sach|liet ke|hien thi|xem)\b/.test(normalizedQuery);
+  }
+
+  private withSemanticProviderTimeout<T>(promise: Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(
+          new Error(`Semantic provider timed out after ${SEMANTIC_PROVIDER_TIMEOUT_MS}ms`)
+        );
+      }, SEMANTIC_PROVIDER_TIMEOUT_MS);
+
+      promise.then(
+        (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        (error) => {
+          clearTimeout(timer);
+          reject(error);
+        }
+      );
+    });
+  }
+
+  private withListSearchTimeout<T>(promise: Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`PostgreSQL list search timed out after ${LIST_SEARCH_TIMEOUT_MS}ms`));
+      }, LIST_SEARCH_TIMEOUT_MS);
+
+      promise.then(
+        (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        (error) => {
+          clearTimeout(timer);
+          reject(error);
+        }
+      );
+    });
+  }
+
+  private semanticSearchFallbackWarning(error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("Embedding service timed out after")) {
+      return "MiniLM embedding timed out; used PostgreSQL fallback.";
+    }
+    if (message.includes("Semantic provider timed out after")) {
+      return "Elasticsearch/MiniLM search timed out; used PostgreSQL fallback.";
+    }
+    if (message.includes("Elasticsearch search timed out after")) {
+      return "Elasticsearch search timed out; used PostgreSQL fallback.";
+    }
+    return "Elasticsearch/MiniLM search unavailable; used PostgreSQL fallback.";
   }
 
   private elasticsearchProvider() {
@@ -737,9 +984,28 @@ export class PropertiesService {
     const where: Record<string, unknown> = { deletedAt: null, source };
     const andFilters: Record<string, unknown>[] = [];
 
-    this.addNormalizedPhraseFilter(andFilters, intent.filters.ward);
-    this.addNormalizedPhraseFilter(andFilters, intent.filters.district);
-    this.addNormalizedTokenFilters(andFilters, tokens);
+    if (this.shouldUseExactLocationColumns(intent)) {
+      if (intent.filters.ward) {
+        andFilters.push({ ward: intent.filters.ward });
+      }
+      if (intent.filters.district) {
+        andFilters.push({ district: intent.filters.district });
+      }
+    } else {
+      this.addNormalizedPhraseFilter(andFilters, intent.filters.ward);
+      this.addNormalizedPhraseFilter(andFilters, intent.filters.district);
+    }
+    const hasLocationFilter = Boolean(
+      intent.filters.ward ||
+        intent.filters.district ||
+        this.cleanString(input.ward) ||
+        this.cleanString(input.district)
+    );
+    const shouldSkipTokenFilters =
+      this.isExplicitListQuery(input.query) && hasLocationFilter && tokens.length <= 2;
+    if (!shouldSkipTokenFilters) {
+      this.addNormalizedTokenFilters(andFilters, tokens);
+    }
     this.addNormalizedPhraseFilter(andFilters, input.street);
     this.addNormalizedPhraseFilter(andFilters, input.ward);
     this.addNormalizedPhraseFilter(andFilters, input.district);
@@ -898,8 +1164,11 @@ export class PropertiesService {
       "mat",
       "day"
     ]);
+    const locationNames = this.locationNames();
+    const knownWard = this.matchKnownWard(normalizedQuery, locationNames.wards);
+    const knownDistrict = this.matchKnownDistrict(normalizedQuery, locationNames.districts);
     const district =
-      this.matchKnownDistrict(normalizedQuery) ||
+      knownDistrict ||
       this.extractPhraseAfter(normalizedQuery, "quan", ["la", "co", "bao", "so"]) ||
       this.extractPhraseAfter(normalizedQuery, "huyen", ["la", "co", "bao", "so"]) ||
       this.extractPhraseAfter(normalizedQuery, "thuoc", ["la", "co", "bao", "so"]);
@@ -915,11 +1184,14 @@ export class PropertiesService {
       "so"
     ]);
     const locationIsKnownDistrict = locationAfterAt
-      ? DANANG_DISTRICTS.includes(locationAfterAt)
+      ? locationNames.districts.has(locationAfterAt) || DANANG_DISTRICTS.includes(locationAfterAt)
       : false;
+    const knownLocationDistrict = locationAfterAt
+      ? locationNames.districts.get(locationAfterAt) || locationAfterAt
+      : undefined;
     const filters = {
-      ward: wardFromMarker || (locationIsKnownDistrict ? undefined : locationAfterAt),
-      district: district || (locationIsKnownDistrict ? locationAfterAt : undefined),
+      ward: knownWard || wardFromMarker || (locationIsKnownDistrict ? undefined : locationAfterAt),
+      district: district || (locationIsKnownDistrict ? knownLocationDistrict : undefined),
       status: this.matchStatus(normalizedQuery),
       propertyType: this.matchPropertyType(normalizedQuery)
     };
@@ -930,6 +1202,7 @@ export class PropertiesService {
         : this.isCountQuestion(normalizedQuery)
           ? "count"
           : "list",
+      direction: this.densityDirection(normalizedQuery),
       filters
     };
   }
@@ -939,17 +1212,21 @@ export class PropertiesService {
       return false;
     }
 
-    const asksForDensity =
-      normalizedQuery.includes("day dac") ||
-      normalizedQuery.includes("mat do") ||
-      normalizedQuery.includes("dong nhat") ||
-      normalizedQuery.includes("nhieu nhat");
+    const asksForDensity = DENSITY_INTENT_KEYWORDS.some((phrase) =>
+      normalizedQuery.includes(phrase)
+    );
     const asksForArea = /\b(vung|khu|noi|cho)\b/.test(normalizedQuery);
     const asksForBuildings = /\b(toa nha|can nha|nha|building|bat dong san)\b/.test(
       normalizedQuery
     );
 
-    return asksForDensity && asksForArea && asksForBuildings;
+    return asksForDensity && (asksForArea || asksForBuildings);
+  }
+
+  private densityDirection(normalizedQuery: string): "highest" | "lowest" {
+    return LOWEST_DENSITY_PHRASES.some((phrase) => normalizedQuery.includes(phrase))
+      ? "lowest"
+      : "highest";
   }
 
   private isCountQuestion(normalizedQuery: string) {
@@ -983,13 +1260,41 @@ export class PropertiesService {
       .filter((index) => index >= 0)
       .sort((a, b) => a - b)[0];
     const phrase = (stopIndex === undefined ? remainder : remainder.slice(0, stopIndex)).trim();
-    const tokens = phrase.split(" ").filter((token) => token && !STOP_WORDS.has(token));
+    const tokens = phrase
+      .split(" ")
+      .filter((token) => token && !STOP_WORDS_FOR_TOKENS.has(token));
 
     return tokens.length > 0 ? tokens.join(" ") : undefined;
   }
 
-  private matchKnownDistrict(normalizedQuery: string) {
-    return DANANG_DISTRICTS.find((district) => normalizedQuery.includes(district));
+  private shouldUseExactLocationColumns(intent: SearchIntent) {
+    if (!this.sqlite || (!intent.filters.ward && !intent.filters.district)) {
+      return false;
+    }
+
+    const cache = this.locationNames();
+    return Boolean(
+      (intent.filters.ward && cache.wards.has(normalizeSearchText(intent.filters.ward))) ||
+        (intent.filters.district && cache.districts.has(normalizeSearchText(intent.filters.district)))
+    );
+  }
+
+  private matchKnownDistrict(normalizedQuery: string, districts: Map<string, string>) {
+    const knownDistrict = [...districts.keys()]
+      .filter((district) => normalizedQuery.includes(district))
+      .sort((a, b) => b.length - a.length)[0];
+
+    return knownDistrict
+      ? districts.get(knownDistrict)
+      : DANANG_DISTRICTS.find((district) => normalizedQuery.includes(district));
+  }
+
+  private matchKnownWard(normalizedQuery: string, wards: Map<string, string>) {
+    const knownWard = [...wards.keys()]
+      .filter((ward) => normalizedQuery.includes(ward))
+      .sort((a, b) => b.length - a.length)[0];
+
+    return knownWard ? wards.get(knownWard) : undefined;
   }
 
   private matchStatus(normalizedQuery: string): PropertyStatus | undefined {
@@ -1055,17 +1360,17 @@ export class PropertiesService {
     intent: SearchIntent,
     tokens: string[],
     limit: number,
-    source: string
+    source: string,
+    locationFilters = this.densityLocationFilters(intent),
+    terms =
+      locationFilters.ward || locationFilters.district
+        ? []
+        : this.densitySearchTerms(intent, tokens)
   ): Promise<PropertyDensityRegion[]> {
     if (!this.sqlite) {
       return [];
     }
 
-    const locationFilters = this.densityLocationFilters(intent);
-    const terms =
-      locationFilters.ward || locationFilters.district
-        ? []
-        : this.densitySearchTerms(intent, tokens);
     const exactFilters = [
       locationFilters.ward ? `AND "ward" = ?` : "",
       locationFilters.district ? `AND "district" = ?` : ""
@@ -1118,7 +1423,7 @@ export class PropertiesService {
         ward,
         district
       FROM cells
-      ORDER BY count DESC, center_lat ASC, center_lng ASC
+      ORDER BY count ${intent.direction === "lowest" ? "ASC" : "DESC"}, center_lat ASC, center_lng ASC
       LIMIT ?
     `;
     const params = [
@@ -1191,16 +1496,20 @@ export class PropertiesService {
     return [...new Set(terms.map((term) => normalizeSearchText(term)))];
   }
 
-  private densityTotal(intent: SearchIntent, tokens: string[], source: string) {
+  private densityTotal(
+    intent: SearchIntent,
+    tokens: string[],
+    source: string,
+    locationFilters = this.densityLocationFilters(intent),
+    terms =
+      locationFilters.ward || locationFilters.district
+        ? []
+        : this.densitySearchTerms(intent, tokens)
+  ) {
     if (!this.sqlite) {
       return 0;
     }
 
-    const locationFilters = this.densityLocationFilters(intent);
-    const terms =
-      locationFilters.ward || locationFilters.district
-        ? []
-        : this.densitySearchTerms(intent, tokens);
     const exactFilters = [
       locationFilters.ward ? `AND "ward" = ?` : "",
       locationFilters.district ? `AND "district" = ?` : ""
@@ -1257,37 +1566,92 @@ export class PropertiesService {
       return;
     }
 
-    const topRegion = regions[0];
-    const andFilters: Record<string, unknown>[] = [
-      { centroidLat: { gte: topRegion.bbox.south, lte: topRegion.bbox.north } },
-      { centroidLng: { gte: topRegion.bbox.west, lte: topRegion.bbox.east } }
-    ];
+    await Promise.all(
+      this.densityObjectAllocations(regions).map(async ({ region, take }) => {
+        const andFilters: Record<string, unknown>[] = [
+          { centroidLat: { gte: region.bbox.south, lte: region.bbox.north } },
+          { centroidLng: { gte: region.bbox.west, lte: region.bbox.east } }
+        ];
 
-    for (const term of terms) {
-      this.addNormalizedPhraseFilter(andFilters, term);
+        for (const term of terms) {
+          this.addNormalizedPhraseFilter(andFilters, term);
+        }
+
+        if (locationFilters.ward) {
+          andFilters.push({ ward: locationFilters.ward });
+        }
+
+        if (locationFilters.district) {
+          andFilters.push({ district: locationFilters.district });
+        }
+
+        const rows = (await this.prisma.buildingProperty.findMany({
+          where: {
+            deletedAt: null,
+            source,
+            AND: andFilters
+          },
+          select: this.selectLightPropertyFields(),
+          orderBy: [{ updatedAt: "desc" }],
+          take
+        })) as BuildingPropertyRow[];
+
+        region.objects = rows
+          .map((row) => this.densityObject(row))
+          .filter((object): object is PropertyDensityObject => Boolean(object));
+      })
+    );
+  }
+
+  private densityObjectAllocations(regions: PropertyDensityRegion[]) {
+    const total = regions.reduce((sum, region) => sum + Math.max(0, region.count), 0);
+    if (total <= 0) {
+      return [];
     }
 
-    if (locationFilters.ward) {
-      andFilters.push({ ward: locationFilters.ward });
+    const allocations = regions.map((region) => ({
+      region,
+      take:
+        region.count > 0
+          ? Math.max(1, Math.floor((DEFAULT_DENSITY_OBJECT_LIMIT * region.count) / total))
+          : 0
+    }));
+    const allocated = allocations.reduce((sum, allocation) => sum + allocation.take, 0);
+    if (allocations[0]) {
+      allocations[0].take += DEFAULT_DENSITY_OBJECT_LIMIT - allocated;
     }
 
-    if (locationFilters.district) {
-      andFilters.push({ district: locationFilters.district });
-    }
+    return allocations.filter((allocation) => allocation.take > 0);
+  }
 
-    const rows = (await this.prisma.buildingProperty.findMany({
-      where: {
-        deletedAt: null,
-        source,
-        AND: andFilters
-      },
-      orderBy: [{ updatedAt: "desc" }],
-      take: DEFAULT_DENSITY_OBJECT_LIMIT
-    })) as BuildingPropertyRow[];
-
-    topRegion.objects = rows
-      .map((row) => this.densityObject(row))
-      .filter((object): object is PropertyDensityObject => Boolean(object));
+  private selectLightPropertyFields() {
+    return {
+      id: true,
+      code: true,
+      overtureId: true,
+      name: true,
+      addressLine: true,
+      street: true,
+      ward: true,
+      district: true,
+      city: true,
+      propertyType: true,
+      status: true,
+      source: true,
+      sourceVersion: true,
+      level: true,
+      height: true,
+      floors: true,
+      areaSqm: true,
+      centroidLat: true,
+      centroidLng: true,
+      bbox: true,
+      searchText: true,
+      searchTextNormalized: true,
+      createdAt: true,
+      updatedAt: true,
+      deletedAt: true
+    };
   }
 
   private densityObject(row: BuildingPropertyRow): PropertyDensityObject | null {
@@ -1397,8 +1761,10 @@ export class PropertiesService {
         filters: answerFilters,
         topRegion,
         text: topRegion
-          ? `Vùng dày đặc nhất có ${topRegion.count.toLocaleString("vi-VN")} tòa nhà tại ${topRegion.label}.`
-          : `Không tìm thấy vùng mật độ nhà phù hợp${filterText ? ` tại ${filterText}` : ""}.`
+          ? intent.direction === "lowest"
+            ? `Vung thua thot nhat co ${topRegion.count.toLocaleString("vi-VN")} toa nha tai ${topRegion.label}.`
+            : `Vung day dac nhat co ${topRegion.count.toLocaleString("vi-VN")} toa nha tai ${topRegion.label}.`
+          : `Khong tim thay vung mat do nha phu hop${filterText ? ` tai ${filterText}` : ""}.`
       };
     }
 
@@ -1678,7 +2044,87 @@ export class PropertiesService {
     return normalizeSearchText(query || "")
       .replace(/\bso luong\b/g, " ")
       .split(" ")
-      .filter((token) => token.length > 1 && !STOP_WORDS.has(token));
+      .filter((token) => token.length > 1 && !STOP_WORDS_FOR_TOKENS.has(token));
+  }
+
+  private async withDensityTimeout<T>(operation: Promise<T>) {
+    let timeoutId: NodeJS.Timeout | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<T>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error("Density query timed out")),
+            DENSITY_BACKEND_TIMEOUT_MS
+          );
+        })
+      ]);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
+  }
+
+  private densityFallbackResponse(
+    input: PropertySearchInput,
+    limit: number,
+    intent: SearchIntent,
+    tokens: string[],
+    total: number,
+    warnings: string[],
+    timedOut = false
+  ) {
+    return {
+      items: [],
+      answer: {
+        type: "density",
+        count: total,
+        filters: {
+          ward: intent.filters.ward,
+          district: intent.filters.district
+        },
+        text: "Vui long thu hep khu vuc (phuong hoac quan) de cau hoi mat do chay nhanh hon."
+      },
+      map: {
+        type: "property-density",
+        regions: []
+      },
+      meta: {
+        limit,
+        tokens,
+        normalizedQuery: normalizeSearchText(input.query || ""),
+        searchMode: "postgres-normalized-vietnamese-nl-fuzzy-density",
+        semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
+        warnings,
+        densityDirection: intent.direction || "highest",
+        timedOut,
+        total,
+        ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
+      }
+    };
+  }
+
+  private listSearchFallbackResponse(
+    input: PropertySearchInput,
+    limit: number,
+    intent: SearchIntent,
+    tokens: string[],
+    warnings: string[]
+  ) {
+    return {
+      items: [],
+      meta: {
+        limit,
+        tokens,
+        normalizedQuery: normalizeSearchText(input.query || ""),
+        searchMode: "postgres-normalized-lexical",
+        semanticModel: "paraphrase-multilingual-MiniLM-L12-v2-ready",
+        warnings,
+        total: 0,
+        ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
+      }
+    };
   }
 
   private validLimit(limit?: number) {

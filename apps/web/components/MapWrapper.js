@@ -115,12 +115,13 @@ const SCAN_MODE_OPTIONS = [
   }
 ];
 const REFERENCE_LAYER_IDS = ["admin-boundaries"];
-const SUPPORTED_PROPERTY_QUERY_PATTERNS = [
-  "Tòa nhà ở quận Hải Châu",
-  "Có bao nhiêu nhà ở phường Thuận Phước?",
-  "Vùng nào ở phường Thuận Phước có mật độ nhà nhiều nhất?",
-  "Tòa nhà đang hoạt động ở quận Sơn Trà",
-  "DN-OVT-0013F341424146FB8F5F385E7B69AEDF",
+const TOTAL_UI_DEADLINE_MS = 8000;
+const SEMANTIC_SEARCH_SAMPLE_QUERIES = [
+  "Vùng nào nhiều nhà nhất ở Hòa Khánh Bắc",
+  "Vùng nào thưa thớt nhất ở Liên Chiểu",
+  "Cho tôi danh sách nhà ở Hải Châu",
+  "Có bao nhiêu tòa nhà ở Hòa Khánh Bắc, Liên Chiểu?",
+  "Tìm nhà đang hoạt động ở Sơn Trà",
   "16.08828, 108.21860"
 ];
 
@@ -130,6 +131,7 @@ function selectedLabel(options, value) {
 
 export default function MapWrapper({ permissions = [] }) {
   const abortControllerRef = useRef(null);
+  const propertySearchAbortRef = useRef(null);
   const workspaceRef = useRef(null);
   const mapCanvasRef = useRef(null);
   const [adminArea, setAdminArea] = useState("all_da_nang");
@@ -434,9 +436,18 @@ export default function MapWrapper({ permissions = [] }) {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      propertySearchAbortRef.current?.abort();
+      propertySearchAbortRef.current = null;
+    };
+  }, []);
+
   const clearWorkspace = useCallback(() => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
+    propertySearchAbortRef.current?.abort();
+    propertySearchAbortRef.current = null;
     setIsAnalyzing(false);
     setRectangleCoords(null);
     setAnalysisResults(null);
@@ -509,7 +520,17 @@ export default function MapWrapper({ permissions = [] }) {
 
   const runPropertySearch = useCallback(async (overrideQuery) => {
     const query = typeof overrideQuery === "string" ? overrideQuery.trim() : propertyQuery.trim();
-    if (!query || isSearchingProperties) return;
+    if (!query) return;
+
+    propertySearchAbortRef.current?.abort();
+    const controller = new AbortController();
+    propertySearchAbortRef.current = controller;
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      setPropertySearchStatus("Tìm kiếm quá lâu, vui lòng thu hẹp truy vấn");
+      controller.abort();
+    }, TOTAL_UI_DEADLINE_MS);
 
     if (typeof overrideQuery === "string") {
       setPropertyQuery(query);
@@ -528,7 +549,8 @@ export default function MapWrapper({ permissions = [] }) {
         limit: 10
       });
       const response = await fetch(`/api/properties?query=${encodeURIComponent(query)}&${filterParams}`, {
-        cache: "no-store"
+        cache: "no-store",
+        signal: controller.signal
       });
 
       if (!response.ok) {
@@ -555,13 +577,24 @@ export default function MapWrapper({ permissions = [] }) {
           centroidLng: result.map.center.lng
         });
       }
-    } catch {
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        return;
+      }
       setPropertySearchResult(null);
-      setPropertySearchStatus("Khong tim kiem duoc du lieu nha/dat.");
+      setPropertySearchStatus(
+        didTimeout
+          ? "Tìm kiếm quá lâu, vui lòng thu hẹp truy vấn"
+          : "Khong tim kiem duoc du lieu nha/dat."
+      );
     } finally {
-      setIsSearchingProperties(false);
+      clearTimeout(timeoutId);
+      if (propertySearchAbortRef.current === controller) {
+        propertySearchAbortRef.current = null;
+        setIsSearchingProperties(false);
+      }
     }
-  }, [addSearch, assetFilters, canUseFilters, isSearchingProperties, propertyQuery]);
+  }, [addSearch, assetFilters, canUseFilters, propertyQuery]);
 
   const persistFilterState = useCallback((filters, presets, history) => {
     writeFilterState(window.localStorage, {
@@ -1326,7 +1359,7 @@ export default function MapWrapper({ permissions = [] }) {
                 className={styles.textAreaInput}
                 value={propertyQuery}
                 rows={3}
-                placeholder="VD: Tòa nhà ở quận Hải Châu"
+                placeholder="VD: Vùng nào nhiều nhà nhất ở Hòa Khánh Bắc"
                 list="property-search-suggestions"
                 onChange={(event) => {
                   const val = event.target.value;
@@ -1343,13 +1376,13 @@ export default function MapWrapper({ permissions = [] }) {
             <button
               className={styles.primaryAction}
               type="submit"
-              disabled={isSearchingProperties || !propertyQuery.trim()}
+              disabled={!propertyQuery.trim()}
             >
               {isSearchingProperties ? "Đang tìm..." : "Tìm kiếm"}
             </button>
           </form>
           <div className={styles.sampleQuestionChips} aria-label="Câu hỏi mẫu">
-            {SUPPORTED_PROPERTY_QUERY_PATTERNS.map((question) => (
+            {SEMANTIC_SEARCH_SAMPLE_QUERIES.map((question) => (
               <button
                 key={question}
                 type="button"
