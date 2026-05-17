@@ -61,7 +61,8 @@ describe("MapWrapper measurement tools", () => {
     // mounted without needing an explicit click in the test. Use the exact
     // label to avoid matching other buttons whose `title` starts with
     // "Đo khoảng cách..." (e.g. SpatialDrawToolbar or filter hints).
-    expect(screen.getByText(MEASUREMENT_LABELS.sectionTitle)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: MEASUREMENT_LABELS.sectionTitle }));
+    expect(screen.getByRole("heading", { name: MEASUREMENT_LABELS.sectionTitle })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Đo khoảng cách" }));
 
     await waitFor(() => {
@@ -72,7 +73,7 @@ describe("MapWrapper measurement tools", () => {
   it("hides measurement tools when permission is missing", () => {
     render(<MapWrapper permissions={[]} />);
 
-    expect(screen.queryByText(MEASUREMENT_LABELS.sectionTitle)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: MEASUREMENT_LABELS.sectionTitle })).not.toBeInTheDocument();
     expect(screen.getByTestId("mock-map")).toHaveAttribute("data-measurement-mode", "idle");
   });
 });

@@ -7,6 +7,7 @@ import { MapLayersModule } from "./map-layers/map-layers.module";
 import { PropertiesModule } from "./properties/properties.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
+import { PoiModule } from "./poi/poi.module";
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { DashboardModule } from "./dashboard/dashboard.module";
     DashboardModule,
     MapAssetsModule,
     MapLayersModule,
-    PropertiesModule
+    PropertiesModule,
+    PoiModule
   ]
 })
 export class AppModule {}

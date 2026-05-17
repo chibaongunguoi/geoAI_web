@@ -25,8 +25,8 @@ describe("dashboard components", () => {
       </>,
     );
 
-    expect(screen.getByText("Total assets")).toBeInTheDocument();
-    expect(screen.getByText("Missing geometry")).toBeInTheDocument();
+    expect(screen.getByText("Tổng tài sản")).toBeInTheDocument();
+    expect(screen.getByText("Thiếu tọa độ")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Active 3/i }));
     expect(onDrilldown).toHaveBeenCalledWith({ status: "ACTIVE" });
   });
@@ -52,13 +52,13 @@ describe("dashboard components", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText(/district/i), { target: { value: "Lien Chieu" } });
-    fireEvent.click(screen.getByRole("button", { name: /apply/i }));
-    fireEvent.click(screen.getByRole("button", { name: /refresh/i }));
-    fireEvent.click(screen.getByRole("button", { name: /export json/i }));
-    fireEvent.click(screen.getByRole("button", { name: /export csv/i }));
-    fireEvent.click(screen.getByRole("button", { name: /view on map/i }));
-    fireEvent.click(screen.getByRole("checkbox", { name: /auto refresh/i }));
+    fireEvent.change(screen.getByLabelText(/Quận\/huyện/i), { target: { value: "Lien Chieu" } });
+    fireEvent.click(screen.getByRole("button", { name: /Áp dụng/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Làm mới/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Xuất JSON/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Xuất CSV/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Xem trên bản đồ/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Tự động làm mới/i }));
 
     expect(handlers.onApply).toHaveBeenCalledWith(expect.objectContaining({ district: "Lien Chieu" }));
     expect(handlers.onRefresh).toHaveBeenCalled();

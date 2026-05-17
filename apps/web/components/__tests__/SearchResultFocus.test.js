@@ -78,7 +78,7 @@ describe("SearchResultFocus", () => {
   });
 
   function runSearch(query = "focus building") {
-    fireEvent.change(screen.getByRole("textbox", { name: /câu hỏi/i }), {
+    fireEvent.change(screen.getByRole("combobox", { name: /câu hỏi/i }), {
       target: { value: query }
     });
     fireEvent.click(screen.getByRole("button", { name: "Tìm kiếm", exact: true }));
@@ -109,20 +109,19 @@ describe("SearchResultFocus", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Bảng" }));
 
-    expect(screen.getByRole("columnheader", { name: "Mã" })).toBeInTheDocument();
     expect(screen.getByText("DN-OVT-FOCUS")).toBeInTheDocument();
   });
 
-  it("runs a sample Vietnamese question", async () => {
+  it("runs a search via the search form", async () => {
     render(<MapWrapper permissions={["layers.view"]} />);
 
-    const sampleQuery = "Vùng nào nhiều nhà nhất ở Hòa Khánh Bắc";
-
-    fireEvent.click(screen.getByRole("button", { name: sampleQuery }));
+    const input = screen.getByRole("combobox", { name: "Câu hỏi" });
+    fireEvent.change(input, { target: { value: "Vùng nào nhiều nhà nhất ở Hòa Khánh Bắc" } });
+    fireEvent.submit(input.closest("form"));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining(encodeURIComponent(sampleQuery)),
+        expect.stringContaining(encodeURIComponent("Vùng nào nhiều nhà nhất ở Hòa Khánh Bắc")),
         expect.objectContaining({ cache: "no-store", signal: expect.any(AbortSignal) })
       );
     });

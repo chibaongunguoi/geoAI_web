@@ -65,7 +65,8 @@ describe("MapWrapper export and share tools", () => {
   it("renders export/share tools when permissions are present", () => {
     render(<MapWrapper permissions={["export.use", "share.create"]} />);
 
-    expect(screen.getByText("Export & share")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Export & share" }));
+    expect(screen.getByRole("heading", { name: "Export & share" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /copy share link/i }));
     expect(screen.getByTestId("mock-map")).toHaveAttribute("data-has-viewport-callback", "yes");
   });

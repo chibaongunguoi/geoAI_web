@@ -4,7 +4,7 @@ function ChartGroup({ title, items = [], filterKey, onDrilldown }) {
   return (
     <section className="dashboard-chart" aria-label={title}>
       <h2>{title}</h2>
-      {items.length === 0 ? <p className="dashboard-empty">No data</p> : null}
+      {items.length === 0 ? <p className="dashboard-empty">Không có dữ liệu</p> : null}
       <div className="dashboard-bars">
         {items.slice(0, 8).map((item) => (
           <button
@@ -28,12 +28,12 @@ export default function DashboardCharts({ summary, onDrilldown }) {
 
   return (
     <div className="dashboard-chart-grid">
-      <ChartGroup title="Status" items={buckets.byStatus} filterKey="status" onDrilldown={onDrilldown} />
-      <ChartGroup title="Type" items={buckets.byType} filterKey="propertyType" onDrilldown={onDrilldown} />
-      <ChartGroup title="District" items={buckets.byDistrict} filterKey="district" onDrilldown={onDrilldown} />
-      <ChartGroup title="Ward" items={buckets.byWard} filterKey="ward" onDrilldown={onDrilldown} />
-      <section className="dashboard-chart" aria-label="Updated trend">
-        <h2>Updated trend</h2>
+      <ChartGroup title="Trạng thái" items={buckets.byStatus} filterKey="status" onDrilldown={onDrilldown} />
+      <ChartGroup title="Loại" items={buckets.byType} filterKey="propertyType" onDrilldown={onDrilldown} />
+      <ChartGroup title="Quận/huyện" items={buckets.byDistrict} filterKey="district" onDrilldown={onDrilldown} />
+      <ChartGroup title="Phường/xã" items={buckets.byWard} filterKey="ward" onDrilldown={onDrilldown} />
+      <section className="dashboard-chart" aria-label="Xu hướng cập nhật">
+        <h2>Xu hướng cập nhật</h2>
         <ol className="dashboard-trend">
           {(summary?.trend || []).slice(-7).map((item) => (
             <li key={item.date}>

@@ -37,6 +37,42 @@ const rolePermissions = {
   ADMIN: [...PERMISSION_KEYS]
 };
 
+async function upsertTestUser(input: {
+  username: string;
+  password: string;
+  roleCode: "USER" | "MANAGER" | "ADMIN";
+  name: string;
+}) {
+  const role = await prisma.role.findUniqueOrThrow({
+    where: { code: input.roleCode }
+  });
+  const passwordHash = await hasher.hash(input.password);
+  const user = await prisma.user.upsert({
+    where: { username: input.username },
+    update: {
+      email: `${input.username}@local.geoai`,
+      name: input.name,
+      passwordHash,
+      status: "ACTIVE"
+    },
+    create: {
+      username: input.username,
+      email: `${input.username}@local.geoai`,
+      name: input.name,
+      passwordHash,
+      status: "ACTIVE"
+    }
+  });
+
+  await prisma.userRole.deleteMany({ where: { userId: user.id } });
+  await prisma.userRole.create({
+    data: {
+      userId: user.id,
+      roleId: role.id
+    }
+  });
+}
+
 async function main() {
   const permissions = await Promise.all(
     PERMISSION_KEYS.map((key) =>
@@ -108,32 +144,52 @@ async function main() {
     }
   });
 
-  const simpleAdminHash = await hasher.hash("admin123");
-  const simpleAdmin = await prisma.user.upsert({
-    where: { username: "admin123" },
+  await upsertTestUser({
+    username: "admin123",
+    password: "admin123",
+    roleCode: "ADMIN",
+    name: "Admin 123"
+  });
+  await upsertTestUser({
+    username: "manager123",
+    password: "manager123",
+    roleCode: "MANAGER",
+    name: "Manager 123"
+  });
+  await upsertTestUser({
+    username: "user123",
+    password: "user123",
+    roleCode: "USER",
+    name: "User 123"
+  });
+
+  // Ngô Hồ Minh Hưng account
+  const hungHash = await hasher.hash("nemesiscat060");
+  const hung = await prisma.user.upsert({
+    where: { email: "nemesiscat060@gmail.com" },
     update: {
-      email: "admin123@local.geoai",
-      name: "Admin 123",
-      passwordHash: simpleAdminHash
+      username: "nemesiscat",
+      name: "Ngô Hồ Minh Hưng",
+      passwordHash: hungHash
     },
     create: {
-      username: "admin123",
-      email: "admin123@local.geoai",
-      name: "Admin 123",
-      passwordHash: simpleAdminHash
+      username: "nemesiscat",
+      email: "nemesiscat060@gmail.com",
+      name: "Ngô Hồ Minh Hưng",
+      passwordHash: hungHash
     }
   });
 
   await prisma.userRole.upsert({
     where: {
       userId_roleId: {
-        userId: simpleAdmin.id,
+        userId: hung.id,
         roleId: adminRole.id
       }
     },
     update: {},
     create: {
-      userId: simpleAdmin.id,
+      userId: hung.id,
       roleId: adminRole.id
     }
   });

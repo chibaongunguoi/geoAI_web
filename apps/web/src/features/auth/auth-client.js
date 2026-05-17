@@ -1,4 +1,4 @@
-export const navigationItems = [
+﻿export const navigationItems = [
   {
     href: "/",
     label: "Bản đồ",
@@ -6,12 +6,12 @@ export const navigationItems = [
   },
   {
     href: "/assets",
-    label: "TÃ i sáº£n",
+    label: "Tài sản",
     permission: "properties.view"
   },
   {
     href: "/dashboard",
-    label: "Dashboard",
+    label: "Bảng điều khiển",
     permission: "dashboard.view"
   },
   {

@@ -1,6 +1,6 @@
 .mapWorkspace {
-  display: grid;
-  grid-template-columns: 336px minmax(0, 1fr);
+  position: relative;
+  display: block;
   height: 100%;
   min-height: 100%;
   overflow: hidden;
@@ -378,6 +378,297 @@
   background: #e0e7ff;
 }
 
+.topSearchBar,
+.leftToolRail,
+.rightToolRail,
+.leftToolPopover,
+.rightToolPopover,
+.resultsOverlay {
+  position: absolute;
+  z-index: 760;
+}
+
+.topSearchBar {
+  top: 18px;
+  left: 64px;
+  display: grid;
+  width: min(520px, calc(100% - 176px));
+  gap: 6px;
+  pointer-events: none;
+}
+
+.topSearchForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  min-height: 54px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
+  pointer-events: auto;
+}
+
+.searchLabel {
+  display: grid;
+  min-width: 0;
+}
+
+.searchLabel span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.searchInput {
+  min-width: 0;
+  height: 52px;
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  padding: 0 18px 0 22px;
+  font-size: 15px;
+  font-weight: 700;
+  outline: none;
+}
+
+.searchIconButton,
+.searchSubmitButton,
+.mapToolButton,
+.activeMapToolButton,
+.popoverCloseButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+}
+
+.searchIconButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+}
+
+.searchSubmitButton {
+  gap: 8px;
+  min-width: 116px;
+  height: 44px;
+  margin-right: 5px;
+  border-radius: 999px;
+  background: #0f766e;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.searchSubmitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.searchChipScroller,
+.searchHistory {
+  display: flex;
+  max-width: 100%;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 1px;
+  pointer-events: auto;
+  scrollbar-width: none;
+}
+
+.searchChipScroller::-webkit-scrollbar,
+.searchHistory::-webkit-scrollbar {
+  display: none;
+}
+
+.searchChipScroller .sampleQuestionChip {
+  flex: 0 0 auto;
+  max-width: 168px;
+  min-height: 30px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  color: #334155;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 30px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchStatus {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.15);
+  color: #0f172a;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  pointer-events: auto;
+}
+
+.leftToolRail,
+.rightToolRail {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.2);
+  padding: 7px;
+}
+
+.leftToolRail {
+  top: 112px;
+  left: 16px;
+}
+
+.rightToolRail {
+  top: 150px;
+  right: 16px;
+}
+
+.mapToolButton,
+.activeMapToolButton {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  color: #334155;
+  background: transparent;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.mapToolButton:hover,
+.activeMapToolButton {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.mapToolButton:hover {
+  transform: translateY(-1px);
+}
+
+.toolBadge {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 17px;
+}
+
+.toolRailGrip {
+  display: none;
+}
+
+.leftToolPopover,
+.rightToolPopover {
+  top: 96px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(380px, calc(100% - 112px));
+  max-height: min(720px, calc(100% - 168px));
+  overflow: hidden;
+  border: 1px solid var(--color-popover-border, rgba(15, 23, 42, 0.12));
+  border-radius: 18px;
+  background: var(--color-popover-bg, rgba(255, 255, 255, 0.96));
+  box-shadow: 0 22px 50px rgba(15, 23, 42, 0.25);
+  color: var(--color-popover-text, #0f172a);
+}
+
+.leftToolPopover {
+  left: 74px;
+}
+
+.rightToolPopover {
+  right: 74px;
+}
+
+.popoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  padding: 14px 14px 12px;
+}
+
+.popoverHeader h2,
+.overlayPanelHeader h2 {
+  margin: 0;
+  color: var(--color-popover-text, #0f172a);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.popoverCloseButton {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.popoverBody {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+}
+
+.toolPanelStack {
+  display: grid;
+  gap: 12px;
+}
+
+.resultsOverlay {
+  left: 16px;
+  bottom: 58px;
+  display: grid;
+  width: min(420px, calc(100% - 32px));
+  max-height: min(48vh, 480px);
+  overflow: auto;
+  gap: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.24);
+  padding: 14px;
+}
+
+.overlayPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.analysisSummaryPanel {
+  display: grid;
+  gap: 10px;
+}
+
 .mapModeBadge {
   position: absolute;
   top: 14px;
@@ -397,15 +688,80 @@
 
 @media (max-width: 760px) {
   .mapWorkspace {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(420px, 1fr);
+    min-height: 100%;
   }
 
-  .sidebar {
-    max-height: 46vh;
-    border-right: 0;
-    border-bottom: 1px solid var(--color-border);
+  .topSearchBar {
+    top: 12px;
+    left: 12px;
+    width: calc(100% - 24px);
   }
+
+  .topSearchForm {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .searchIconButton {
+    display: none;
+  }
+
+  .searchSubmitButton {
+    width: 44px;
+    min-width: 44px;
+  }
+
+  .searchSubmitButton span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .leftToolRail,
+  .rightToolRail {
+    top: auto;
+    bottom: 12px;
+    display: flex;
+    max-width: calc(50% - 18px);
+    overflow-x: auto;
+    border-radius: 999px;
+    scrollbar-width: none;
+  }
+
+  .leftToolRail {
+    left: 12px;
+  }
+
+  .rightToolRail {
+    right: 12px;
+  }
+
+  .leftToolRail::-webkit-scrollbar,
+  .rightToolRail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .leftToolPopover,
+  .rightToolPopover {
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 76px;
+    width: auto;
+    max-height: min(55svh, calc(100% - 140px));
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .resultsOverlay {
+    left: 12px;
+    right: 12px;
+    bottom: 142px;
+    width: auto;
+    max-height: 34svh;
+  }
+
 }
 
 .searchHistory {
@@ -494,4 +850,76 @@
   background: var(--color-card-bg);
   color: var(--color-primary-strong);
   box-shadow: 0 1px 4px rgba(30, 27, 75, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  .leftToolPopover,
+  .rightToolPopover {
+    border-color: var(--color-popover-border);
+    background: var(--color-popover-bg);
+    color: var(--color-popover-text);
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .popoverHeader {
+    border-bottom-color: var(--color-popover-border);
+  }
+
+  .popoverHeader h2 {
+    color: var(--color-popover-text);
+  }
+
+  .popoverCloseButton {
+    background: rgba(51, 65, 85, 0.6);
+    color: #e2e8f0;
+  }
+
+  .topSearchForm {
+    border-color: var(--color-popover-border);
+    background: var(--color-popover-bg);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  }
+
+  .searchInput {
+    color: var(--color-popover-text);
+  }
+
+  .searchIconButton {
+    color: #94a3b8;
+  }
+
+  .searchStatus {
+    border-color: var(--color-popover-border);
+    background: var(--color-popover-bg);
+    color: var(--color-popover-text);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .searchChipScroller .sampleQuestionChip {
+    border-color: var(--color-popover-border);
+    background: rgba(31, 41, 55, 0.9);
+    color: #cbd5e1;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+  }
+
+  .leftToolRail,
+  .rightToolRail {
+    border-color: var(--color-popover-border);
+    background: var(--color-popover-bg);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  }
+
+  .mapToolButton {
+    color: #cbd5e1;
+  }
+
+  .resultsOverlay {
+    border-color: var(--color-popover-border);
+    background: var(--color-popover-bg);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.4);
+  }
+
+  .overlayPanelHeader h2 {
+    color: var(--color-popover-text);
+  }
 }

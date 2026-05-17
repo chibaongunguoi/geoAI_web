@@ -1,10 +1,10 @@
 const KPI_ITEMS = [
-  ["Total assets", "total"],
-  ["Active", "active"],
-  ["Inactive", "inactive"],
-  ["Review", "review"],
-  ["Recently updated", "recentlyUpdated"],
-  ["Missing geometry", "missingGeometry"]
+  ["Tổng tài sản", "total"],
+  ["Đang hoạt động", "active"],
+  ["Không hoạt động", "inactive"],
+  ["Cần xem xét", "review"],
+  ["Cập nhật gần đây", "recentlyUpdated"],
+  ["Thiếu tọa độ", "missingGeometry"]
 ];
 
 export default function DashboardKpis({ summary }) {
@@ -15,7 +15,7 @@ export default function DashboardKpis({ summary }) {
       {KPI_ITEMS.map(([label, key]) => (
         <article className="dashboard-kpi-card" key={key}>
           <span>{label}</span>
-          <strong>{Number(totals[key] || 0).toLocaleString("en-US")}</strong>
+          <strong>{Number(totals[key] || 0).toLocaleString("vi-VN")}</strong>
         </article>
       ))}
     </section>

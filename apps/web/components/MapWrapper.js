@@ -4,13 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { canAccess } from "@/features/auth/auth-client";
-import AssetDisplayPanel from "@/features/map/AssetDisplayPanel";
-import CollapsibleSection from "@/features/map/CollapsibleSection";
-import LayerPanel from "@/features/map/LayerPanel";
 import {
-  densityRegions,
-  densitySummaryRows,
-  hasDensityResult,
   propertySearchAnswerText
 } from "@/features/map/property-search";
 import useSearchHistory from "@/features/map/useSearchHistory";
@@ -41,7 +35,6 @@ import {
   readStoredBasemap,
   writeStoredBasemap
 } from "@/features/map/basemaps";
-import FilterPanel from "@/features/filters/FilterPanel";
 import {
   DEFAULT_ASSET_FILTERS,
   addFilterHistory,
@@ -50,7 +43,6 @@ import {
   readFilterState,
   writeFilterState
 } from "@/features/filters/filter-state";
-import MapExportDialog from "@/features/export/MapExportDialog";
 import {
   DEFAULT_EXPORT_METADATA,
   addExportHistory,
@@ -61,7 +53,6 @@ import {
 } from "@/features/export/map-export-state";
 import { captureElementPng, downloadDataUrl, exportPrintablePdf } from "@/features/export/map-capture";
 import { decodeShareState, shareUrlFromState } from "@/features/export/share-state";
-import MeasurementToolbar from "@/features/measurement/MeasurementToolbar";
 import { buildMeasurementExport, getMeasurementResult } from "@/features/measurement/measurement-utils";
 import {
   DEFAULT_MEASUREMENT_STATE,
@@ -70,7 +61,6 @@ import {
   readMeasurementStorage,
   writeMeasurementStorage
 } from "@/features/measurement/measurement-state";
-import SpatialDrawToolbar from "@/features/spatial-draw/SpatialDrawToolbar";
 import { buildSpatialDrawExport, getSpatialDrawResult } from "@/features/spatial-draw/spatial-draw-utils";
 import {
   DEFAULT_SPATIAL_DRAW_STATE,
@@ -80,8 +70,20 @@ import {
   writeSpatialDrawStorage
 } from "@/features/spatial-draw/spatial-draw-state";
 import styles from "./MapWrapper.module.css";
-import PropertyTable from "./PropertyTable";
-import SearchResultList from "./SearchResultList";
+import MapResultsOverlay from "./map-workspace/MapResultsOverlay";
+import MapToolPopover from "./map-workspace/MapToolPopover";
+import MapToolRail from "./map-workspace/MapToolRail";
+import MapTopSearchBar from "./map-workspace/MapTopSearchBar";
+import {
+  AssetDisplayToolPanel,
+  BasemapToolPanel,
+  ExportShareToolPanel,
+  FilterToolPanel,
+  LayerToolPanel,
+  MeasurementToolPanel,
+  ScanToolPanel,
+  SpatialDrawToolPanel
+} from "./map-workspace/ToolPanels";
 
 const Map = dynamic(() => import("./Map"), {
   ssr: false,
@@ -125,9 +127,18 @@ const SEMANTIC_SEARCH_SAMPLE_QUERIES = [
   "16.08828, 108.21860"
 ];
 
-function selectedLabel(options, value) {
-  return options.find((option) => option.value === value)?.label || "";
-}
+const TOOL_TEXT = {
+  scan: "Thao t\u00e1c qu\u00e9t",
+  basemap: "B\u1ea3n \u0111\u1ed3 n\u1ec1n",
+  layers: "L\u1edbp d\u1eef li\u1ec7u",
+  assets: "Hi\u1ec3n th\u1ecb t\u00e0i s\u1ea3n",
+  filters: "B\u1ed9 l\u1ecdc n\u00e2ng cao",
+  measurement: "\u0110o kho\u1ea3ng c\u00e1ch/di\u1ec7n t\u00edch",
+  draw: "Spatial draw/edit",
+  exportShare: "Export & share",
+  exitFullscreen: "Tho\u00e1t to\u00e0n m\u00e0n h\u00ecnh",
+  fullscreen: "To\u00e0n m\u00e0n h\u00ecnh"
+};
 
 export default function MapWrapper({ permissions = [] }) {
   const abortControllerRef = useRef(null);
@@ -185,7 +196,8 @@ export default function MapWrapper({ permissions = [] }) {
   const [exportHistory, setExportHistory] = useState([]);
   const [exportStatus, setExportStatus] = useState(null);
   const [mapViewport, setMapViewport] = useState(null);
-  const { history: searchHistory, addSearch } = useSearchHistory();
+  const [activeTool, setActiveTool] = useState("scan");
+  const { addSearch } = useSearchHistory();
   const skipNextLayerPersistRef = useRef(false);
   const skipNextAssetPersistRef = useRef(false);
 
@@ -1252,459 +1264,236 @@ export default function MapWrapper({ permissions = [] }) {
     }
   }, [canShareMap, currentExportState, exportMetadata, recordExportHistory]);
 
+  const leftTools = useMemo(
+    () =>
+      [
+        { id: "scan", label: TOOL_TEXT.scan, icon: "scan", badge: rectangleCoords ? "1" : null },
+        { id: "basemap", label: TOOL_TEXT.basemap, icon: "basemap" },
+        canViewLayers
+          ? { id: "layers", label: TOOL_TEXT.layers, icon: "layers", badge: visibleLayers.length || null }
+          : null,
+        canViewLayers
+          ? { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: visibleAssets.length || null }
+          : null
+      ].filter(Boolean),
+    [canViewLayers, rectangleCoords, visibleAssets.length, visibleLayers.length]
+  );
+
+  const rightTools = useMemo(
+    () =>
+      [
+        canUseFilters ? { id: "filters", label: TOOL_TEXT.filters, icon: "filters" } : null,
+        canMeasure ? { id: "measurement", label: TOOL_TEXT.measurement, icon: "measurement" } : null,
+        canDrawSpatial ? { id: "draw", label: TOOL_TEXT.draw, icon: "draw" } : null,
+        canExportMap || canShareMap ? { id: "export", label: TOOL_TEXT.exportShare, icon: "export" } : null,
+        { id: "fullscreen", label: isFullscreen ? TOOL_TEXT.exitFullscreen : TOOL_TEXT.fullscreen, icon: "fullscreen", onClick: toggleFullscreen }
+      ].filter(Boolean),
+    [canDrawSpatial, canExportMap, canMeasure, canShareMap, canUseFilters, isFullscreen]
+  );
+
+  const activeToolConfig = [...leftTools, ...rightTools].find((tool) => tool.id === activeTool);
+  const activeToolSide = rightTools.some((tool) => tool.id === activeTool) ? "right" : "left";
+
+  const renderActiveToolPanel = () => {
+    switch (activeTool) {
+      case "scan":
+        return (
+          <ScanToolPanel
+            styles={styles}
+            adminOptions={ADMIN_OPTIONS}
+            scanModeOptions={SCAN_MODE_OPTIONS}
+            adminArea={adminArea}
+            scanMode={scanMode}
+            selectedScanMode={selectedScanMode}
+            rectangleCoords={rectangleCoords}
+            isAnalyzing={isAnalyzing}
+            isFullscreen={isFullscreen}
+            onAdminAreaChange={(value) => {
+              setAdminArea(value);
+              setAnalysisResults(null);
+            }}
+            onScanModeChange={(value) => {
+              setScanMode(value);
+              setAnalysisResults(null);
+            }}
+            onRequestSelection={requestSelection}
+            onRequestCapture={requestCapture}
+            onClearWorkspace={clearWorkspace}
+            onToggleFullscreen={toggleFullscreen}
+          />
+        );
+      case "basemap":
+        return (
+          <BasemapToolPanel
+            styles={styles}
+            basemaps={BASEMAPS}
+            selectedBasemapId={selectedBasemapId}
+            selectedBasemap={selectedBasemap}
+            onChange={setSelectedBasemapId}
+          />
+        );
+      case "layers":
+        return canViewLayers ? (
+          <LayerToolPanel
+            styles={styles}
+            layers={DATA_LAYERS}
+            state={layerState}
+            onToggle={updateLayerVisibility}
+            onToggleGroup={updateLayerGroupVisibility}
+            onOpacityChange={updateLayerOpacity}
+            onMove={updateLayerOrder}
+            onReorder={updateLayerReorder}
+            onRefresh={refreshLayer}
+            layerStatuses={layerStatuses}
+            canToggle={canViewLayers}
+            canManage={canManageLayers}
+            history={layerHistory}
+            onExport={exportLayerConfig}
+            status={layerConfigStatus}
+          />
+        ) : null;
+      case "assets":
+        return canViewLayers ? (
+          <AssetDisplayToolPanel
+            styles={styles}
+            config={assetDisplayConfig}
+            permissions={permissions}
+            status={assetDisplayStatus}
+            error={assetDisplayError}
+            history={assetHistory}
+            visibleAssetCount={visibleAssets.length}
+            onConfigChange={(config) =>
+              setAssetDisplayConfig(normalizeAssetDisplayConfig(config))
+            }
+            onExport={exportVisibleAssets}
+          />
+        ) : null;
+      case "filters":
+        return canUseFilters ? (
+          <FilterToolPanel
+            styles={styles}
+            filters={assetFilters}
+            resultCount={propertySearchResult?.meta?.total ?? propertySearchResult?.items?.length ?? 0}
+            presets={filterPresets}
+            history={filterHistory}
+            canUseFilters={canUseFilters}
+            onApply={applyFilters}
+            onSavePreset={saveFilterPreset}
+            onExport={exportFilteredPropertyResults}
+            status={filterStatus}
+          />
+        ) : null;
+      case "measurement":
+        return canMeasure ? (
+          <MeasurementToolPanel
+            styles={styles}
+            canMeasure={canMeasure}
+            state={measurementState}
+            result={measurementResult}
+            history={measurementHistory}
+            status={measurementStatus}
+            onModeChange={setMeasurementMode}
+            onUndo={undoMeasurement}
+            onClear={clearMeasurement}
+            onCopy={copyMeasurement}
+            onSave={saveMeasurementSession}
+            onExport={exportMeasurement}
+            onToggleSnap={toggleMeasurementSnap}
+          />
+        ) : null;
+      case "draw":
+        return canDrawSpatial ? (
+          <SpatialDrawToolPanel
+            styles={styles}
+            canDraw={canDrawSpatial}
+            state={spatialDrawState}
+            result={spatialDrawResult}
+            history={spatialDrawHistory}
+            status={spatialDrawStatus}
+            onModeChange={setSpatialDrawMode}
+            onUndo={undoSpatialDraw}
+            onRedo={redoSpatialDraw}
+            onSaveDraft={saveSpatialDrawDraft}
+            onCancel={cancelSpatialDraw}
+            onExport={exportSpatialDraw}
+            onToggleSnap={toggleSpatialDrawSnap}
+            onAddCoordinate={addSpatialDrawCoordinate}
+            onUpdateCoordinate={editSpatialDrawCoordinate}
+            onDeleteVertex={deleteSpatialDrawVertex}
+            onSelectVertex={selectSpatialDrawVertex}
+            onAttributesChange={updateSpatialDrawAttributes}
+            onDuplicateLatest={duplicateLatestSpatialDraft}
+          />
+        ) : null;
+      case "export":
+        return canExportMap || canShareMap ? (
+          <ExportShareToolPanel
+            styles={styles}
+            canExport={canExportMap}
+            canShare={canShareMap}
+            metadata={exportMetadata}
+            templates={exportTemplates}
+            history={exportHistory}
+            status={exportStatus}
+            onMetadataChange={updateExportMetadata}
+            onExportPng={exportMapPng}
+            onExportPdf={exportMapPdf}
+            onShare={copyShareLink}
+            onSaveTemplate={saveExportTemplate}
+            onLoadTemplate={loadExportTemplate}
+          />
+        ) : null;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className={styles.mapWorkspace} ref={workspaceRef}>
-      <aside className={styles.sidebar} aria-label="Bảng điều khiển GeoAI">
-        <div className={styles.brandBlock}>
-          <p className={styles.panelLabel}>GeoAI Đà Nẵng</p>
-          <h1>Không gian phân tích bản đồ</h1>
-          <p>Quét vùng, bật lớp dữ liệu và kiểm tra kết quả trong cùng một màn hình.</p>
-        </div>
-
-        <CollapsibleSection
-          title="Thiết lập vùng quét"
-          summary={`${selectedLabel(ADMIN_OPTIONS, adminArea)} | ${selectedScanMode?.label}`}
-        >
-          <div className={styles.compactControlGroup}>
-            <label>
-              Khu vực
-              <select
-                className={styles.selectInput}
-                value={adminArea}
-                disabled={isAnalyzing}
-                onChange={(event) => {
-                  setAdminArea(event.target.value);
-                  setAnalysisResults(null);
-                }}
-              >
-                {ADMIN_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Kiểu quét
-              <select
-                className={styles.selectInput}
-                value={scanMode}
-                disabled={isAnalyzing}
-                onChange={(event) => {
-                  setScanMode(event.target.value);
-                  setAnalysisResults(null);
-                }}
-              >
-                {SCAN_MODE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value} disabled={option.disabled}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className={styles.actionHint}>{selectedScanMode?.description}</p>
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Bản đồ nền"
-          summary={`${selectedBasemap.label} | z${selectedBasemap.minZoom}-${selectedBasemap.maxZoom}`}
-        >
-          <div className={styles.compactControlGroup}>
-            <select
-              className={styles.selectInput}
-              value={selectedBasemapId}
-              onChange={(event) => {
-                setSelectedBasemapId(event.target.value);
-              }}
-            >
-              {BASEMAPS.map((basemap) => (
-                <option key={basemap.id} value={basemap.id}>
-                  {basemap.label}
-                </option>
-              ))}
-            </select>
-
-            <p className={styles.actionHint}>{selectedBasemap.description}</p>
-            <dl className={styles.mapMetaList}>
-              <div>
-                <dt>Nguồn</dt>
-                <dd>{selectedBasemap.source}</dd>
-              </div>
-              <div>
-                <dt>Zoom</dt>
-                <dd>
-                  {selectedBasemap.minZoom}-{selectedBasemap.maxZoom}
-                </dd>
-              </div>
-            </dl>
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Tìm kiếm nhà đất"
-          summary={propertySearchResult?.answer?.type === "density" ? "Mật độ nhà" : "Ngôn ngữ tự nhiên"}
-          defaultOpen
-        >
-          <form
-            className={styles.propertySearch}
-            onSubmit={(event) => {
-              event.preventDefault();
-              runPropertySearch();
-            }}
-          >
-            <label>
-              Câu hỏi
-              <textarea
-                className={styles.textAreaInput}
-                value={propertyQuery}
-                rows={3}
-                placeholder="VD: Vùng nào nhiều nhà nhất ở Hòa Khánh Bắc"
-                list="property-search-suggestions"
-                onChange={(event) => {
-                  const val = event.target.value;
-                  setPropertyQuery(val);
-                  fetchSuggestions(val);
-                }}
-              />
-              <datalist id="property-search-suggestions">
-                {suggestions.map((s) => (
-                  <option key={s.id} value={s.text} />
-                ))}
-              </datalist>
-            </label>
-            <button
-              className={styles.primaryAction}
-              type="submit"
-              disabled={!propertyQuery.trim()}
-            >
-              {isSearchingProperties ? "Đang tìm..." : "Tìm kiếm"}
-            </button>
-          </form>
-          <div className={styles.sampleQuestionChips} aria-label="Câu hỏi mẫu">
-            {SEMANTIC_SEARCH_SAMPLE_QUERIES.map((question) => (
-              <button
-                key={question}
-                type="button"
-                className={styles.sampleQuestionChip}
-                onClick={() => runPropertySearch(question)}
-              >
-                {question}
-              </button>
-            ))}
-          </div>
-          {searchHistory.length > 0 ? (
-            <div className={styles.searchHistory}>
-              {searchHistory.map((item, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className={styles.historyChip}
-                  onClick={() => runPropertySearch(item.text)}
-                  title={item.text}
-                  data-type={item.type}
-                >
-                  {item.text}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          {propertySearchStatus ? (
-            <p className={styles.actionHint} role="status">
-              {propertySearchStatus}
-            </p>
-          ) : null}
-          {hasDensityResult(propertySearchResult) ? (
-            <ol className={styles.densityList}>
-              {densitySummaryRows(propertySearchResult).map((region) => (
-                <li key={region.id}>
-                  <span>{region.label}</span>
-                  <strong>{region.count.toLocaleString("vi-VN")}</strong>
-                </li>
-              ))}
-            </ol>
-          ) : null}
-          {propertySearchResult && !hasDensityResult(propertySearchResult) ? (
-            <div className={styles.propertyResultsPanel}>
-              <div className={styles.viewSwitcher} role="group" aria-label="Kiểu hiển thị kết quả">
-                <button
-                  type="button"
-                  className={propertyResultView === "list" ? styles.activeViewButton : styles.viewButton}
-                  onClick={() => setPropertyResultView("list")}
-                >
-                  Danh sách
-                </button>
-                <button
-                  type="button"
-                  className={propertyResultView === "table" ? styles.activeViewButton : styles.viewButton}
-                  onClick={() => setPropertyResultView("table")}
-                >
-                  Bảng
-                </button>
-              </div>
-              {propertyResultView === "table" ? (
-                <PropertyTable results={propertySearchResult.items || []} />
-              ) : (
-                <SearchResultList
-                  results={propertySearchResult.items || []}
-                  onSelectResult={(item) => setFocusedProperty(item)}
-                />
-              )}
-            </div>
-          ) : null}
-        </CollapsibleSection>
-
-        {canUseFilters ? (
-          <CollapsibleSection
-            title="Bộ lọc nâng cao"
-            summary={`${(propertySearchResult?.meta?.total ?? propertySearchResult?.items?.length ?? 0).toLocaleString("vi-VN")} kết quả`}
-          >
-            <FilterPanel
-              filters={assetFilters}
-              resultCount={propertySearchResult?.meta?.total ?? propertySearchResult?.items?.length ?? 0}
-              presets={filterPresets}
-              history={filterHistory}
-              canUseFilters={canUseFilters}
-              onApply={applyFilters}
-              onSavePreset={saveFilterPreset}
-              onExport={exportFilteredPropertyResults}
-            />
-            {filterStatus ? (
-              <p className={styles.actionHint} role="status">
-                {filterStatus}
-              </p>
-            ) : null}
-          </CollapsibleSection>
-        ) : null}
-
-        {canMeasure ? (
-          <CollapsibleSection
-            title="Đo khoảng cách/diện tích"
-            summary={measurementResult.error || measurementResult.formattedValue}
-            defaultOpen
-          >
-            <MeasurementToolbar
-              canMeasure={canMeasure}
-              state={measurementState}
-              result={measurementResult}
-              history={measurementHistory}
-              status={measurementStatus}
-              onModeChange={setMeasurementMode}
-              onUndo={undoMeasurement}
-              onClear={clearMeasurement}
-              onCopy={copyMeasurement}
-              onSave={saveMeasurementSession}
-              onExport={exportMeasurement}
-              onToggleSnap={toggleMeasurementSnap}
-            />
-          </CollapsibleSection>
-        ) : null}
-
-        {canDrawSpatial ? (
-          <CollapsibleSection
-            title="Spatial draw/edit"
-            summary={spatialDrawResult.error || spatialDrawResult.formattedType}
-            defaultOpen
-          >
-            <SpatialDrawToolbar
-              canDraw={canDrawSpatial}
-              state={spatialDrawState}
-              result={spatialDrawResult}
-              history={spatialDrawHistory}
-              status={spatialDrawStatus}
-              onModeChange={setSpatialDrawMode}
-              onUndo={undoSpatialDraw}
-              onRedo={redoSpatialDraw}
-              onSaveDraft={saveSpatialDrawDraft}
-              onCancel={cancelSpatialDraw}
-              onExport={exportSpatialDraw}
-              onToggleSnap={toggleSpatialDrawSnap}
-              onAddCoordinate={addSpatialDrawCoordinate}
-              onUpdateCoordinate={editSpatialDrawCoordinate}
-              onDeleteVertex={deleteSpatialDrawVertex}
-              onSelectVertex={selectSpatialDrawVertex}
-              onAttributesChange={updateSpatialDrawAttributes}
-              onDuplicateLatest={duplicateLatestSpatialDraft}
-            />
-          </CollapsibleSection>
-        ) : null}
-
-        {canExportMap || canShareMap ? (
-          <CollapsibleSection
-            title="Export & share"
-            summary={exportMetadata.format.toUpperCase()}
-            defaultOpen
-          >
-            <MapExportDialog
-              canExport={canExportMap}
-              canShare={canShareMap}
-              metadata={exportMetadata}
-              templates={exportTemplates}
-              history={exportHistory}
-              status={exportStatus}
-              onMetadataChange={updateExportMetadata}
-              onExportPng={exportMapPng}
-              onExportPdf={exportMapPdf}
-              onShare={copyShareLink}
-              onSaveTemplate={saveExportTemplate}
-              onLoadTemplate={loadExportTemplate}
-            />
-          </CollapsibleSection>
-        ) : null}
-
-        {canViewLayers ? (
-          <CollapsibleSection title="Lớp dữ liệu" summary={`${visibleLayers.length} đang bật`}>
-            <LayerPanel
-              layers={DATA_LAYERS}
-              state={layerState}
-              onToggle={updateLayerVisibility}
-              onToggleGroup={updateLayerGroupVisibility}
-              onOpacityChange={updateLayerOpacity}
-              onMove={updateLayerOrder}
-              onReorder={updateLayerReorder}
-              onRefresh={refreshLayer}
-              layerStatuses={layerStatuses}
-              canToggle={canViewLayers}
-              canManage={canManageLayers}
-              history={layerHistory}
-              onExport={exportLayerConfig}
-            />
-            {layerConfigStatus ? (
-              <p className={styles.actionHint} role="status">
-                {layerConfigStatus}
-              </p>
-            ) : null}
-          </CollapsibleSection>
-        ) : null}
-
-        {canViewLayers ? (
-          <CollapsibleSection
-            title="Hiển thị tài sản"
-            summary={`${visibleAssets.length} trong vùng xem`}
-          >
-            <AssetDisplayPanel
-              config={assetDisplayConfig}
-              permissions={permissions}
-              status={assetDisplayStatus}
-              error={assetDisplayError}
-              history={assetHistory}
-              visibleAssetCount={visibleAssets.length}
-              onConfigChange={(config) =>
-                setAssetDisplayConfig(normalizeAssetDisplayConfig(config))
-              }
-              onExport={exportVisibleAssets}
-            />
-          </CollapsibleSection>
-        ) : null}
-
-        <CollapsibleSection
-          title="Thao tác quét"
-          summary={rectangleCoords ? "Đã chọn vùng" : "Chưa chọn vùng"}
-          defaultOpen
-        >
-          <div className={styles.actionGroup}>
-            <button
-              className={styles.secondaryAction}
-              type="button"
-              disabled={isAnalyzing}
-              onClick={requestSelection}
-            >
-              Chọn khung quét
-            </button>
-            <button
-              className={styles.primaryAction}
-              type="button"
-              disabled={!rectangleCoords || isAnalyzing}
-              onClick={requestCapture}
-            >
-              {isAnalyzing ? "Đang quét..." : "Quét vùng đã chọn"}
-            </button>
-            <button
-              className={styles.dangerAction}
-              type="button"
-              disabled={!rectangleCoords && !analysisResults && !isAnalyzing}
-              onClick={clearWorkspace}
-            >
-              Xóa vùng
-            </button>
-            <button
-              className={styles.secondaryAction}
-              type="button"
-              onClick={toggleFullscreen}
-            >
-              {isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
-            </button>
-            <p className={styles.actionHint}>Diện tích quét hợp lệ tối đa 25 ha.</p>
-          </div>
-        </CollapsibleSection>
-
-        {rectangleCoords ? (
-          <CollapsibleSection title="Vùng đã chọn" summary="Tọa độ">
-            <div className={styles.coordinateList}>
-              <span>
-                NE {rectangleCoords.northEast[0].toFixed(5)},{" "}
-                {rectangleCoords.northEast[1].toFixed(5)}
-              </span>
-              <span>
-                SW {rectangleCoords.southWest[0].toFixed(5)},{" "}
-                {rectangleCoords.southWest[1].toFixed(5)}
-              </span>
-            </div>
-          </CollapsibleSection>
-        ) : null}
-
-        <CollapsibleSection
-          title="Con trỏ"
-          summary={cursorPosition ? `z${cursorPosition.zoom}` : "Di chuyển trên bản đồ"}
-        >
-          <div className={styles.coordinateList}>
-            {cursorPosition ? (
-              <>
-                <span>Lat {cursorPosition.lat.toFixed(6)}</span>
-                <span>Lng {cursorPosition.lng.toFixed(6)}</span>
-                <span>Zoom {cursorPosition.zoom}</span>
-              </>
-            ) : (
-              <span>Di chuyển chuột trên bản đồ</span>
-            )}
-          </div>
-        </CollapsibleSection>
-
-        {isAnalyzing ? (
-          <div className={styles.status} role="status" aria-live="polite">
-            Đang gửi vùng quét đến máy chủ...
-          </div>
-        ) : null}
-
-        {analysisResults ? (
-          <CollapsibleSection
-            title="Kết quả"
-            summary={`${analysisResults.analysis.buildings.count} công trình`}
-            defaultOpen
-          >
-            <div className={styles.resultGrid}>
-              <div className={styles.metric}>
-                <span>Công trình</span>
-                <strong>{analysisResults.analysis.buildings.count}</strong>
-              </div>
-              <div className={styles.metric}>
-                <span>Đối tượng</span>
-                <strong>{analysisResults.analysis.objects?.length || 0}</strong>
-              </div>
-            </div>
-            <p className={styles.meta}>
-              Vùng hợp lệ: {analysisResults.validAreaHectares || 0} ha
-            </p>
-            <p className={styles.meta}>Nguồn: {analysisResults.dataSource}</p>
-            {analysisResults.modelName ? (
-              <p className={styles.meta}>Model: {analysisResults.modelName}</p>
-            ) : null}
-            <p className={styles.meta}>Thời gian xử lý: {analysisResults.processingTime}</p>
-          </CollapsibleSection>
-        ) : null}
-      </aside>
-
       <div className={styles.mapCanvas} ref={mapCanvasRef}>
+        <MapTopSearchBar
+          styles={styles}
+          query={propertyQuery}
+          suggestions={suggestions}
+          sampleQueries={SEMANTIC_SEARCH_SAMPLE_QUERIES}
+          isSearching={isSearchingProperties}
+          status={propertySearchStatus}
+          onQueryChange={setPropertyQuery}
+          onFetchSuggestions={fetchSuggestions}
+          onSearch={runPropertySearch}
+        />
+        <MapToolRail
+          styles={styles}
+          side="left"
+          tools={leftTools}
+          activeTool={activeTool}
+          onSelect={setActiveTool}
+        />
+        <MapToolRail
+          styles={styles}
+          side="right"
+          tools={rightTools}
+          activeTool={activeTool}
+          onSelect={setActiveTool}
+        />
+        {activeToolConfig && activeTool !== "fullscreen" ? (
+          <MapToolPopover
+            styles={styles}
+            title={activeToolConfig.label}
+            side={activeToolSide}
+            onClose={() => setActiveTool(null)}
+          >
+            {renderActiveToolPanel()}
+          </MapToolPopover>
+        ) : null}
+        <MapResultsOverlay
+          styles={styles}
+          propertySearchResult={propertySearchResult}
+          propertyResultView={propertyResultView}
+          onPropertyResultViewChange={setPropertyResultView}
+          onSelectProperty={setFocusedProperty}
+          analysisResults={analysisResults}
+        />
         <div className={styles.mapModeBadge} data-mode={scanMode}>
           {selectedScanMode?.label}
         </div>

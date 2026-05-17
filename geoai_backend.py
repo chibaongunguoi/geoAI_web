@@ -1995,6 +1995,99 @@ def extract_stats():
         }), 500
 
 
+@app.route('/api/poi/extract', methods=['POST'])
+def extract_poi():
+    """Extract POI data from Overture GeoPackage places layer."""
+    try:
+        gpkg_path = os.path.join(geoai_downloads_dir, "danang", "overture_danang.gpkg")
+        if not os.path.exists(gpkg_path):
+            return jsonify({"error": "GeoPackage file not found"}), 404
+
+        # Check if places layer exists
+        import fiona
+        layers = fiona.listlayers(gpkg_path)
+        if "places" not in layers and "place" not in layers:
+            return jsonify({"error": "Layer 'places' not found in GeoPackage"}), 404
+
+        layer_name = "places" if "places" in layers else "place"
+
+        # Read places layer
+        places_gdf = gpd.read_file(gpkg_path, layer=layer_name)
+
+        # Filter to Da Nang bounding box
+        danang_bbox = box(107.82, 15.88, 108.35, 16.20)
+        places_gdf = places_gdf[places_gdf.geometry.within(danang_bbox) | places_gdf.geometry.intersects(danang_bbox)]
+
+        # Extract features
+        features = []
+        for _, row in places_gdf.iterrows():
+            if row.geometry is None or row.geometry.is_empty:
+                continue
+
+            centroid = row.geometry.centroid
+            name = None
+            if "names" in row.index and row["names"]:
+                if isinstance(row["names"], dict):
+                    name = row["names"].get("primary", "")
+                elif isinstance(row["names"], str):
+                    try:
+                        names_data = json.loads(row["names"])
+                        name = names_data.get("primary", "")
+                    except Exception:
+                        name = row["names"]
+
+            category = ""
+            subcategories = []
+            if "categories" in row.index and row["categories"]:
+                if isinstance(row["categories"], dict):
+                    category = row["categories"].get("primary", "")
+                    subcategories = row["categories"].get("alternate", []) or []
+                elif isinstance(row["categories"], str):
+                    try:
+                        cat_data = json.loads(row["categories"])
+                        category = cat_data.get("primary", "")
+                        subcategories = cat_data.get("alternate", []) or []
+                    except Exception:
+                        category = row["categories"]
+
+            address = None
+            if "addresses" in row.index and row["addresses"]:
+                if isinstance(row["addresses"], list) and len(row["addresses"]) > 0:
+                    addr = row["addresses"][0]
+                    address = addr.get("freeform", None) if isinstance(addr, dict) else None
+                elif isinstance(row["addresses"], str):
+                    try:
+                        addr_data = json.loads(row["addresses"])
+                        if isinstance(addr_data, list) and len(addr_data) > 0:
+                            address = addr_data[0].get("freeform", None)
+                    except Exception:
+                        pass
+
+            if not name or not category:
+                continue
+
+            features.append({
+                "overtureId": str(row.get("id", row.name)),
+                "name": name,
+                "category": category,
+                "subcategories": subcategories,
+                "address": address,
+                "street": None,
+                "ward": None,
+                "district": None,
+                "latitude": float(centroid.y),
+                "longitude": float(centroid.x),
+                "geometry": {"type": "Point", "coordinates": [float(centroid.x), float(centroid.y)]},
+                "confidence": float(row.get("confidence", 0) or 0),
+                "source": "overture-places"
+            })
+
+        return jsonify({"features": features, "total": len(features)})
+    except Exception as e:
+        logger.error(f"POI extraction error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     preload_startup_resources()
     logger.info("Starting GeoAI Backend Server")

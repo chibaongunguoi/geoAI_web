@@ -60,7 +60,8 @@ describe("MapWrapper spatial draw tools", () => {
   it("renders spatial draw tools and passes mode to Map when permission is present", async () => {
     render(<MapWrapper permissions={["properties.manage"]} />);
 
-    expect(screen.getByText("Spatial draw/edit")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Spatial draw/edit" }));
+    expect(screen.getByRole("heading", { name: "Spatial draw/edit" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Line" }));
     fireEvent.click(screen.getByTestId("mock-map"));
 
@@ -73,7 +74,7 @@ describe("MapWrapper spatial draw tools", () => {
   it("hides spatial draw tools when permission is missing", () => {
     render(<MapWrapper permissions={[]} />);
 
-    expect(screen.queryByText("Spatial draw/edit")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Spatial draw/edit" })).not.toBeInTheDocument();
     expect(screen.getByTestId("mock-map")).toHaveAttribute("data-spatial-mode", "idle");
   });
 
@@ -94,6 +95,8 @@ describe("MapWrapper spatial draw tools", () => {
     );
 
     render(<MapWrapper permissions={["properties.manage"]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Spatial draw/edit" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("mock-map")).toHaveAttribute("data-spatial-mode", "point");

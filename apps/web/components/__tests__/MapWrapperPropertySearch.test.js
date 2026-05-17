@@ -77,7 +77,7 @@ describe("MapWrapper property search stability", () => {
     });
 
     render(<MapWrapper permissions={[]} />);
-    const textbox = screen.getByRole("textbox", { name: /c/i });
+    const textbox = screen.getByRole("combobox", { name: /câu hỏi/i });
     const searchButton = screen.getByRole("button", { name: /^Tìm kiếm$/i });
 
     fireEvent.change(textbox, { target: { value: "nha o hai chau" } });
@@ -103,7 +103,7 @@ describe("MapWrapper property search stability", () => {
 
     render(<MapWrapper permissions={[]} />);
 
-    fireEvent.change(screen.getByRole("textbox", { name: /c/i }), {
+    fireEvent.change(screen.getByRole("combobox", { name: /câu hỏi/i }), {
       target: { value: "vung nao nhieu nha nhat" }
     });
     fireEvent.click(screen.getByRole("button", { name: /^Tìm kiếm$/i }));

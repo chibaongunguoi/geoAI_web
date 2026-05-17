@@ -130,6 +130,30 @@ model BuildingProperty {
   @@index([searchTextNormalized])
 }
 
+model Place {
+  id            String   @id @default(cuid())
+  overtureId    String   @unique
+  name          String
+  category      String
+  subcategories Json     @default("[]")
+  address       String?
+  street        String?
+  ward          String?
+  district      String?
+  city          String   @default("Da Nang")
+  latitude      Float
+  longitude     Float
+  geometry      Json
+  confidence    Float    @default(0)
+  source        String   @default("overture-places")
+  sourceVersion String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category])
+  @@index([city, district, ward])
+}
+
 model AssetDisplayUserConfig {
   userId    String   @id
   state     Json

@@ -57,18 +57,27 @@ export default function DashboardClient({ initialFilters, canExport }) {
     async (nextFilters = filters) => {
       setLoading(true);
       setStatus(null);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
       try {
         const query = dashboardQueryString(nextFilters);
         const response = await fetch(`/api/dashboard/assets/summary${query ? `?${query}` : ""}`, {
-          cache: "no-store"
+          cache: "no-store",
+          signal: controller.signal
         });
-        if (!response.ok) throw new Error("Dashboard summary failed.");
+        clearTimeout(timeout);
+        if (!response.ok) throw new Error("Tải dữ liệu thất bại.");
         const data = await response.json();
         setSummary(data);
         setLastRefreshedAt(new Date().toISOString());
         record("refresh", { total: data.totals?.total || 0 });
       } catch (error) {
-        setStatus(error.message || "Dashboard summary failed.");
+        clearTimeout(timeout);
+        if (error.name === "AbortError") {
+          setStatus("timeout");
+        } else {
+          setStatus(error.message || "Tải dữ liệu thất bại.");
+        }
       } finally {
         setLoading(false);
       }
@@ -149,10 +158,10 @@ export default function DashboardClient({ initialFilters, canExport }) {
     <div className="dashboard-page">
       <header className="dashboard-heading">
         <div>
-          <p>Operational dashboard</p>
-          <h1>Asset overview</h1>
+          <p>Bảng điều khiển</p>
+          <h1>Tổng quan tài sản</h1>
         </div>
-        {loading ? <span className="dashboard-pill">Loading</span> : null}
+        {loading ? <span className="dashboard-pill">Đang tải</span> : null}
       </header>
 
       <DashboardFilters
@@ -169,15 +178,22 @@ export default function DashboardClient({ initialFilters, canExport }) {
         onAutoRefreshChange={changeAutoRefresh}
       />
 
-      {status ? <p className="dashboard-error">{status}</p> : null}
-      {empty ? <p className="dashboard-empty">No assets match the current filters.</p> : null}
+      {status === "timeout" ? (
+        <div className="dashboard-timeout">
+          <p>Truy vấn mất quá nhiều thời gian. Vui lòng thử lại.</p>
+          <button type="button" onClick={() => loadSummary(filters)}>Thử lại</button>
+        </div>
+      ) : status ? (
+        <p className="dashboard-error">{status}</p>
+      ) : null}
+      {empty ? <p className="dashboard-empty">Không có tài sản nào phù hợp với bộ lọc hiện tại.</p> : null}
 
       <DashboardKpis summary={summary} />
       <DashboardCharts summary={summary} onDrilldown={drilldown} />
 
       <section className="dashboard-history" aria-label="Dashboard history">
-        <h2>Recent activity</h2>
-        {historyItems.length === 0 ? <p className="dashboard-muted">No recent dashboard actions.</p> : null}
+        <h2>Hoạt động gần đây</h2>
+        {historyItems.length === 0 ? <p className="dashboard-muted">Chưa có hoạt động nào gần đây.</p> : null}
         <ol>
           {historyItems.map((item) => (
             <li key={item.id}>
