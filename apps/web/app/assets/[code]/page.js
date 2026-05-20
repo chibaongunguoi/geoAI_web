@@ -26,7 +26,7 @@ export default async function AssetDetailPage({ params }) {
   const auditLogs = await getAssetAuditLogs(property, canAccess(user.permissions, "admin.logs.view"));
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="page">
       <main className="admin-page">
         <Link className="form-link" href="/assets">
           Quay lại danh sách

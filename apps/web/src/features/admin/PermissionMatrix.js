@@ -1,19 +1,96 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import EmptyState from "../shared/EmptyState";
+import Pagination from "../shared/Pagination";
+import { usePermissionDisplay } from "./permissions/usePermissionDisplay";
+
 const ROLE_LABELS = {
   USER: "Người dùng",
   MANAGER: "Cán bộ",
-  ADMIN: "Admin"
+  ADMIN: "Quản trị viên"
 };
 
 function permissionKeysFor(role) {
   return new Set(role.permissions?.map((item) => item.permission.key) || []);
 }
 
-export default function PermissionMatrix({ roles = [], permissions = [] }) {
+export default function PermissionMatrix({
+  roles: initialRoles,
+  permissions: initialPermissions,
+  fetchData
+}) {
+  const { getLabel, getGroupLabel } = usePermissionDisplay();
+  const [roles, setRoles] = useState(initialRoles || []);
+  const [permissions, setPermissions] = useState(initialPermissions || []);
+  const [loading, setLoading] = useState(!initialRoles && !initialPermissions && !!fetchData);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const loadData = useCallback(async () => {
+    if (!fetchData) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchData();
+      setRoles(data.roles || []);
+      setPermissions(data.permissions || []);
+    } catch (err) {
+      setError(err.message || "Không thể tải dữ liệu quyền.");
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (!initialRoles && !initialPermissions && fetchData) {
+      loadData();
+    }
+  }, [initialRoles, initialPermissions, fetchData, loadData]);
+
+  useEffect(() => {
+    if (initialRoles) setRoles(initialRoles);
+  }, [initialRoles]);
+
+  useEffect(() => {
+    if (initialPermissions) setPermissions(initialPermissions);
+  }, [initialPermissions]);
+
+  if (loading) {
+    return (
+      <div className="admin-table-loading" role="status" aria-label="Đang tải">
+        <div className="admin-table-spinner" />
+        <p>Đang tải dữ liệu...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="admin-table-error" role="alert">
+        <p className="admin-table-error-message">{error}</p>
+        <button type="button" className="admin-table-retry-btn" onClick={loadData}>
+          Thử lại
+        </button>
+      </div>
+    );
+  }
+
   if (!roles.length || !permissions.length) {
-    return <p className="empty-panel">Chưa có dữ liệu quyền.</p>;
+    return (
+      <EmptyState
+        icon={<span className="empty-state-icon-text">🔐</span>}
+        message="Chưa có dữ liệu quyền."
+      />
+    );
   }
 
   const rolePermissions = new Map(roles.map((role) => [role.code, permissionKeysFor(role)]));
+
+  const paginatedPermissions = permissions.length > PAGE_SIZE
+    ? permissions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+    : permissions;
 
   return (
     <div className="permission-matrix-shell">
@@ -27,11 +104,14 @@ export default function PermissionMatrix({ roles = [], permissions = [] }) {
           </tr>
         </thead>
         <tbody>
-          {permissions.map((permission) => (
-            <tr key={permission.id || permission.key}>
+          {paginatedPermissions.map((permission, index) => (
+            <tr
+              key={permission.id || permission.key}
+              className={index % 2 === 0 ? "admin-row-even" : "admin-row-odd"}
+            >
               <th scope="row">
-                <strong>{permission.key}</strong>
-                <span>{permission.group}</span>
+                <strong>{getLabel(permission.key)}</strong>
+                <span>{getGroupLabel(permission.key)}</span>
               </th>
               {roles.map((role) => (
                 <td key={`${permission.key}:${role.code}`}>
@@ -42,6 +122,14 @@ export default function PermissionMatrix({ roles = [], permissions = [] }) {
           ))}
         </tbody>
       </table>
+      {permissions.length > PAGE_SIZE && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={permissions.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setCurrentPage}
+        />
+      )}
     </div>
   );
 }

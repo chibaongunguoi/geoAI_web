@@ -14,8 +14,10 @@ export default function DashboardKpis({ summary }) {
     <section className="dashboard-kpi-grid" aria-label="Dashboard KPIs">
       {KPI_ITEMS.map(([label, key]) => (
         <article className="dashboard-kpi-card" key={key}>
-          <span>{label}</span>
-          <strong>{Number(totals[key] || 0).toLocaleString("vi-VN")}</strong>
+          <span className="dashboard-kpi-label">{label}</span>
+          <strong className="dashboard-kpi-value">
+            {Number(totals[key] || 0).toLocaleString("vi-VN")}
+          </strong>
         </article>
       ))}
     </section>

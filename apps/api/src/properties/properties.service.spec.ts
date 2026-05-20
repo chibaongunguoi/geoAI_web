@@ -613,9 +613,9 @@ describe("PropertiesService", () => {
     expect(result.map.regions.every((region: any) => region.objects.length > 0)).toBe(true);
     expect(prisma.buildingProperty.findMany).toHaveBeenCalledTimes(3);
     expect(prisma.buildingProperty.findMany.mock.calls.map(([call]) => call.take)).toEqual([
-      220,
-      109,
-      21
+      939,
+      468,
+      93
     ]);
   });
 

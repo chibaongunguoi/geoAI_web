@@ -27,7 +27,7 @@ export default async function DashboardPage({ searchParams }) {
   });
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="page">
       <DashboardClient initialFilters={filters} canExport={canAccess(user.permissions, "export.use")} />
     </AppShell>
   );

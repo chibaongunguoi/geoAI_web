@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import AppShell from "@/features/auth/AppShell";
+import Breadcrumb from "@/features/shared/Breadcrumb";
 import { canAccess } from "@/features/auth/auth-client";
 import { getCurrentUser } from "@/features/auth/server-auth";
 import AssetImportExportClient from "@/features/assets/AssetImportExportClient";
@@ -28,8 +29,9 @@ export default async function ImportExportPage({ searchParams }) {
   });
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="page">
       <main className="admin-page">
+        <Breadcrumb items={[{ label: "Quản trị", href: "/admin/users" }, { label: "Nhập/Xuất dữ liệu" }]} />
         <AssetImportExportClient
           initialFilters={filters}
           canImport={canAccess(user.permissions, "properties.import") && canAccess(user.permissions, "properties.manage")}

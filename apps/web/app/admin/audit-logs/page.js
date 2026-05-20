@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import AppShell from "@/features/auth/AppShell";
+import Breadcrumb from "@/features/shared/Breadcrumb";
 import { canAccess } from "@/features/auth/auth-client";
 import AuditLogTable from "@/features/admin/AuditLogTable";
 import { getCurrentUser, serverFetch } from "@/features/auth/server-auth";
+import { getTranslation } from "@/features/shared/localization/getTranslation";
 
 function queryString(filters) {
   const search = new URLSearchParams();
@@ -40,32 +42,33 @@ export default async function AuditLogsPage({ searchParams }) {
   const logs = await getAuditLogs(filters);
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="page">
       <main className="admin-page">
-        <h1>Nhật ký hệ thống</h1>
+        <Breadcrumb items={[{ label: getTranslation("breadcrumb.admin"), href: "/admin/users" }, { label: getTranslation("admin.auditLogs.title") }]} />
+        <h1 className="admin-page-heading">{getTranslation("admin.auditLogs.heading")}</h1>
         <form className="admin-filter-bar">
           <label>
-            Hành động
-            <input name="action" defaultValue={filters.action} placeholder="admin.users..." />
+            {getTranslation("admin.auditLogs.action")}
+            <input name="action" defaultValue={filters.action} placeholder={getTranslation("admin.auditLogs.actionPlaceholder")} />
           </label>
           <label>
-            Đối tượng
-            <input name="entityType" defaultValue={filters.entityType} placeholder="User" />
+            {getTranslation("admin.auditLogs.entityType")}
+            <input name="entityType" defaultValue={filters.entityType} placeholder={getTranslation("admin.auditLogs.entityTypePlaceholder")} />
           </label>
           <label>
-            Người thao tác
-            <input name="actorUserId" defaultValue={filters.actorUserId} placeholder="User ID" />
+            {getTranslation("admin.auditLogs.actorUserId")}
+            <input name="actorUserId" defaultValue={filters.actorUserId} placeholder={getTranslation("admin.auditLogs.actorUserIdPlaceholder")} />
           </label>
           <label>
-            Từ ngày
+            {getTranslation("admin.auditLogs.fromDate")}
             <input name="from" type="date" defaultValue={filters.from} />
           </label>
           <label>
-            Đến ngày
+            {getTranslation("admin.auditLogs.toDate")}
             <input name="to" type="date" defaultValue={filters.to} />
           </label>
           <button className="text-button" type="submit">
-            Lọc
+            {getTranslation("admin.auditLogs.filter")}
           </button>
         </form>
         <AuditLogTable logs={logs} />

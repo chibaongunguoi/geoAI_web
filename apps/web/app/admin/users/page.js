@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import AppShell from "@/features/auth/AppShell";
+import Breadcrumb from "@/features/shared/Breadcrumb";
 import { canAccess } from "@/features/auth/auth-client";
 import UserRoleDashboard from "@/features/admin/UserRoleDashboard";
 import { getCurrentUser, serverFetch } from "@/features/auth/server-auth";
+import { getTranslation } from "@/features/shared/localization/getTranslation";
 
 function queryString(filters) {
   const search = new URLSearchParams();
@@ -36,25 +38,26 @@ export default async function UsersPage({ searchParams }) {
   const users = await getUsers(filters);
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="page">
       <main className="admin-page">
-        <h1>Người dùng</h1>
+        <Breadcrumb items={[{ label: getTranslation("breadcrumb.admin"), href: "/admin/users" }, { label: getTranslation("admin.users.heading") }]} />
+        <h1 className="admin-page-heading">{getTranslation("admin.users.heading")}</h1>
         <form className="admin-filter-bar">
           <label>
-            Tìm kiếm
-            <input name="search" defaultValue={filters.search} placeholder="Tên, username, email" />
+            {getTranslation("admin.users.search")}
+            <input name="search" defaultValue={filters.search} placeholder={getTranslation("admin.users.searchPlaceholder")} />
           </label>
           <label>
-            Vai trò
+            {getTranslation("admin.users.roleFilter")}
             <select name="role" defaultValue={filters.role}>
-              <option value="">Tất cả</option>
-              <option value="USER">Người dùng</option>
-              <option value="MANAGER">Cán bộ</option>
-              <option value="ADMIN">Admin</option>
+              <option value="">{getTranslation("admin.users.allRoles")}</option>
+              <option value="USER">{getTranslation("admin.users.userRole")}</option>
+              <option value="MANAGER">{getTranslation("admin.users.manager")}</option>
+              <option value="ADMIN">{getTranslation("admin.users.admin")}</option>
             </select>
           </label>
           <button className="text-button" type="submit">
-            Lọc
+            {getTranslation("admin.users.filter")}
           </button>
         </form>
         <UserRoleDashboard

@@ -16,7 +16,7 @@ export default async function NewAssetPage() {
   }
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="page">
       <main className="admin-page">
         <h1>Thêm tài sản</h1>
         <AssetForm mode="create" />

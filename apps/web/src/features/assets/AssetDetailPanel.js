@@ -352,7 +352,8 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
 
       {activeTab === "overview" ? (
         <div className="dossier-section">
-          <div className="asset-detail-grid">
+          <section className="asset-section-basic-info" aria-label="Basic info">
+            <h2>Basic info</h2>
             <dl>
               <dt>Code</dt>
               <dd>{display(property.code)}</dd>
@@ -364,6 +365,12 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
               <dd>{areaLabel(property.areaSqm)}</dd>
               <dt>Address</dt>
               <dd>{display(property.addressLine)}</dd>
+            </dl>
+          </section>
+
+          <section className="asset-section-location" aria-label="Location">
+            <h2>Location</h2>
+            <dl>
               <dt>Administrative area</dt>
               <dd>{[property.ward, property.district, property.city].filter(Boolean).join(", ") || "-"}</dd>
               <dt>Coordinate</dt>
@@ -373,7 +380,19 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
               <span className="asset-map-pin" />
               <strong>{coordinate}</strong>
             </div>
-          </div>
+          </section>
+
+          <section className="asset-section-timeline" aria-label="Timeline">
+            <h2>Recent audit timeline</h2>
+            <ListEmpty items={auditLogs} message="No audit entries for this asset." />
+            {auditLogs.map((log) => (
+              <article key={log.id} className="asset-timeline-item">
+                <strong>{log.action}</strong>
+                <span>{log.actor?.username || log.actor?.email || "System"}</span>
+                <time dateTime={log.createdAt}>{dateLabel(log.createdAt)}</time>
+              </article>
+            ))}
+          </section>
 
           <div className="dossier-two-column">
             <section className="dossier-panel">
@@ -426,18 +445,6 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
               ))}
             </section>
           </div>
-
-          <section className="asset-timeline" aria-label="Recent audit timeline">
-            <h2>Recent audit timeline</h2>
-            <ListEmpty items={auditLogs} message="No audit entries for this asset." />
-            {auditLogs.map((log) => (
-              <article key={log.id} className="asset-timeline-item">
-                <strong>{log.action}</strong>
-                <span>{log.actor?.username || log.actor?.email || "System"}</span>
-                <time dateTime={log.createdAt}>{dateLabel(log.createdAt)}</time>
-              </article>
-            ))}
-          </section>
         </div>
       ) : null}
 

@@ -28,7 +28,7 @@ export default async function PermissionMatrixPage() {
   const [roles, permissions] = await Promise.all([getRoles(), getPermissions()]);
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="page">
       <main className="admin-page">
         <h1>Ma trận quyền</h1>
         <PermissionMatrix roles={roles} permissions={permissions} />

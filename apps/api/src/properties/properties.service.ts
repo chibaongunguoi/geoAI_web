@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { BetterSqliteService } from "../prisma/better-sqlite.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { DENSITY_OBJECT_LIMIT } from "./density-config";
 import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
 import { PropertySearchProvider } from "./property-search-provider";
 
@@ -212,7 +213,7 @@ const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 20;
 const DEFAULT_DENSITY_GRID_SIZE = 0.002;
 const DEFAULT_DENSITY_REGION_LIMIT = 6;
-const DEFAULT_DENSITY_OBJECT_LIMIT = 350;
+const DEFAULT_DENSITY_OBJECT_LIMIT = DENSITY_OBJECT_LIMIT;
 const DENSITY_BACKEND_TIMEOUT_MS = Number(process.env.DENSITY_BACKEND_TIMEOUT_MS || 5000);
 const SEMANTIC_PROVIDER_TIMEOUT_MS = Number(process.env.SEMANTIC_PROVIDER_TIMEOUT_MS || 2500);
 const LIST_SEARCH_TIMEOUT_MS = Number(process.env.LIST_SEARCH_TIMEOUT_MS || 2000);

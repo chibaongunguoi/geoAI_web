@@ -23,7 +23,7 @@ export default async function EditAssetPage({ params }) {
   }
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="page">
       <main className="admin-page">
         <h1>Sửa tài sản</h1>
         <AssetForm mode="edit" property={property} />

@@ -72,4 +72,39 @@ describe("FilterPanel", () => {
     expect(screen.getByRole("button", { name: "Áp dụng" })).toBeDisabled();
     expect(screen.getByText("Bạn không có quyền dùng bộ lọc.")).toBeInTheDocument();
   });
+
+  describe("result count display", () => {
+    it("displays placeholder when resultCount is null", () => {
+      render(<FilterPanel filters={{}} resultCount={null} canUseFilters />);
+      expect(screen.getByText("Chưa có số lượng kết quả")).toBeInTheDocument();
+    });
+
+    it("displays placeholder when resultCount is undefined", () => {
+      render(<FilterPanel filters={{}} resultCount={undefined} canUseFilters />);
+      expect(screen.getByText("Chưa có số lượng kết quả")).toBeInTheDocument();
+    });
+
+    it("displays '0 kết quả' when resultCount is explicitly 0", () => {
+      render(<FilterPanel filters={{}} resultCount={0} canUseFilters />);
+      expect(screen.getByText("0 kết quả")).toBeInTheDocument();
+    });
+
+    it("displays formatted count with Vietnamese locale for positive numbers", () => {
+      render(<FilterPanel filters={{}} resultCount={1234} canUseFilters />);
+      expect(screen.getByText(`${(1234).toLocaleString("vi-VN")} kết quả`)).toBeInTheDocument();
+    });
+
+    it("updates immediately when resultCount changes", () => {
+      const { rerender } = render(
+        <FilterPanel filters={{}} resultCount={null} canUseFilters />
+      );
+      expect(screen.getByText("Chưa có số lượng kết quả")).toBeInTheDocument();
+
+      rerender(<FilterPanel filters={{}} resultCount={42} canUseFilters />);
+      expect(screen.getByText("42 kết quả")).toBeInTheDocument();
+
+      rerender(<FilterPanel filters={{}} resultCount={0} canUseFilters />);
+      expect(screen.getByText("0 kết quả")).toBeInTheDocument();
+    });
+  });
 });

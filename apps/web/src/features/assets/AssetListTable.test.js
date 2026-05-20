@@ -3,6 +3,16 @@ import "@testing-library/jest-dom";
 import AssetListTable from "./AssetListTable";
 import { assetSearchQuery } from "./assets-server";
 
+const push = jest.fn();
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push,
+    refresh: jest.fn()
+  }),
+  useSearchParams: () => new URLSearchParams()
+}));
+
 describe("AssetListTable", () => {
   it("renders paginated asset rows with detail and edit links", () => {
     render(
@@ -41,7 +51,7 @@ describe("AssetListTable", () => {
   it("renders an empty state", () => {
     render(<AssetListTable assets={[]} canManageProperties={false} page={1} pageSize={20} total={0} />);
 
-    expect(screen.getByText("Không có tài sản phù hợp.")).toBeInTheDocument();
+    expect(screen.getByText("Không có tài sản phù hợp với bộ lọc hiện tại.")).toBeInTheDocument();
   });
 });
 

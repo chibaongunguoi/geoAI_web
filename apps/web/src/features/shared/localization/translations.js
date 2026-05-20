@@ -1,0 +1,389 @@
+/**
+ * Comprehensive Vietnamese translations for GeoAI application
+ * Organized by namespace for easy maintenance and scalability
+ */
+
+export const TRANSLATIONS = {
+  // Navigation menu labels
+  navigation: {
+    map: "Bản đồ",
+    assets: "Tài sản",
+    dashboard: "Bảng điều khiển",
+    admin: "Quản trị",
+    users: "Người dùng",
+    roles: "Vai trò",
+    permissions: "Quyền",
+    permissionMatrix: "Ma trận quyền",
+    auditLogs: "Nhật ký",
+    importExport: "Nhập/Xuất",
+    logout: "Đăng xuất",
+    settings: "Cài đặt"
+  },
+
+  // Admin page titles and headings
+  admin: {
+    users: {
+      title: "Quản lý người dùng",
+      heading: "Người dùng",
+      search: "Tìm kiếm",
+      searchPlaceholder: "Tên, tên đăng nhập, email",
+      roleFilter: "Vai trò",
+      allRoles: "Tất cả",
+      filter: "Lọc",
+      userRole: "Người dùng",
+      manager: "Cán bộ",
+      admin: "Quản trị viên",
+      permissions: "quyền",
+      information: "Thông tin",
+      roles: "Vai trò",
+      actions: "Hành động",
+      saveRoles: "Lưu vai trò",
+      saving: "Đang lưu...",
+      lockAccount: "Khóa tài khoản",
+      unlockAccount: "Mở khóa tài khoản",
+      noUsers: "Chưa có người dùng nào.",
+      loadingData: "Đang tải dữ liệu...",
+      loadError: "Không thể tải dữ liệu người dùng.",
+      updateRolesError: "Không thể cập nhật vai trò.",
+      updateRolesSuccess: "Đã cập nhật vai trò.",
+      updateStatusError: "Không thể cập nhật trạng thái tài khoản.",
+      updateStatusSuccess: "Đã cập nhật trạng thái tài khoản."
+    },
+    roles: {
+      title: "Quản lý vai trò",
+      heading: "Vai trò",
+      name: "Tên vai trò",
+      code: "Mã",
+      description: "Mô tả",
+      permissions: "quyền"
+    },
+    permissions: {
+      title: "Quản lý quyền",
+      heading: "Quyền hệ thống",
+      key: "Mã quyền",
+      group: "Nhóm",
+      name: "Tên",
+      description: "Mô tả"
+    },
+    auditLogs: {
+      title: "Nhật ký hệ thống",
+      heading: "Nhật ký hệ thống",
+      action: "Hành động",
+      actionPlaceholder: "admin.users...",
+      entityType: "Đối tượng",
+      entityTypePlaceholder: "Người dùng",
+      actorUserId: "Người thao tác",
+      actorUserIdPlaceholder: "ID người dùng",
+      fromDate: "Từ ngày",
+      toDate: "Đến ngày",
+      filter: "Lọc",
+      timestamp: "Thời gian",
+      actor: "Người thực hiện",
+      entity: "Đối tượng",
+      changes: "Thay đổi",
+      noData: "Không có nhật ký phù hợp."
+    }
+  },
+
+  // Breadcrumb navigation
+  breadcrumb: {
+    admin: "Quản trị",
+    home: "Trang chủ"
+  },
+
+  // Common UI elements
+  common: {
+    save: "Lưu",
+    cancel: "Hủy",
+    delete: "Xóa",
+    edit: "Chỉnh sửa",
+    add: "Thêm",
+    create: "Tạo mới",
+    update: "Cập nhật",
+    remove: "Xóa",
+    search: "Tìm kiếm",
+    filter: "Lọc",
+    reset: "Đặt lại",
+    apply: "Áp dụng",
+    close: "Đóng",
+    back: "Quay lại",
+    next: "Tiếp theo",
+    previous: "Trước đó",
+    loading: "Đang tải...",
+    error: "Lỗi",
+    success: "Thành công",
+    warning: "Cảnh báo",
+    info: "Thông tin",
+    retry: "Thử lại",
+    confirm: "Xác nhận",
+    yes: "Có",
+    no: "Không",
+    ok: "Đồng ý",
+    submit: "Gửi",
+    export: "Xuất",
+    import: "Nhập",
+    download: "Tải xuống",
+    upload: "Tải lên",
+    view: "Xem",
+    details: "Chi tiết",
+    actions: "Hành động",
+    status: "Trạng thái",
+    active: "Hoạt động",
+    inactive: "Không hoạt động",
+    enabled: "Bật",
+    disabled: "Tắt",
+    all: "Tất cả",
+    none: "Không có",
+    select: "Chọn",
+    selected: "Đã chọn",
+    empty: "Trống",
+    noData: "Không có dữ liệu",
+    noResults: "Không tìm thấy kết quả",
+    total: "Tổng cộng",
+    page: "Trang",
+    of: "của",
+    items: "mục",
+    itemsPerPage: "Mục trên mỗi trang",
+    showing: "Hiển thị",
+    to: "đến",
+    from: "từ",
+    date: "Ngày",
+    time: "Thời gian",
+    name: "Tên",
+    email: "Email",
+    username: "Tên đăng nhập",
+    password: "Mật khẩu",
+    confirmPassword: "Xác nhận mật khẩu",
+    description: "Mô tả",
+    notes: "Ghi chú",
+    createdAt: "Ngày tạo",
+    updatedAt: "Ngày cập nhật",
+    createdBy: "Tạo bởi",
+    updatedBy: "Cập nhật bởi",
+    id: "ID",
+    code: "Mã",
+    type: "Loại",
+    category: "Danh mục",
+    group: "Nhóm",
+    value: "Giá trị",
+    label: "Nhãn",
+    placeholder: "Nhập...",
+    required: "Bắt buộc",
+    optional: "Tùy chọn",
+    default: "Mặc định",
+    custom: "Tùy chỉnh",
+    other: "Khác",
+    more: "Thêm",
+    less: "Ít hơn",
+    expand: "Mở rộng",
+    collapse: "Thu gọn",
+    show: "Hiển thị",
+    hide: "Ẩn",
+    sort: "Sắp xếp",
+    ascending: "Tăng dần",
+    descending: "Giảm dần",
+    asc: "A-Z",
+    desc: "Z-A"
+  },
+
+  // Permission-related labels
+  permissions: {
+    manage: "Quản lý",
+    view: "Xem",
+    create: "Tạo",
+    edit: "Chỉnh sửa",
+    delete: "Xóa",
+    export: "Xuất",
+    import: "Nhập",
+    apiKeys: "Khóa API",
+    backups: "Sao lưu",
+    config: "Cấu hình",
+    logs: "Nhật ký",
+    roles: "Vai trò",
+    users: "Người dùng"
+  },
+
+  // Status messages
+  messages: {
+    success: {
+      saved: "Lưu thành công",
+      created: "Tạo thành công",
+      updated: "Cập nhật thành công",
+      deleted: "Xóa thành công",
+      imported: "Nhập thành công",
+      exported: "Xuất thành công"
+    },
+    error: {
+      saveFailed: "Lưu thất bại",
+      createFailed: "Tạo thất bại",
+      updateFailed: "Cập nhật thất bại",
+      deleteFailed: "Xóa thất bại",
+      importFailed: "Nhập thất bại",
+      exportFailed: "Xuất thất bại",
+      loadFailed: "Tải dữ liệu thất bại",
+      unauthorized: "Bạn không có quyền thực hiện hành động này",
+      notFound: "Không tìm thấy",
+      serverError: "Lỗi máy chủ",
+      networkError: "Lỗi kết nối mạng",
+      validationError: "Dữ liệu không hợp lệ"
+    },
+    warning: {
+      unsavedChanges: "Bạn có thay đổi chưa lưu",
+      confirmDelete: "Bạn có chắc chắn muốn xóa?",
+      confirmAction: "Bạn có chắc chắn muốn thực hiện hành động này?"
+    },
+    info: {
+      loading: "Đang tải...",
+      processing: "Đang xử lý...",
+      noData: "Không có dữ liệu",
+      noResults: "Không tìm thấy kết quả"
+    }
+  },
+
+  // Form labels and validation
+  form: {
+    required: "Trường này là bắt buộc",
+    invalidEmail: "Email không hợp lệ",
+    passwordTooShort: "Mật khẩu phải có ít nhất 8 ký tự",
+    passwordMismatch: "Mật khẩu không khớp",
+    invalidUsername: "Tên đăng nhập không hợp lệ",
+    usernameTaken: "Tên đăng nhập đã được sử dụng",
+    emailTaken: "Email đã được sử dụng",
+    invalidInput: "Dữ liệu nhập không hợp lệ",
+    selectOption: "Vui lòng chọn một tùy chọn",
+    selectAtLeastOne: "Vui lòng chọn ít nhất một mục",
+    maxLength: "Độ dài tối đa là {max} ký tự",
+    minLength: "Độ dài tối thiểu là {min} ký tự"
+  },
+
+  // Table headers and columns
+  table: {
+    id: "ID",
+    name: "Tên",
+    email: "Email",
+    username: "Tên đăng nhập",
+    role: "Vai trò",
+    status: "Trạng thái",
+    createdAt: "Ngày tạo",
+    updatedAt: "Ngày cập nhật",
+    actions: "Hành động",
+    select: "Chọn",
+    selectAll: "Chọn tất cả",
+    deselectAll: "Bỏ chọn tất cả",
+    noData: "Không có dữ liệu",
+    loading: "Đang tải...",
+    error: "Lỗi tải dữ liệu"
+  },
+
+  // Pagination
+  pagination: {
+    previous: "Trước",
+    next: "Tiếp",
+    first: "Đầu tiên",
+    last: "Cuối cùng",
+    page: "Trang",
+    of: "của",
+    showing: "Hiển thị",
+    to: "đến",
+    results: "kết quả"
+  },
+
+  // Filter and search
+  filter: {
+    search: "Tìm kiếm",
+    filter: "Lọc",
+    reset: "Đặt lại",
+    apply: "Áp dụng",
+    clearAll: "Xóa tất cả",
+    noFilters: "Không có bộ lọc",
+    filterBy: "Lọc theo",
+    sortBy: "Sắp xếp theo",
+    ascending: "Tăng dần",
+    descending: "Giảm dần"
+  },
+
+  // User roles
+  roles: {
+    admin: "Quản trị viên",
+    manager: "Cán bộ",
+    user: "Người dùng",
+    guest: "Khách",
+    viewer: "Người xem",
+    editor: "Người chỉnh sửa",
+    owner: "Chủ sở hữu"
+  },
+
+  // Date and time
+  datetime: {
+    today: "Hôm nay",
+    yesterday: "Hôm qua",
+    tomorrow: "Ngày mai",
+    thisWeek: "Tuần này",
+    lastWeek: "Tuần trước",
+    thisMonth: "Tháng này",
+    lastMonth: "Tháng trước",
+    thisYear: "Năm nay",
+    lastYear: "Năm ngoái",
+    january: "Tháng 1",
+    february: "Tháng 2",
+    march: "Tháng 3",
+    april: "Tháng 4",
+    may: "Tháng 5",
+    june: "Tháng 6",
+    july: "Tháng 7",
+    august: "Tháng 8",
+    september: "Tháng 9",
+    october: "Tháng 10",
+    november: "Tháng 11",
+    december: "Tháng 12",
+    monday: "Thứ 2",
+    tuesday: "Thứ 3",
+    wednesday: "Thứ 4",
+    thursday: "Thứ 5",
+    friday: "Thứ 6",
+    saturday: "Thứ 7",
+    sunday: "Chủ nhật"
+  },
+
+  // Audit log actions
+  auditLog: {
+    created: "Tạo",
+    updated: "Cập nhật",
+    deleted: "Xóa",
+    viewed: "Xem",
+    exported: "Xuất",
+    imported: "Nhập",
+    login: "Đăng nhập",
+    logout: "Đăng xuất",
+    roleAssigned: "Gán vai trò",
+    roleRemoved: "Xóa vai trò",
+    permissionGranted: "Cấp quyền",
+    permissionRevoked: "Thu hồi quyền",
+    passwordChanged: "Thay đổi mật khẩu",
+    profileUpdated: "Cập nhật hồ sơ",
+    settingsChanged: "Thay đổi cài đặt"
+  },
+
+  // Entity types for audit logs
+  entityTypes: {
+    user: "Người dùng",
+    role: "Vai trò",
+    permission: "Quyền",
+    asset: "Tài sản",
+    settings: "Cài đặt",
+    auditLog: "Nhật ký kiểm toán",
+    apiKey: "Khóa API",
+    backup: "Sao lưu",
+    config: "Cấu hình"
+  },
+
+  // Help and tooltips
+  help: {
+    searchTip: "Nhập tên, email hoặc tên đăng nhập để tìm kiếm",
+    filterTip: "Sử dụng các bộ lọc để thu hẹp kết quả",
+    sortTip: "Nhấp vào tiêu đề cột để sắp xếp",
+    selectTip: "Chọn các mục để thực hiện hành động hàng loạt",
+    exportTip: "Xuất dữ liệu sang định dạng CSV hoặc Excel",
+    importTip: "Nhập dữ liệu từ tệp CSV hoặc Excel"
+  }
+};

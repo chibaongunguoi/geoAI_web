@@ -36,14 +36,28 @@ export default function LoginForm() {
 
   return (
     <form className="login-form" onSubmit={submit}>
-      <label>
+      <label htmlFor="login-identifier">
         Tài khoản hoặc email
-        <input name="identifier" type="text" autoComplete="username" required />
       </label>
-      <label>
+      <input
+        id="login-identifier"
+        name="identifier"
+        type="text"
+        autoComplete="username"
+        placeholder="Nhập tài khoản hoặc email"
+        required
+      />
+      <label htmlFor="login-password">
         Mật khẩu
-        <input name="password" type="password" autoComplete="current-password" required />
       </label>
+      <input
+        id="login-password"
+        name="password"
+        type="password"
+        autoComplete="current-password"
+        placeholder="Nhập mật khẩu"
+        required
+      />
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       <button className="primary-button" type="submit" disabled={pending}>
         {pending ? "Đang đăng nhập..." : "Đăng nhập"}

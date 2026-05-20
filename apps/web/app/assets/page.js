@@ -41,7 +41,7 @@ export default async function AssetsPage({ searchParams }) {
   const canManageProperties = canAccess(user.permissions, "properties.manage");
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="page">
       <main className="admin-page">
         <div className="asset-page-heading">
           <h1>Tài sản</h1>

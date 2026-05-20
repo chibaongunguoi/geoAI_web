@@ -37,22 +37,49 @@ export default function RegisterForm() {
 
   return (
     <form className="login-form" onSubmit={submit}>
-      <label>
+      <label htmlFor="register-username">
         Tài khoản
-        <input name="username" type="text" autoComplete="username" required />
       </label>
-      <label>
+      <input
+        id="register-username"
+        name="username"
+        type="text"
+        autoComplete="username"
+        placeholder="Nhập tên tài khoản"
+        required
+      />
+      <label htmlFor="register-email">
         Email
-        <input name="email" type="email" autoComplete="email" />
       </label>
-      <label>
+      <input
+        id="register-email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        placeholder="Nhập địa chỉ email"
+      />
+      <label htmlFor="register-name">
         Họ tên
-        <input name="name" type="text" autoComplete="name" required />
       </label>
-      <label>
+      <input
+        id="register-name"
+        name="name"
+        type="text"
+        autoComplete="name"
+        placeholder="Nhập họ và tên"
+        required
+      />
+      <label htmlFor="register-password">
         Mật khẩu
-        <input name="password" type="password" autoComplete="new-password" required />
       </label>
+      <input
+        id="register-password"
+        name="password"
+        type="password"
+        autoComplete="new-password"
+        placeholder="Nhập mật khẩu"
+        required
+      />
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       <button className="primary-button" type="submit" disabled={pending}>
         {pending ? "Đang đăng ký..." : "Đăng ký"}

@@ -14,7 +14,7 @@ export default async function Home() {
 
   if (!canAccess(user.permissions, "map.view")) {
     return (
-      <AppShell user={user}>
+      <AppShell user={user} variant="map">
         <main className="empty-state">
           <h1>Không có quyền xem bản đồ</h1>
           <p>Vui lòng liên hệ Admin để được cấp quyền map.view.</p>
@@ -24,7 +24,7 @@ export default async function Home() {
   }
 
   return (
-    <AppShell user={user}>
+    <AppShell user={user} variant="map">
       <main className={styles.page} aria-label="Không gian phân tích GeoAI">
         <MapWrapper permissions={user.permissions} />
       </main>

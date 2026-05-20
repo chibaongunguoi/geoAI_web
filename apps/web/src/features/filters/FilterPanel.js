@@ -9,16 +9,7 @@ import {
   filterWarning,
   normalizeAssetFilters
 } from "./filter-state";
-
-const DISTRICT_OPTIONS = [
-  "Hải Châu",
-  "Thanh Khê",
-  "Sơn Trà",
-  "Ngũ Hành Sơn",
-  "Liên Chiểu",
-  "Cẩm Lệ",
-  "Hòa Vang"
-];
+import { DISTRICTS, getWardsForDistrict } from "./district-ward-data";
 
 const FILTER_ACTION_LABELS = {
   "filters.apply": "Áp dụng bộ lọc",
@@ -118,26 +109,39 @@ export default function FilterPanel({
 
         <label>
           Quận/huyện
-          <input
-            list="filter-district-options"
+          <select
             value={draft.district}
             disabled={!canUseFilters}
-            onChange={(event) => updateDraft({ district: event.target.value })}
-          />
-          <datalist id="filter-district-options">
-            {DISTRICT_OPTIONS.map((district) => (
-              <option key={district} value={district} />
+            onChange={(event) => {
+              const newDistrict = event.target.value;
+              updateDraft({ district: newDistrict, ward: "" });
+            }}
+          >
+            <option value="">Tất cả quận/huyện</option>
+            {DISTRICTS.map((district) => (
+              <option key={district} value={district}>
+                {district}
+              </option>
             ))}
-          </datalist>
+          </select>
         </label>
 
         <label>
           Phường/xã
-          <input
+          <select
             value={draft.ward}
-            disabled={!canUseFilters}
+            disabled={!canUseFilters || !draft.district}
             onChange={(event) => updateDraft({ ward: event.target.value })}
-          />
+          >
+            <option value="">
+              {draft.district ? "Tất cả phường/xã" : "Chọn quận/huyện trước"}
+            </option>
+            {getWardsForDistrict(draft.district).map((ward) => (
+              <option key={ward} value={ward}>
+                {ward}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
