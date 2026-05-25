@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { PROPERTY_TYPE_OPTIONS } from "@/features/filters/filter-state";
+import { DISTRICTS, getWardsForDistrict } from "@/features/filters/district-ward-data";
 
 const STATUS_OPTIONS = [
   ["ACTIVE", "Đang hoạt động"],
@@ -61,8 +63,22 @@ export default function AssetForm({ mode = "create", property = null, onSaved })
   const [saving, setSaving] = useState(false);
 
   const isEdit = mode === "edit";
+  const wards = getWardsForDistrict(form.district);
+  const wardOptions = form.ward && !wards.includes(form.ward) ? [form.ward, ...wards] : wards;
+  const propertyTypeOptions = form.propertyType && !PROPERTY_TYPE_OPTIONS.some((option) => option.value === form.propertyType)
+    ? [{ value: form.propertyType, label: form.propertyType }, ...PROPERTY_TYPE_OPTIONS]
+    : PROPERTY_TYPE_OPTIONS;
 
   function updateField(event) {
+    if (event.target.name === "district") {
+      setForm((current) => ({
+        ...current,
+        district: event.target.value,
+        ward: ""
+      }));
+      return;
+    }
+
     setForm((current) => ({
       ...current,
       [event.target.name]: event.target.value
@@ -121,7 +137,13 @@ export default function AssetForm({ mode = "create", property = null, onSaved })
         </label>
         <label>
           Loại
-          <input name="propertyType" value={form.propertyType} onChange={updateField} />
+          <select name="propertyType" value={form.propertyType} onChange={updateField}>
+            {propertyTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Trạng thái
@@ -143,11 +165,25 @@ export default function AssetForm({ mode = "create", property = null, onSaved })
         </label>
         <label>
           Phường
-          <input name="ward" value={form.ward} onChange={updateField} />
+          <select name="ward" value={form.ward} onChange={updateField} disabled={!form.district}>
+            <option value="">Tất cả</option>
+            {wardOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Quận
-          <input name="district" value={form.district} onChange={updateField} />
+          <select name="district" value={form.district} onChange={updateField}>
+            <option value="">Tất cả</option>
+            {DISTRICTS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Thành phố

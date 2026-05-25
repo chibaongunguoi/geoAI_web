@@ -18,7 +18,17 @@ export const STATUS_OPTIONS = [
 ];
 
 export const PROPERTY_TYPE_OPTIONS = [
-  { value: "building", label: "Tòa nhà" }
+  { value: "building", label: "Tòa nhà" },
+  { value: "cafe", label: "Quán cà phê" },
+  { value: "coffee_shop", label: "Coffee shop" },
+  { value: "restaurant", label: "Nhà hàng" },
+  { value: "hotel", label: "Khách sạn" },
+  { value: "school", label: "Trường học" },
+  { value: "hospital", label: "Bệnh viện" },
+  { value: "pharmacy", label: "Nhà thuốc" },
+  { value: "supermarket", label: "Siêu thị" },
+  { value: "market", label: "Chợ" },
+  { value: "park", label: "Công viên" }
 ];
 
 const VALID_STATUSES = new Set(STATUS_OPTIONS.map((option) => option.value));
@@ -72,6 +82,7 @@ export function assetFilterQueryString(filters = {}) {
     if (normalized[key]) query.set(key, normalized[key]);
   }
 
+  if (filters.source) query.set("source", String(filters.source));
   if (filters.limit) query.set("limit", String(filters.limit));
   if (filters.sort) query.set("sort", String(filters.sort));
   if (filters.page) query.set("page", String(filters.page));

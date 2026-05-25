@@ -1,0 +1,20 @@
+{
+  "deletedAt": null,
+  "AND": [
+    {
+      "searchTextNormalized": {
+        "contains": "dn"
+      }
+    },
+    {
+      "searchTextNormalized": {
+        "contains": "poi"
+      }
+    },
+    {
+      "searchTextNormalized": {
+        "contains": "000996"
+      }
+    }
+  ]
+}

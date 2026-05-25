@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import AppShell from "@/features/auth/AppShell";
 import { canAccess } from "@/features/auth/auth-client";
 import { getCurrentUser } from "@/features/auth/server-auth";
+import AssetFiltersForm from "@/features/assets/AssetFiltersForm";
 import AssetListTable from "@/features/assets/AssetListTable";
 import { searchAssets, sortAssets } from "@/features/assets/assets-server";
 import { normalizeAssetFilters } from "@/features/filters/filter-state";
@@ -28,8 +29,8 @@ export default async function AssetsPage({ searchParams }) {
     propertyType: params?.propertyType || "",
     district: params?.district || "",
     ward: params?.ward || "",
-    updatedFrom: params?.updatedFrom || "",
-    updatedTo: params?.updatedTo || ""
+    updatedFrom: "",
+    updatedTo: ""
   });
   const searchFilters = {
     ...filters,
@@ -51,60 +52,7 @@ export default async function AssetsPage({ searchParams }) {
             </Link>
           ) : null}
         </div>
-        <form className="admin-filter-bar">
-          <label>
-            Tìm kiếm
-            <input name="query" defaultValue={filters.query} placeholder="Mã, tên, địa chỉ" />
-          </label>
-          <label>
-            Trạng thái
-            <select name="status" defaultValue={filters.status}>
-              <option value="">Tất cả</option>
-              <option value="ACTIVE">Đang hoạt động</option>
-              <option value="INACTIVE">Không hoạt động</option>
-              <option value="REVIEW">Cần xem xét</option>
-              <option value="ARCHIVED">Lưu trữ</option>
-            </select>
-          </label>
-          <label>
-            Loại
-            <select name="propertyType" defaultValue={filters.propertyType}>
-              <option value="">Tất cả</option>
-              <option value="building">Building</option>
-            </select>
-          </label>
-          <label>
-            Quận
-            <input name="district" defaultValue={filters.district} placeholder="Liên Chiểu" />
-          </label>
-          <label>
-            Phường
-            <input name="ward" defaultValue={filters.ward} placeholder="Hòa Khánh Bắc" />
-          </label>
-          <label>
-            Từ ngày
-            <input name="updatedFrom" type="date" defaultValue={filters.updatedFrom} />
-          </label>
-          <label>
-            Đến ngày
-            <input name="updatedTo" type="date" defaultValue={filters.updatedTo} />
-          </label>
-          <label>
-            Sắp xếp
-            <select name="sort" defaultValue={searchFilters.sort}>
-              <option value="updatedAt">Mới cập nhật</option>
-              <option value="code">Mã</option>
-              <option value="name">Tên</option>
-              <option value="status">Trạng thái</option>
-            </select>
-          </label>
-          <button className="text-button" type="submit">
-            Lọc
-          </button>
-          <Link className="text-button" href="/assets">
-            Xóa lọc
-          </Link>
-        </form>
+        <AssetFiltersForm filters={filters} sort={searchFilters.sort} />
         <AssetListTable
           assets={pageAssets}
           canManageProperties={canManageProperties}

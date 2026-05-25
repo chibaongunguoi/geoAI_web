@@ -5,7 +5,8 @@ import { MapContainer, ScaleControl, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
-import { useCallback, useEffect, useRef, useState } from "react";
+import "leaflet.heat";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
 import {
   DATA_LAYERS,
@@ -27,6 +28,12 @@ import {
   formatDistance,
 } from "@/features/measurement/measurement-utils";
 import { snapPointToVisibleAssets } from "@/features/measurement/measurement-state";
+import {
+  clusterPoiMarkers,
+  createClusterIconHtml,
+  createPoiMarkerHtml,
+  shouldShowPoiLayer,
+} from "@/features/poi/poi-markers";
 
 const DANANG_CENTER = [16.0544, 108.2022];
 const DANANG_BOUNDS = [
@@ -198,6 +205,29 @@ function assetMarkerIcon(feature, config) {
   });
 }
 
+function poiPopup(place) {
+  const address = place.address || place.street || place.district || "";
+  return `
+    <div class="poi-popup">
+      <h3 class="poi-popup-name">${escapeHtml(place.name || "POI")}</h3>
+      <span class="poi-popup-category">${escapeHtml(place.vietnameseCategory || place.category || "POI")}</span>
+      ${address ? `<p class="poi-popup-address">${escapeHtml(address)}</p>` : ""}
+    </div>
+  `;
+}
+
+function poiTooltip(place) {
+  const category = place.vietnameseCategory || place.category || "POI";
+  const address = place.address || place.street || place.district || "";
+  return `
+    <div class="poi-tooltip-content">
+      <strong>${escapeHtml(place.name || "POI")}</strong>
+      <span>${escapeHtml(category)}</span>
+      ${address ? `<small>${escapeHtml(address)}</small>` : ""}
+    </div>
+  `;
+}
+
 function propertyDensityPopup(region) {
   return `<strong>${escapeHtml(region.label || "Vung mat do")}</strong><br>${escapeHtml(
     Number(region.count || 0).toLocaleString("vi-VN"),
@@ -235,6 +265,45 @@ function propertyDensityCenter(region, fallbackBounds) {
   }
 
   return fallbackBounds?.isValid?.() ? fallbackBounds.getCenter() : null;
+}
+
+function densityHeatRatio(region, maxCount) {
+  const count = Number(region?.count || 0);
+  const max = Number(maxCount || 0);
+  if (!Number.isFinite(count) || !Number.isFinite(max) || max <= 0) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, count / max));
+}
+
+function densityHeatColor(ratio) {
+  if (ratio >= 0.82) return "#ef4444";
+  if (ratio >= 0.62) return "#f97316";
+  if (ratio >= 0.42) return "#facc15";
+  if (ratio >= 0.22) return "#84cc16";
+  return "#22c55e";
+}
+
+function densityHeatRadius(region, bounds, ratio) {
+  const center = propertyDensityCenter(region, bounds);
+  if (!center) return 220;
+
+  const corner = bounds?.isValid?.() ? bounds.getNorthEast() : null;
+  const boundsRadius = corner ? center.distanceTo(corner) : 260;
+  const baseRadius = Math.max(180, Math.min(boundsRadius * 1.2, 760));
+  return baseRadius * (0.65 + ratio * 0.75);
+}
+
+function densityHeatPoint(region, maxCount) {
+  const lat = Number(region?.center?.lat);
+  const lng = Number(region?.center?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const ratio = densityHeatRatio(region, maxCount);
+  return [lat, lng, Math.max(0.08, ratio)];
+}
+
+function densityFocusLabel(direction) {
+  return direction === "lowest" ? "Khu th\u01b0a th\u1edbt nh\u1ea5t" : "Khu d\u00e0y \u0111\u1eb7c nh\u1ea5t";
 }
 
 function deterministicAngle(seed) {
@@ -378,6 +447,8 @@ function MapComponent({
   onSpatialDrawVertexEdit,
   onSpatialDrawVertexSelect,
   onViewportChange,
+  poiResults,
+  buildingHeatmap,
 }) {
   const map = useMap();
   const [drawnItems] = useState(new L.FeatureGroup());
@@ -386,6 +457,8 @@ function MapComponent({
   const [boundaryLayer] = useState(new L.FeatureGroup());
   const [maskLayer] = useState(new L.FeatureGroup());
   const [propertySearchLayer] = useState(new L.FeatureGroup());
+  const [buildingHeatmapLayer] = useState(new L.FeatureGroup());
+  const [poiLayer] = useState(new L.FeatureGroup());
   const [focusedPropertyLayer] = useState(new L.FeatureGroup());
   const [measurementLayer] = useState(new L.FeatureGroup());
   const [spatialDrawLayer] = useState(new L.FeatureGroup());
@@ -395,6 +468,18 @@ function MapComponent({
   const externalLayersRef = useRef(new globalThis.Map());
   const lastBoundaryViewKeyRef = useRef(null);
   const rightDragState = useRef(null);
+  const buildingHeatLayerRef = useRef(null);
+  const renderedPoiItems = useMemo(() => {
+    if (!shouldShowPoiLayer(currentZoom)) {
+      return [];
+    }
+
+    const items = Array.isArray(poiResults) ? poiResults : [];
+    const validItems = items.filter((item) =>
+      Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)),
+    );
+    return clusterPoiMarkers(validItems);
+  }, [currentZoom, poiResults]);
 
   const reportViewport = useCallback(() => {
     const center = map.getCenter();
@@ -495,7 +580,9 @@ function MapComponent({
     map.addLayer(assetMarkers);
     map.addLayer(maskLayer);
     map.addLayer(boundaryLayer);
+    map.addLayer(buildingHeatmapLayer);
     map.addLayer(propertySearchLayer);
+    map.addLayer(poiLayer);
     map.addLayer(focusedPropertyLayer);
     map.addLayer(measurementLayer);
     map.addLayer(spatialDrawLayer);
@@ -524,7 +611,9 @@ function MapComponent({
       map.removeLayer(assetMarkers);
       map.removeLayer(maskLayer);
       map.removeLayer(boundaryLayer);
+      map.removeLayer(buildingHeatmapLayer);
       map.removeLayer(propertySearchLayer);
+      map.removeLayer(poiLayer);
       map.removeLayer(focusedPropertyLayer);
       map.removeLayer(measurementLayer);
       map.removeLayer(spatialDrawLayer);
@@ -538,13 +627,70 @@ function MapComponent({
     assetMarkers,
     maskLayer,
     boundaryLayer,
+    buildingHeatmapLayer,
     propertySearchLayer,
+    poiLayer,
     focusedPropertyLayer,
     measurementLayer,
     spatialDrawLayer,
     onRectangleDrawn,
     captureImageForCoords,
   ]);
+
+  useEffect(() => {
+    poiLayer.clearLayers();
+    const layers = [];
+
+    renderedPoiItems.forEach((entry) => {
+      if (entry.kind === "cluster") {
+        const marker = L.marker([entry.lat, entry.lng], {
+          zIndexOffset: 650,
+          icon: L.divIcon({
+            className: "poi-cluster-icon",
+            html: createClusterIconHtml(entry.count),
+            iconSize: [42, 42],
+            iconAnchor: [21, 21],
+          }),
+        })
+          .bindPopup(`${Number(entry.count || 0).toLocaleString("vi-VN")} \u0111\u1ecba \u0111i\u1ec3m`)
+          .bindTooltip(`${Number(entry.count || 0).toLocaleString("vi-VN")} địa điểm`, {
+            direction: "top",
+            offset: [0, -18],
+            opacity: 0.96,
+            className: "poi-tooltip",
+          });
+        marker.addTo(poiLayer);
+        layers.push(marker);
+        return;
+      }
+
+      const item = entry.item;
+      const marker = L.marker([Number(item.latitude), Number(item.longitude)], {
+        zIndexOffset: 700,
+        icon: L.divIcon({
+          className: "poi-marker-icon",
+          html: createPoiMarkerHtml(item.category),
+          iconSize: [30, 30],
+          iconAnchor: [15, 30],
+          popupAnchor: [0, -26],
+        }),
+      })
+        .bindPopup(poiPopup(item))
+        .bindTooltip(poiTooltip(item), {
+          direction: "top",
+          offset: [0, -26],
+          opacity: 0.96,
+          sticky: true,
+          className: "poi-tooltip",
+        });
+      marker.addTo(poiLayer);
+      layers.push(marker);
+    });
+
+    if (layers.length > 0) {
+      poiLayer.bringToFront();
+    }
+  }, [poiLayer, renderedPoiItems]);
 
   useEffect(() => {
     focusedPropertyLayer.clearLayers();
@@ -940,6 +1086,56 @@ function MapComponent({
       focusTimers.forEach((timer) => clearTimeout(timer));
     };
   }, [drawnItems, map, onRectangleDrawn, propertySearchLayer, propertySearchResult]);
+
+  useEffect(() => {
+    buildingHeatmapLayer.clearLayers();
+    if (buildingHeatLayerRef.current) {
+      map.removeLayer(buildingHeatLayerRef.current);
+      buildingHeatLayerRef.current = null;
+    }
+    const regions =
+      buildingHeatmap?.map?.type === "property-density"
+        ? buildingHeatmap.map.regions || []
+        : [];
+
+    if (regions.length === 0) {
+      return;
+    }
+
+    const maxRegionCount = Math.max(
+      ...regions.map((region) => Number(region?.count || 0)).filter(Number.isFinite),
+      0,
+    );
+    const heatPoints = regions
+      .map((region) => densityHeatPoint(region, maxRegionCount))
+      .filter(Boolean);
+
+    if (heatPoints.length > 0 && typeof L.heatLayer === "function") {
+      buildingHeatLayerRef.current = L.heatLayer(heatPoints, {
+        radius: 36,
+        blur: 32,
+        maxZoom: 17,
+        minOpacity: 0.26,
+        gradient: {
+          0.12: "#2563eb",
+          0.32: "#22c55e",
+          0.52: "#facc15",
+          0.74: "#f97316",
+          1: "#ef4444",
+        },
+      }).addTo(map);
+      buildingHeatmapLayer.bringToFront();
+      propertySearchLayer.bringToFront();
+      poiLayer.bringToFront();
+    }
+
+    return () => {
+      if (buildingHeatLayerRef.current) {
+        map.removeLayer(buildingHeatLayerRef.current);
+        buildingHeatLayerRef.current = null;
+      }
+    };
+  }, [buildingHeatmap, buildingHeatmapLayer, map, poiLayer, propertySearchLayer]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1566,11 +1762,12 @@ function MapComponent({
       layer?.bringToFront?.();
     });
 
+    buildingHeatmapLayer.bringToFront();
     propertySearchLayer.bringToFront();
     drawnItems.bringToFront();
     measurementLayer.bringToFront();
     spatialDrawLayer.bringToFront();
-  }, [assetMarkers, boundaryLayer, drawnItems, objectBoxes, propertySearchLayer, measurementLayer, spatialDrawLayer, layerOrder]);
+  }, [assetMarkers, boundaryLayer, buildingHeatmapLayer, drawnItems, objectBoxes, propertySearchLayer, measurementLayer, spatialDrawLayer, layerOrder]);
 
   useEffect(() => {
     if (captureRequestId > 0) {
@@ -1613,6 +1810,8 @@ export default function Map({
   onSpatialDrawVertexEdit,
   onSpatialDrawVertexSelect,
   onViewportChange,
+  poiResults,
+  buildingHeatmap,
 }) {
   return (
     <MapContainer
@@ -1667,6 +1866,8 @@ export default function Map({
         onSpatialDrawVertexEdit={onSpatialDrawVertexEdit}
         onSpatialDrawVertexSelect={onSpatialDrawVertexSelect}
         onViewportChange={onViewportChange}
+        poiResults={poiResults || []}
+        buildingHeatmap={buildingHeatmap}
       />
     </MapContainer>
   );

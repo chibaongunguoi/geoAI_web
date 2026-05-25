@@ -56,6 +56,18 @@ export class PropertiesController {
     return this.properties.getSuggestions(q);
   }
 
+  @Get("heatmap")
+  @RequirePermissions("search.use")
+  getBuildingHeatmap(@Query() query: Record<string, string | undefined>) {
+    return this.properties.getBuildingHeatmap({
+      ward: query.ward,
+      district: query.district,
+      source: query.source,
+      limit: Number(query.limit || 260),
+      gridSize: query.gridSize ? Number(query.gridSize) : undefined
+    });
+  }
+
   @Get(":id")
   @RequirePermissions("properties.view")
   getProperty(@Param("id") id: string) {

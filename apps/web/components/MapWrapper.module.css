@@ -642,6 +642,25 @@
   gap: 12px;
 }
 
+.poiLayerToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.92);
+  padding: 10px 12px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.poiLayerToggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0f766e;
+}
+
 .resultsOverlay {
   left: 16px;
   bottom: 58px;

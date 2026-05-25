@@ -113,6 +113,7 @@ describe("web API proxy routes", () => {
   it("proxies properties routes including dynamic and imports", async () => {
     const properties = await import("./properties/route");
     const property = await import("./properties/[id]/route");
+    const heatmap = await import("./properties/heatmap/route");
     const suggestions = await import("./properties/suggestions/route");
     const overture = await import("./properties/import/overture/route");
     const assetsImport = await import("./properties/import/assets/route");
@@ -122,6 +123,7 @@ describe("web API proxy routes", () => {
     await property.GET(request(), { params: Promise.resolve({ id: "DN 1" }) });
     await property.PATCH(request("http://localhost", '{"name":"A"}'), { params: Promise.resolve({ id: "DN 1" }) });
     await property.DELETE(request(), { params: Promise.resolve({ id: "DN 1" }) });
+    await heatmap.GET(request("http://localhost/api/properties/heatmap?district=Hai%20Chau"));
     await suggestions.GET(request("http://localhost/api/properties/suggestions?q=DN"));
     await overture.POST(request("http://localhost", '{"features":[]}'));
     await assetsImport.POST(request("http://localhost", '{"rows":[]}'));
@@ -131,8 +133,20 @@ describe("web API proxy routes", () => {
     expect(proxyToApi).toHaveBeenCalledWith(expect.anything(), "/properties/DN%201", { method: "GET" });
     expect(proxyToApi).toHaveBeenCalledWith(expect.anything(), "/properties/DN%201", { method: "PATCH", body: '{"name":"A"}' });
     expect(proxyToApi).toHaveBeenCalledWith(expect.anything(), "/properties/DN%201", { method: "DELETE" });
+    expect(proxyToApi).toHaveBeenCalledWith(expect.anything(), "/properties/heatmap?district=Hai%20Chau", { method: "GET" });
     expect(proxyToApi).toHaveBeenCalledWith(expect.anything(), "/properties/suggestions?q=DN", { method: "GET" });
     expect(proxyToApi).toHaveBeenCalledWith(expect.anything(), "/properties/import/overture", { method: "POST", body: '{"features":[]}' });
     expect(proxyToApi).toHaveBeenCalledWith(expect.anything(), "/properties/import/assets", { method: "POST", body: '{"rows":[]}' });
+  });
+
+  it("proxies POI semantic search routes", async () => {
+    const poiSearch = await import("./poi/search/route");
+    const poiSemantic = await import("./poi/semantic-search/route");
+
+    await poiSearch.GET(request("http://localhost/api/poi/search?q=cafe"));
+    await poiSemantic.GET(request("http://localhost/api/poi/semantic-search?q=quan+ca+phe"));
+
+    expect(proxyToApi).toHaveBeenCalledWith(expect.anything(), "/poi/search?q=cafe", { method: "GET" });
+    expect(proxyToApi).toHaveBeenCalledWith(expect.anything(), "/poi/semantic-search?q=quan+ca+phe", { method: "GET" });
   });
 });

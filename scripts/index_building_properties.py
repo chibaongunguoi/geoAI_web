@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+from pathlib import Path
 from typing import Iterable, List, Sequence
 
 import requests
@@ -9,7 +10,9 @@ from dotenv import load_dotenv
 DEFAULT_INDEX_NAME = "building_properties_v1"
 DEFAULT_EMBEDDING_SERVICE_URL = "http://localhost:5055"
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-DEFAULT_BATCH_SIZE = 128
+DEFAULT_BATCH_SIZE = 512
+DEFAULT_EMBEDDING_TIMEOUT_SECONDS = 180
+DEFAULT_BULK_TIMEOUT_SECONDS = 300
 EMBEDDING_DIMENSIONS = 384
 
 INDEX_MAPPING = {
@@ -76,6 +79,34 @@ SELECT count(*) AS count
 FROM "BuildingProperty"
 WHERE "deletedAt" IS NULL
 """
+
+
+def normalize_search_text(value: str):
+    import re
+    import unicodedata
+
+    text = unicodedata.normalize("NFD", value or "")
+    text = "".join(char for char in text if unicodedata.category(char) != "Mn")
+    text = text.replace("đ", "d").replace("Đ", "D").lower()
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def apply_district_filter(sql: str, district: str | None):
+    if not district:
+        return sql, ()
+
+    filtered = sql.replace(
+        'WHERE "deletedAt" IS NULL',
+        '''
+WHERE "deletedAt" IS NULL
+  AND (
+    "district" = ? COLLATE NOCASE
+    OR "searchTextNormalized" LIKE ?
+  )
+'''.rstrip()
+    )
+    return filtered, (district, f"%{normalize_search_text(district)}%")
 
 
 def chunks(items: Sequence[dict], size: int):
@@ -167,7 +198,13 @@ def bulk_index_rows(client, index_name: str, rows: Sequence[dict], embeddings: S
             raise RuntimeError(f"Elasticsearch bulk index failed: {first_error}")
 
 
-def bulk_index_rows_ndjson(index_name: str, rows: Sequence[dict], embeddings: Sequence[Sequence[float] | str]):
+def bulk_index_rows_ndjson(
+    session: requests.Session,
+    index_name: str,
+    rows: Sequence[dict],
+    embeddings: Sequence[Sequence[float] | str],
+    timeout_seconds: int,
+):
     url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200").rstrip("/")
     username = os.getenv("ELASTICSEARCH_USERNAME")
     password = os.getenv("ELASTICSEARCH_PASSWORD")
@@ -209,12 +246,12 @@ def bulk_index_rows_ndjson(index_name: str, rows: Sequence[dict], embeddings: Se
     if not lines:
         return
 
-    response = requests.post(
+    response = session.post(
         f"{url}/_bulk",
         data=("\n".join(lines) + "\n").encode("utf-8"),
         headers={"Content-Type": "application/x-ndjson"},
         auth=auth,
-        timeout=300,
+        timeout=timeout_seconds,
     )
     response.raise_for_status()
     payload = response.json()
@@ -256,11 +293,23 @@ def ensure_index(client, index_name: str):
     client.indices.create(index=index_name, **INDEX_MAPPING)
 
 
-def embed_texts(texts: Sequence[str], service_url: str, model: str) -> List[List[float]]:
-    response = requests.post(
+def recreate_index(client, index_name: str):
+    if client.indices.exists(index=index_name):
+        client.indices.delete(index=index_name)
+    client.indices.create(index=index_name, **INDEX_MAPPING)
+
+
+def embed_texts(
+    session: requests.Session,
+    texts: Sequence[str],
+    service_url: str,
+    model: str,
+    timeout_seconds: int,
+) -> List[List[float]]:
+    response = session.post(
         f"{service_url.rstrip('/')}/embed",
         json={"texts": list(texts), "model": model},
-        timeout=120,
+        timeout=timeout_seconds,
     )
     response.raise_for_status()
     embeddings = response.json().get("embeddings")
@@ -303,7 +352,12 @@ def read_rows(database_url: str) -> List[dict]:
         return list(connection.execute(SELECT_SQL))
 
 
-def read_row_batches(database_url: str, batch_size: int, start_offset: int = 0):
+def read_row_batches(
+    database_url: str,
+    batch_size: int,
+    start_offset: int = 0,
+    district: str | None = None
+):
     import sqlite3
 
     db_path = database_path(database_url)
@@ -316,11 +370,18 @@ def read_row_batches(database_url: str, batch_size: int, start_offset: int = 0):
 
     with sqlite3.connect(db_path) as connection:
         connection.row_factory = dict_factory
-        total = int(connection.execute(COUNT_SQL).fetchone()["count"])
+        count_sql, filter_params = apply_district_filter(COUNT_SQL, district)
+        select_sql, _ = apply_district_filter(SELECT_SQL, district)
+        total = int(connection.execute(count_sql, filter_params).fetchone()["count"])
         offset = max(0, start_offset)
 
         while offset < total:
-            rows = list(connection.execute(f"{SELECT_SQL} LIMIT ? OFFSET ?", (batch_size, offset)))
+            rows = list(
+                connection.execute(
+                    f"{select_sql} LIMIT ? OFFSET ?",
+                    (*filter_params, batch_size, offset)
+                )
+            )
             if not rows:
                 break
             yield total, rows
@@ -342,41 +403,54 @@ def elasticsearch_client():
 
 def run(args):
     client = elasticsearch_client()
-    ensure_index(client, args.index_name)
+    if args.recreate_index:
+        recreate_index(client, args.index_name)
+    else:
+        ensure_index(client, args.index_name)
 
     indexed = 0
     total = 0
-    for total, batch in read_row_batches(args.database_url, args.batch_size, args.offset):
-        texts = [embedding_text(row) for row in batch]
-        embeddings = []
-        missing_indexes = []
+    with requests.Session() as session:
+        for total, batch in read_row_batches(
+            args.database_url,
+            args.batch_size,
+            args.offset,
+            args.district
+        ):
+            texts = [embedding_text(row) for row in batch]
+            embeddings = []
+            missing_indexes = []
 
-        for index, row in enumerate(batch):
-            embedding = stored_embedding_json(row) or stored_embedding(row)
-            if embedding is None:
-                embeddings.append(None)
-                missing_indexes.append(index)
-            else:
-                embeddings.append(embedding)
+            for index, row in enumerate(batch):
+                embedding = stored_embedding_json(row) or stored_embedding(row)
+                if embedding is None:
+                    embeddings.append(None)
+                    missing_indexes.append(index)
+                else:
+                    embeddings.append(embedding)
 
-        if missing_indexes:
-            missing_embeddings = embed_texts(
-                [texts[index] for index in missing_indexes],
-                args.embedding_service_url,
-                args.embedding_model,
-            )
-            for index, embedding in zip(missing_indexes, missing_embeddings):
-                embeddings[index] = embedding
+            if missing_indexes:
+                missing_embeddings = embed_texts(
+                    session,
+                    [texts[index] for index in missing_indexes],
+                    args.embedding_service_url,
+                    args.embedding_model,
+                    args.embedding_timeout,
+                )
+                for index, embedding in zip(missing_indexes, missing_embeddings):
+                    embeddings[index] = embedding
 
-        bulk_index_rows_ndjson(args.index_name, batch, embeddings)
-        indexed += len(batch)
-        print(f"Indexed {indexed}/{total} BuildingProperty rows", flush=True)
+            bulk_index_rows_ndjson(session, args.index_name, batch, embeddings, args.bulk_timeout)
+            indexed += len(batch)
+            print(f"Indexed {indexed}/{total} BuildingProperty rows", flush=True)
 
     return indexed
 
 
 def parse_args():
-    load_dotenv()
+    repo_root = Path(__file__).resolve().parents[1]
+    load_dotenv(repo_root / "apps" / "api" / ".env")
+    load_dotenv(repo_root / ".env", override=False)
     parser = argparse.ArgumentParser(description="Index BuildingProperty rows into Elasticsearch.")
     parser.add_argument("--database-url", default=os.getenv("DATABASE_URL"))
     parser.add_argument("--index-name", default=os.getenv("PROPERTY_INDEX_NAME", DEFAULT_INDEX_NAME))
@@ -391,10 +465,30 @@ def parse_args():
         default=int(os.getenv("EMBEDDING_BATCH_SIZE", str(DEFAULT_BATCH_SIZE))),
     )
     parser.add_argument(
+        "--embedding-timeout",
+        type=int,
+        default=int(os.getenv("EMBEDDING_TIMEOUT_SECONDS", str(DEFAULT_EMBEDDING_TIMEOUT_SECONDS))),
+    )
+    parser.add_argument(
+        "--bulk-timeout",
+        type=int,
+        default=int(os.getenv("ELASTICSEARCH_BULK_TIMEOUT_SECONDS", str(DEFAULT_BULK_TIMEOUT_SECONDS))),
+    )
+    parser.add_argument(
         "--offset",
         type=int,
         default=int(os.getenv("PROPERTY_INDEX_OFFSET", "0")),
         help="Skip this many rows in the stable SQLite ordering before indexing.",
+    )
+    parser.add_argument(
+        "--recreate-index",
+        action="store_true",
+        help="Delete and recreate the Elasticsearch index before indexing all rows.",
+    )
+    parser.add_argument(
+        "--district",
+        default=os.getenv("PROPERTY_INDEX_DISTRICT"),
+        help='Only index rows matching this district, for example "Hai Chau" or "Lien Chieu".',
     )
     args = parser.parse_args()
 

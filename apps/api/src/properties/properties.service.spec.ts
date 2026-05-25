@@ -890,7 +890,7 @@ describe("PropertiesService", () => {
       query: "Nguyen Luong Bang",
       limit: 10
     });
-    await jest.advanceTimersByTimeAsync(2600);
+    await jest.advanceTimersByTimeAsync(7100);
 
     const result = await promise;
 

@@ -77,9 +77,12 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
   }
 
   async search(input: PropertySearchProviderInput): Promise<PropertySearchProviderResult> {
+    this.throwIfAborted(input.signal);
     await this.client.ping();
-    const queryVector = await this.embed(input.normalizedQuery || input.query || "");
+    const queryVector = await this.embed(input.normalizedQuery || input.query || "", input.signal);
+    this.throwIfAborted(input.signal);
     const hits = await this.searchHits(input, queryVector);
+    this.throwIfAborted(input.signal);
     const ids = this.uniqueHitIds(hits).slice(0, input.limit);
 
     if (ids.length === 0) {
@@ -125,7 +128,7 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
     return globalThis.fetch.bind(globalThis) as FetchLike;
   }
 
-  private async embed(text: string) {
+  private async embed(text: string, signal?: AbortSignal) {
     let response: Awaited<ReturnType<FetchLike>>;
     try {
       response = await this.fetchImpl(`${this.embeddingServiceUrl.replace(/\/$/, "")}/embed`, {
@@ -135,7 +138,7 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
           texts: [text],
           model: this.embeddingModel
         }),
-        signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS)
+        signal: this.combineSignals(signal, AbortSignal.timeout(EMBEDDING_TIMEOUT_MS))
       });
     } catch (error) {
       if (this.isTimeoutError(error)) {
@@ -218,7 +221,7 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
             }
           }
         },
-        { requestTimeout: ELASTICSEARCH_TIMEOUT_MS }
+        { requestTimeout: ELASTICSEARCH_TIMEOUT_MS, signal: input.signal }
       );
     } catch (error) {
       if (this.isTimeoutError(error)) {
@@ -243,7 +246,7 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
   }
 
   private locationTerms(filters?: PropertySearchProviderInput["filters"]) {
-    return [filters?.ward, filters?.district].filter(
+    return [filters?.ward, filters?.district].map((term) => this.normalizeSearchText(term || "")).filter(
       (term): term is string => Boolean(term && term.trim().length >= 3)
     );
   }
@@ -273,6 +276,51 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
       candidate?.code === "TimeoutError" ||
       /timeout|timed out|abort/i.test(candidate?.message || "")
     );
+  }
+
+  private normalizeSearchText(value: string) {
+    return value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .replace(/\s+/g, " ");
+  }
+
+  private throwIfAborted(signal?: AbortSignal) {
+    if (!signal?.aborted) {
+      return;
+    }
+
+    throw new Error("Semantic provider request was aborted");
+  }
+
+  private combineSignals(...signals: Array<AbortSignal | undefined>) {
+    const activeSignals = signals.filter((signal): signal is AbortSignal => Boolean(signal));
+
+    if (activeSignals.length === 0) {
+      return undefined;
+    }
+
+    if (activeSignals.length === 1) {
+      return activeSignals[0];
+    }
+
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+
+    for (const signal of activeSignals) {
+      if (signal.aborted) {
+        controller.abort();
+        break;
+      }
+      signal.addEventListener("abort", abort, { once: true });
+    }
+
+    return controller.signal;
   }
 }
 

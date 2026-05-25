@@ -22,7 +22,8 @@ describe("AssetForm", () => {
 
     fireEvent.change(screen.getByLabelText("Mã tài sản"), { target: { value: "DN-BLD-100" } });
     fireEvent.change(screen.getByLabelText("Tên tài sản"), { target: { value: "Trung tâm dữ liệu" } });
-    fireEvent.change(screen.getByLabelText("Phường"), { target: { value: "Hải Châu 1" } });
+    fireEvent.change(screen.getByLabelText("Quận"), { target: { value: "Hải Châu" } });
+    fireEvent.change(screen.getByLabelText("Phường"), { target: { value: "Hải Châu I" } });
     fireEvent.change(screen.getByLabelText("Vĩ độ"), { target: { value: "16.071" } });
     fireEvent.change(screen.getByLabelText("Kinh độ"), { target: { value: "108.22" } });
     fireEvent.click(screen.getByRole("button", { name: "Lưu tài sản" }));
@@ -37,7 +38,8 @@ describe("AssetForm", () => {
     expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({
       code: "DN-BLD-100",
       name: "Trung tâm dữ liệu",
-      ward: "Hải Châu 1",
+      ward: "Hải Châu I",
+      district: "Hải Châu",
       centroidLat: 16.071,
       centroidLng: 108.22
     });

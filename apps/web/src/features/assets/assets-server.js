@@ -4,7 +4,7 @@ import fs from "fs/promises";
 import path from "path";
 
 export function assetSearchQuery(filters) {
-  return assetFilterQueryString({ ...filters, limit: filters.limit || 100 });
+  return assetFilterQueryString({ source: "all", ...filters, limit: filters.limit || 100 });
 }
 
 export function sortAssets(assets, sort) {

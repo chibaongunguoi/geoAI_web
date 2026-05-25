@@ -55,6 +55,11 @@ describe("filter-state", () => {
     );
   });
 
+  it("keeps POI categories as valid asset types", () => {
+    expect(normalizeAssetFilters({ propertyType: "cafe" }).propertyType).toBe("cafe");
+    expect(normalizeAssetFilters({ propertyType: "restaurant" }).propertyType).toBe("restaurant");
+  });
+
   it("persists last filters, presets, and history locally", () => {
     const storage = memoryStorage();
     writeFilterState(storage, {

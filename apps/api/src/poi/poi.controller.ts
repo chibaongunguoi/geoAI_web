@@ -42,6 +42,15 @@ export class PoiController {
     });
   }
 
+  @Get("semantic-search")
+  @RequirePermissions("search.use")
+  semanticSearch(
+    @Query("q") q: string,
+    @Query("limit") limit?: string
+  ) {
+    return this.poiService.semanticSearch(q || "", limit ? Number(limit) : undefined);
+  }
+
   @Post("import")
   @RequirePermissions("properties.import")
   importPlaces(

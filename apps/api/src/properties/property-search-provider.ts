@@ -26,6 +26,7 @@ export type PropertySearchProviderInput = {
   limit: number;
   tokens: string[];
   normalizedQuery: string;
+  signal?: AbortSignal;
   filters?: {
     ward?: string;
     district?: string;

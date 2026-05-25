@@ -2,6 +2,7 @@
 setlocal enabledelayedexpansion
 
 cd /d "%~dp0"
+if "%USE_ELASTICSEARCH%"=="" set "USE_ELASTICSEARCH=1"
 
 echo.
 echo ===============================================
@@ -43,7 +44,7 @@ if errorlevel 1 (
 )
 
 echo Checking required ports...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ports = 3000,4000,5000,9200; $busy = @(); foreach ($p in $ports) { $c = Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue; if ($c) { $busy += $p } }; if ($busy.Count -gt 0) { Write-Host ('WARNING: Port(s) already listening: ' + ($busy -join ', ')); Write-Host 'If these are old GeoAI processes, close them before continuing.' } else { Write-Host 'OK: required ports are free.' }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ports = 3000,4000,5000,5055,9200; $busy = @(); foreach ($p in $ports) { $c = Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue; if ($c) { $busy += $p } }; if ($busy.Count -gt 0) { Write-Host ('WARNING: Port(s) already listening: ' + ($busy -join ', ')); Write-Host 'If these are old GeoAI processes, close them before continuing.' } else { Write-Host 'OK: required ports are free.' }"
 
 echo.
 echo Step 1: Installing npm dependencies if needed...
@@ -102,7 +103,15 @@ echo.
 echo Step 5: Starting NestJS API on http://localhost:4000 ...
 if /i "%USE_ELASTICSEARCH%"=="1" (
   echo USE_ELASTICSEARCH=1 detected; starting embedding service on http://localhost:5055 and enabling Elasticsearch search provider.
-  start "GeoAI Embedding Service :5055" cmd /k ""%PYTHON_EXE%" scripts\property_embedding_service.py"
+  if "%EMBEDDING_DEVICE%"=="" set "EMBEDDING_DEVICE=auto"
+  echo Embedding device: %EMBEDDING_DEVICE%
+  start "GeoAI Embedding Service :5055" cmd /k "set EMBEDDING_DEVICE=%EMBEDDING_DEVICE%&& ""%PYTHON_EXE%"" scripts\property_embedding_service.py"
+  echo Waiting for embedding service on http://localhost:5055/health ...
+  call :probe "Embedding service" "http://localhost:5055/health" 90
+  if errorlevel 1 set "ALL_READY=0"
+  echo Warming up MiniLM embeddings on http://localhost:5055/embed ...
+  call :probe_embed "Embedding warmup" "http://localhost:5055/embed" 180
+  if errorlevel 1 set "ALL_READY=0"
   start "GeoAI NestJS API :4000" cmd /k "set PROPERTY_SEARCH_PROVIDER=elasticsearch&& set ELASTICSEARCH_URL=http://localhost:9200&& set EMBEDDING_SERVICE_URL=http://localhost:5055&& npm run dev:api"
 ) else (
   echo Elasticsearch is running, but API search provider remains SQLite/default.
@@ -128,6 +137,7 @@ echo Service URLs:
 echo   Frontend:      http://localhost:3000
 echo   NestJS API:    http://localhost:4000
 echo   Python GeoAI:  http://localhost:5000
+if /i "%USE_ELASTICSEARCH%"=="1" echo   Embeddings:    http://localhost:5055
 echo   Elasticsearch: http://localhost:9200
 echo ===============================================
 if "%ALL_READY%"=="1" (
@@ -180,4 +190,17 @@ if errorlevel 1 (
   exit /b 1
 )
 echo OK: %PROBE_NAME% is ready.
+exit /b 0
+
+REM probe_embed: pass when the embedding service can encode a real query.
+:probe_embed
+set "PROBE_NAME=%~1"
+set "PROBE_URL=%~2"
+set "PROBE_DEADLINE=%~3"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$deadline=(Get-Date).AddSeconds(%PROBE_DEADLINE%); $body = @{ texts = @('nha hai chau'); model = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2' } | ConvertTo-Json; do { try { $r = Invoke-WebRequest -UseBasicParsing -Uri '%PROBE_URL%' -Method POST -ContentType 'application/json' -Body $body -TimeoutSec 60; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 300 -and $r.Content -like '*embeddings*') { exit 0 } } catch { } ; Start-Sleep -Seconds 2 } while ((Get-Date) -lt $deadline); exit 1"
+if errorlevel 1 (
+  echo WARNING: %PROBE_NAME% did not complete within %PROBE_DEADLINE% seconds.
+  exit /b 1
+)
+echo OK: %PROBE_NAME% completed.
 exit /b 0

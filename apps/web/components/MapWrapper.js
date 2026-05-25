@@ -53,6 +53,7 @@ import {
 } from "@/features/export/map-export-state";
 import { captureElementPng, downloadDataUrl, exportPrintablePdf } from "@/features/export/map-capture";
 import { decodeShareState, shareUrlFromState } from "@/features/export/share-state";
+import PoiSearchPanel from "@/features/poi/PoiSearchPanel";
 import { buildMeasurementExport, getMeasurementResult } from "@/features/measurement/measurement-utils";
 import {
   DEFAULT_MEASUREMENT_STATE,
@@ -132,6 +133,8 @@ const TOOL_TEXT = {
   basemap: "B\u1ea3n \u0111\u1ed3 n\u1ec1n",
   layers: "L\u1edbp d\u1eef li\u1ec7u",
   assets: "Hi\u1ec3n th\u1ecb t\u00e0i s\u1ea3n",
+  poi: "\u0110i\u1ec3m quan t\u00e2m",
+  heatmap: "Heatmap m\u1eadt \u0111\u1ed9 nh\u00e0",
   filters: "B\u1ed9 l\u1ecdc n\u00e2ng cao",
   measurement: "\u0110o kho\u1ea3ng c\u00e1ch/di\u1ec7n t\u00edch",
   draw: "Spatial draw/edit",
@@ -140,9 +143,52 @@ const TOOL_TEXT = {
   fullscreen: "To\u00e0n m\u00e0n h\u00ecnh"
 };
 
+const POI_QUERY_TERMS = [
+  "quan ca phe",
+  "cafe",
+  "coffee",
+  "nha hang",
+  "quan an",
+  "khach san",
+  "benh vien",
+  "phong kham",
+  "nha thuoc",
+  "truong hoc",
+  "sieu thi",
+  "cho",
+  "cua hang tien loi",
+  "cong vien",
+  "ho boi"
+];
+
+function normalizeSearchQuery(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\u0111/g, "d")
+    .replace(/\u0110/g, "D")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function isPoiSemanticQuery(query) {
+  const normalized = normalizeSearchQuery(query);
+  if (!normalized) return false;
+  const hasPoiTerm = POI_QUERY_TERMS.some((term) => normalized.includes(term));
+  const asksForBuilding =
+    /\b(danh sach nha|toa nha|cong trinh|bat dong san|tai san)\b/.test(normalized) &&
+    !/\b(nha hang|nha thuoc)\b/.test(normalized);
+  if (asksForBuilding) return false;
+  return hasPoiTerm;
+}
+
 export default function MapWrapper({ permissions = [] }) {
   const abortControllerRef = useRef(null);
   const propertySearchAbortRef = useRef(null);
+  const poiAutoCacheRef = useRef(new globalThis.Map());
+  const lastPoiAutoKeyRef = useRef(null);
   const workspaceRef = useRef(null);
   const mapCanvasRef = useRef(null);
   const [adminArea, setAdminArea] = useState("all_da_nang");
@@ -171,6 +217,11 @@ export default function MapWrapper({ permissions = [] }) {
   const [assetDisplayError, setAssetDisplayError] = useState(null);
   const [assetHistory, setAssetHistory] = useState([]);
   const [visibleAssets, setVisibleAssets] = useState([]);
+  const [poiResults, setPoiResults] = useState([]);
+  const [poiMode, setPoiMode] = useState("auto");
+  const [poiEnabled, setPoiEnabled] = useState(true);
+  const [buildingHeatmap, setBuildingHeatmap] = useState(null);
+  const [isHeatmapLoading, setIsHeatmapLoading] = useState(false);
   const [hasLoadedAssetConfig, setHasLoadedAssetConfig] = useState(false);
   const [propertyQuery, setPropertyQuery] = useState(
     "Vùng nào ở phường Thuận Phước có mật độ nhà nhiều nhất?"
@@ -209,6 +260,73 @@ export default function MapWrapper({ permissions = [] }) {
   const canDrawSpatial = canAccess(permissions, "properties.manage");
   const canExportMap = canAccess(permissions, "export.use");
   const canShareMap = canAccess(permissions, "share.create");
+
+  useEffect(() => {
+    if (!poiEnabled || poiMode !== "auto" || !mapViewport?.bounds || mapViewport.zoom < 12) {
+      if (poiMode === "auto") {
+        lastPoiAutoKeyRef.current = null;
+        setPoiResults((current) => (current.length > 0 ? [] : current));
+      }
+      return undefined;
+    }
+
+    const roundCoord = (value) => (Math.round(Number(value) * 1000) / 1000).toFixed(3);
+    const viewportKey = [
+      Math.floor(mapViewport.zoom),
+      roundCoord(mapViewport.bounds.south),
+      roundCoord(mapViewport.bounds.west),
+      roundCoord(mapViewport.bounds.north),
+      roundCoord(mapViewport.bounds.east)
+    ].join(":");
+
+    if (lastPoiAutoKeyRef.current === viewportKey) {
+      return undefined;
+    }
+
+    const cachedItems = poiAutoCacheRef.current.get(viewportKey);
+    if (cachedItems) {
+      lastPoiAutoKeyRef.current = viewportKey;
+      setPoiResults(cachedItems);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          limit: "120",
+          south: String(mapViewport.bounds.south),
+          west: String(mapViewport.bounds.west),
+          north: String(mapViewport.bounds.north),
+          east: String(mapViewport.bounds.east)
+        });
+        const response = await fetch(`/api/poi/search?${params}`, {
+          cache: "no-store",
+          signal: controller.signal
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        poiAutoCacheRef.current.set(viewportKey, items);
+        if (poiAutoCacheRef.current.size > 60) {
+          const oldestKey = poiAutoCacheRef.current.keys().next().value;
+          poiAutoCacheRef.current.delete(oldestKey);
+        }
+        lastPoiAutoKeyRef.current = viewportKey;
+        setPoiResults(items);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          setPoiResults((current) => (current.length > 0 ? [] : current));
+        }
+      }
+    }, 450);
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [mapViewport, poiEnabled, poiMode]);
+
   const loadLayerHistory = useCallback(async () => {
     if (!canViewLayers) return;
 
@@ -496,6 +614,31 @@ export default function MapWrapper({ permissions = [] }) {
     await workspace.requestFullscreen();
   };
 
+  const toggleBuildingHeatmap = useCallback(async () => {
+    if (buildingHeatmap || isHeatmapLoading) {
+      setBuildingHeatmap(null);
+      return;
+    }
+
+    setIsHeatmapLoading(true);
+    try {
+      const response = await fetch("/api/properties/heatmap?limit=1200", {
+        cache: "no-store"
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const result = await response.json();
+      setBuildingHeatmap(result);
+      setPropertySearchStatus("Đã bật heatmap mật độ nhà Đà Nẵng.");
+    } catch {
+      setBuildingHeatmap(null);
+      setPropertySearchStatus("Không tải được heatmap mật độ nhà.");
+    } finally {
+      setIsHeatmapLoading(false);
+    }
+  }, [buildingHeatmap, isHeatmapLoading]);
+
   const updateLayerVisibility = useCallback((layerId) => {
     setLayerState((current) => toggleLayerVisibility(current, layerId));
   }, []);
@@ -560,7 +703,10 @@ export default function MapWrapper({ permissions = [] }) {
         ...(canUseFilters ? assetFilters : DEFAULT_ASSET_FILTERS),
         limit: 10
       });
-      const response = await fetch(`/api/properties?query=${encodeURIComponent(query)}&${filterParams}`, {
+      const usePoiSemantic = isPoiSemanticQuery(query);
+      const response = await fetch(usePoiSemantic
+        ? `/api/poi/semantic-search?q=${encodeURIComponent(query)}&limit=20`
+        : `/api/properties?query=${encodeURIComponent(query)}&${filterParams}`, {
         cache: "no-store",
         signal: controller.signal
       });
@@ -571,6 +717,13 @@ export default function MapWrapper({ permissions = [] }) {
 
       const result = await response.json();
       setPropertySearchResult(result);
+      if (usePoiSemantic) {
+        setPoiMode("manual");
+        setPoiResults(Array.isArray(result.items) ? result.items : []);
+      } else {
+        setPoiMode("auto");
+        setPoiResults([]);
+      }
       setLayerState((current) => hideAllLayerVisibility(current, REFERENCE_LAYER_IDS));
       setPropertySearchStatus(
         propertySearchAnswerText(result) || (result.items?.length > 0 ? `${result.items.length} kết quả` : "")
@@ -1274,9 +1427,26 @@ export default function MapWrapper({ permissions = [] }) {
           : null,
         canViewLayers
           ? { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: visibleAssets.length || null }
-          : null
+          : null,
+        {
+          id: "heatmap",
+          label: TOOL_TEXT.heatmap,
+          icon: "heatmap",
+          badge: buildingHeatmap ? "ON" : isHeatmapLoading ? "..." : null,
+          onClick: toggleBuildingHeatmap
+        },
+        { id: "poi", label: TOOL_TEXT.poi, icon: "poi", badge: poiResults.length || null }
       ].filter(Boolean),
-    [canViewLayers, rectangleCoords, visibleAssets.length, visibleLayers.length]
+    [
+      buildingHeatmap,
+      canViewLayers,
+      isHeatmapLoading,
+      poiResults.length,
+      rectangleCoords,
+      toggleBuildingHeatmap,
+      visibleAssets.length,
+      visibleLayers.length
+    ]
   );
 
   const rightTools = useMemo(
@@ -1368,6 +1538,31 @@ export default function MapWrapper({ permissions = [] }) {
             onExport={exportVisibleAssets}
           />
         ) : null;
+      case "poi":
+        return (
+          <div className={styles.toolPanelStack}>
+            <label className={styles.poiLayerToggle}>
+              <input
+                type="checkbox"
+                checked={poiEnabled}
+                onChange={(event) => setPoiEnabled(event.target.checked)}
+              />
+              <span>Hiển thị POI trên bản đồ</span>
+            </label>
+            <PoiSearchPanel
+              mapBounds={mapViewport?.bounds}
+              onResults={(items) => {
+                setPoiEnabled(true);
+                setPoiMode("manual");
+                setPoiResults(items);
+              }}
+              onClear={() => {
+                setPoiMode("auto");
+                setPoiResults([]);
+              }}
+            />
+          </div>
+        );
       case "filters":
         return canUseFilters ? (
           <FilterToolPanel
@@ -1529,6 +1724,8 @@ export default function MapWrapper({ permissions = [] }) {
           onSpatialDrawVertexEdit={editSpatialDrawCoordinate}
           onSpatialDrawVertexSelect={selectSpatialDrawVertex}
           onViewportChange={setMapViewport}
+          poiResults={poiEnabled ? poiResults : []}
+          buildingHeatmap={buildingHeatmap}
         />
       </div>
     </div>

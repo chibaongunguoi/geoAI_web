@@ -3,12 +3,12 @@
 import { useState } from "react";
 
 const TEXT = {
-  placeholder: "Tìm kiếm địa điểm (nhà hàng, cafe, trường học...)",
-  search: "Tìm",
-  searching: "Đang tìm...",
-  noResults: "Không tìm thấy địa điểm nào.",
-  results: "kết quả",
-  clear: "Xóa"
+  placeholder: "T\u00ecm \u0111\u1ecba \u0111i\u1ec3m (nh\u00e0 h\u00e0ng, cafe, tr\u01b0\u1eddng h\u1ecdc...)",
+  search: "T\u00ecm",
+  searching: "\u0110ang t\u00ecm...",
+  noResults: "Kh\u00f4ng t\u00ecm th\u1ea5y \u0111\u1ecba \u0111i\u1ec3m n\u00e0o.",
+  results: "k\u1ebft qu\u1ea3",
+  clear: "X\u00f3a"
 };
 
 export default function PoiSearchPanel({ mapBounds, onResults, onClear }) {
@@ -34,8 +34,8 @@ export default function PoiSearchPanel({ mapBounds, onResults, onClear }) {
       const data = await response.json();
       setResultCount(data.total);
       onResults?.(data.items);
-    } catch (err) {
-      setError("Không thể tìm kiếm. Vui lòng thử lại.");
+    } catch {
+      setError("Kh\u00f4ng th\u1ec3 t\u00ecm ki\u1ebfm. Vui l\u00f2ng th\u1eed l\u1ea1i.");
       setResultCount(null);
     } finally {
       setLoading(false);
@@ -52,8 +52,8 @@ export default function PoiSearchPanel({ mapBounds, onResults, onClear }) {
   return (
     <div className="poi-search-panel">
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
           search();
         }}
       >
@@ -61,7 +61,7 @@ export default function PoiSearchPanel({ mapBounds, onResults, onClear }) {
           type="search"
           value={query}
           placeholder={TEXT.placeholder}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(event) => setQuery(event.target.value)}
         />
         <button type="submit" disabled={loading || !query.trim()}>
           {loading ? TEXT.searching : TEXT.search}
