@@ -3,12 +3,12 @@
 import { useState } from "react";
 
 const TEXT = {
-  placeholder: "T\u00ecm \u0111\u1ecba \u0111i\u1ec3m (nh\u00e0 h\u00e0ng, cafe, tr\u01b0\u1eddng h\u1ecdc...)",
-  search: "T\u00ecm",
-  searching: "\u0110ang t\u00ecm...",
-  noResults: "Kh\u00f4ng t\u00ecm th\u1ea5y \u0111\u1ecba \u0111i\u1ec3m n\u00e0o.",
-  results: "k\u1ebft qu\u1ea3",
-  clear: "X\u00f3a"
+  placeholder: "Tìm tài sản, địa điểm (nhà hàng, cafe, trường học...)",
+  search: "Tìm",
+  searching: "Đang tìm...",
+  noResults: "Không tìm thấy tài sản/địa điểm nào.",
+  results: "kết quả",
+  clear: "Xóa"
 };
 
 export default function PoiSearchPanel({ mapBounds, onResults, onClear }) {

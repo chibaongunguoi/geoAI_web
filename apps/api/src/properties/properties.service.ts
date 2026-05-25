@@ -466,20 +466,6 @@ export class PropertiesService {
             })
         );
 
-        if (providerResult.items.length === 0) {
-          const result = await this.searchPropertiesPostgres(input, limit, intent, tokens, source);
-          return {
-            ...result,
-            meta: {
-              ...result.meta,
-              warnings: [
-                ...(result.meta.warnings || []),
-                "Elasticsearch semantic index returned no hydrated rows; used PostgreSQL fallback."
-              ]
-            }
-          };
-        }
-
         return {
           items: providerResult.items,
           meta: {
@@ -491,7 +477,8 @@ export class PropertiesService {
             ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
           }
         };
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Elasticsearch error in searchProperties:", error?.message || error);
         const result = await this.searchPropertiesPostgres(input, limit, intent, tokens, source);
         const warning = this.semanticSearchFallbackWarning(error);
         return {
@@ -633,12 +620,14 @@ export class PropertiesService {
 
     const where = this.searchWhere(input, tokens, intent, source);
     require('fs').writeFileSync('where.json', JSON.stringify(where, null, 2));
+    const startPg = Date.now();
     let rows = (await this.prisma.buildingProperty.findMany({
       where,
       select: this.selectLightPropertyFields(),
       orderBy: [{ updatedAt: "desc" }],
       take: Math.min(MAX_LIMIT, limit + 15)
     })) as BuildingPropertyRow[];
+    console.log("Postgres findMany time:", Date.now() - startPg, "ms");
     let rankedRows = this.rankRows(rows, tokens).slice(0, limit);
 
     if (rankedRows.length === 0 && tokens.length > 0) {
@@ -907,60 +896,14 @@ export class PropertiesService {
       locationFilters.district ? `AND "district" = ?` : ""
     ].join(" ");
 
-    const rows = this.sqlite.all<DensityRegionRow>(
-      `
-      WITH filtered AS (
-        SELECT
-          "centroidLat",
-          "centroidLng",
-          "ward",
-          "district"
-        FROM "BuildingProperty"
-        WHERE "deletedAt" IS NULL
-          AND "source" = ?
-          AND "centroidLat" IS NOT NULL
-          AND "centroidLng" IS NOT NULL
-          ${exactFilters}
-      ),
-      cells AS (
-        SELECT
-          CAST("centroidLat" / ? AS INTEGER) AS lat_cell,
-          CAST("centroidLng" / ? AS INTEGER) AS lng_cell,
-          COUNT(*) AS count,
-          AVG("centroidLat") AS center_lat,
-          AVG("centroidLng") AS center_lng,
-          MIN("centroidLat") AS min_lat,
-          MIN("centroidLng") AS min_lng,
-          MAX("centroidLat") AS max_lat,
-          MAX("centroidLng") AS max_lng,
-          MIN("ward") AS ward,
-          MIN("district") AS district
-        FROM filtered
-        GROUP BY lat_cell, lng_cell
-      )
-      SELECT
-        (lat_cell || ':' || lng_cell) AS cellId,
-        count,
-        center_lat AS centerLat,
-        center_lng AS centerLng,
-        min_lat AS minLat,
-        min_lng AS minLng,
-        max_lat AS maxLat,
-        max_lng AS maxLng,
-        (lat_cell * ?) AS cellSouth,
-        (lng_cell * ?) AS cellWest,
-        ((lat_cell + 1) * ?) AS cellNorth,
-        ((lng_cell + 1) * ?) AS cellEast,
-        ward,
-        district
-      FROM cells
-      ORDER BY count DESC, center_lat ASC, center_lng ASC
-      LIMIT ?
-      `,
-      source,
-      ...[locationFilters.ward, locationFilters.district].filter(
-        (value): value is string => Boolean(value)
-      ),
+    const exactFiltersArgs = [source, locationFilters.ward, locationFilters.district].filter(
+      (value): value is string => Boolean(value)
+    );
+
+    const sourceFilter = source ? `AND "source" = ?` : "";
+
+    const params = [
+      ...exactFiltersArgs,
       gridSize,
       gridSize,
       gridSize,
@@ -968,22 +911,82 @@ export class PropertiesService {
       gridSize,
       gridSize,
       limit
-    );
+    ];
 
-    const regions = rows.map((row, index) => this.densityRegion(row, index));
-    const total = regions.reduce((sum, region) => sum + Number(region.count || 0), 0);
+    try {
+      const rows = this.sqlite.all<DensityRegionRow>(
+        `
+        WITH filtered AS (
+          SELECT
+            "centroidLat",
+            "centroidLng",
+            "ward",
+            "district"
+          FROM "BuildingProperty"
+          WHERE "deletedAt" IS NULL
+            ${sourceFilter}
+            AND "centroidLat" IS NOT NULL
+            AND "centroidLng" IS NOT NULL
+            ${exactFilters}
+        ),
+        cells AS (
+          SELECT
+            CAST("centroidLat" / ? AS INTEGER) AS lat_cell,
+            CAST("centroidLng" / ? AS INTEGER) AS lng_cell,
+            COUNT(*) AS count,
+            AVG("centroidLat") AS center_lat,
+            AVG("centroidLng") AS center_lng,
+            MIN("centroidLat") AS min_lat,
+            MIN("centroidLng") AS min_lng,
+            MAX("centroidLat") AS max_lat,
+            MAX("centroidLng") AS max_lng,
+            MIN("ward") AS ward,
+            MIN("district") AS district
+          FROM filtered
+          GROUP BY lat_cell, lng_cell
+        )
+        SELECT
+          (lat_cell || ':' || lng_cell) AS cellId,
+          count,
+          center_lat AS centerLat,
+          center_lng AS centerLng,
+          min_lat AS minLat,
+          min_lng AS minLng,
+          max_lat AS maxLat,
+          max_lng AS maxLng,
+          (lat_cell * ?) AS cellSouth,
+          (lng_cell * ?) AS cellWest,
+          ((lat_cell + 1) * ?) AS cellNorth,
+          ((lng_cell + 1) * ?) AS cellEast,
+          ward,
+          district
+        FROM cells
+        ORDER BY count DESC, center_lat ASC, center_lng ASC
+        LIMIT ?
+        `,
+        ...params
+      );
+      const regions = rows.map((row, index) => this.densityRegion(row, index));
+      const total = regions.reduce((sum, region) => sum + Number(region.count || 0), 0);
 
-    return {
-      map: { type: "property-density", regions },
-      meta: {
-        searchMode: "sqlite-building-density-heatmap",
-        source,
-        filters: locationFilters,
-        total,
-        gridSize,
-        limit
-      }
-    };
+      return {
+        map: { type: "property-density", regions },
+        meta: {
+          searchMode: "sqlite-building-density-heatmap",
+          source,
+          filters: locationFilters,
+          total,
+          gridSize,
+          limit
+        }
+      };
+    } catch (err) {
+      console.error("Heatmap query failed:", err);
+      return {
+        map: { type: "property-density", regions: [] },
+        meta: { searchMode: "sqlite-building-density-heatmap", total: 0, warnings: ["SQLite query failed."] }
+      };
+    }
   }
 
   async getProperty(id: string) {
@@ -992,21 +995,34 @@ export class PropertiesService {
   }
 
   async createProperty(input: PropertyMutationInput, actorUserId?: string) {
-    const count = await this.prisma.buildingProperty.count({ where: {} });
+    let code = input.code;
+    if (!code) {
+      const count = await this.prisma.buildingProperty.count();
+      code = this.formatCode(count + 1);
+    }
+
     const data = this.propertyData(input, {
-      code: input.code || this.formatCode(count + 1),
+      code,
       city: input.city || DEFAULT_CITY,
       propertyType: input.propertyType || DEFAULT_PROPERTY_TYPE,
       source: input.source || DEFAULT_SOURCE,
       status: input.status || DEFAULT_STATUS
     });
-    const created = (await this.prisma.buildingProperty.create({ data })) as BuildingPropertyRow;
+    
+    try {
+      const created = (await this.prisma.buildingProperty.create({ data })) as BuildingPropertyRow;
 
-    await this.writeAudit(actorUserId, "properties.create", created.id, {
-      code: created.code
-    });
+      await this.writeAudit(actorUserId, "properties.create", created.id, {
+        code: created.code
+      });
 
-    return created;
+      return created;
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new BadRequestException("Mã tài sản đã tồn tại trong hệ thống");
+      }
+      throw error;
+    }
   }
 
   async updateProperty(id: string, input: PropertyMutationInput, actorUserId?: string) {
@@ -1113,7 +1129,7 @@ export class PropertiesService {
 
     let imported = 0;
     let skipped = 0;
-    const baseCount = await this.prisma.buildingProperty.count({ where: {} });
+    const baseCount = await this.prisma.buildingProperty.count();
 
     for (const feature of features) {
       const data = this.overtureFeatureData(
@@ -1187,10 +1203,12 @@ export class PropertiesService {
     };
   }
 
-  private async findProperty(id: string) {
-    const property = (await this.prisma.buildingProperty.findUnique({
-      where: { id }
-    })) as BuildingPropertyRow | null;
+  private async findProperty(idOrCode: string) {
+    const properties = await this.prisma.buildingProperty.findMany({
+      where: { OR: [{ id: idOrCode }, { code: idOrCode }] },
+      take: 1
+    });
+    const property = properties[0] as BuildingPropertyRow | undefined;
 
     if (!property || property.deletedAt) {
       throw new NotFoundException("Property not found");
@@ -2483,8 +2501,8 @@ export class PropertiesService {
     return text.length > 0 ? text : undefined;
   }
 
-  private formatCode(sequence: number) {
-    return `DN-BLD-${String(sequence).padStart(6, "0")}`;
+  private formatCode(sequence?: number) {
+    return `DN-BLD-${require('crypto').randomBytes(4).toString('hex').toUpperCase()}`;
   }
 
   private roundCoordinate(value: number) {

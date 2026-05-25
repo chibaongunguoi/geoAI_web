@@ -263,10 +263,6 @@ export default function MapWrapper({ permissions = [] }) {
 
   useEffect(() => {
     if (!poiEnabled || poiMode !== "auto" || !mapViewport?.bounds || mapViewport.zoom < 12) {
-      if (poiMode === "auto") {
-        lastPoiAutoKeyRef.current = null;
-        setPoiResults((current) => (current.length > 0 ? [] : current));
-      }
       return undefined;
     }
 
@@ -630,8 +626,9 @@ export default function MapWrapper({ permissions = [] }) {
       }
       const result = await response.json();
       setBuildingHeatmap(result);
-      setPropertySearchStatus("Đã bật heatmap mật độ nhà Đà Nẵng.");
-    } catch {
+      const regionCount = result?.map?.regions?.length || 0;
+      setPropertySearchStatus(`Đã bật heatmap mật độ nhà. (${regionCount} khu vực)`);
+    } catch (err) {
       setBuildingHeatmap(null);
       setPropertySearchStatus("Không tải được heatmap mật độ nhà.");
     } finally {
@@ -1426,7 +1423,7 @@ export default function MapWrapper({ permissions = [] }) {
           ? { id: "layers", label: TOOL_TEXT.layers, icon: "layers", badge: visibleLayers.length || null }
           : null,
         canViewLayers
-          ? { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: visibleAssets.length || null }
+          ? { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: poiResults.length || visibleAssets.length || null }
           : null,
         {
           id: "heatmap",
@@ -1434,8 +1431,7 @@ export default function MapWrapper({ permissions = [] }) {
           icon: "heatmap",
           badge: buildingHeatmap ? "ON" : isHeatmapLoading ? "..." : null,
           onClick: toggleBuildingHeatmap
-        },
-        { id: "poi", label: TOOL_TEXT.poi, icon: "poi", badge: poiResults.length || null }
+        }
       ].filter(Boolean),
     [
       buildingHeatmap,
@@ -1524,22 +1520,6 @@ export default function MapWrapper({ permissions = [] }) {
         ) : null;
       case "assets":
         return canViewLayers ? (
-          <AssetDisplayToolPanel
-            styles={styles}
-            config={assetDisplayConfig}
-            permissions={permissions}
-            status={assetDisplayStatus}
-            error={assetDisplayError}
-            history={assetHistory}
-            visibleAssetCount={visibleAssets.length}
-            onConfigChange={(config) =>
-              setAssetDisplayConfig(normalizeAssetDisplayConfig(config))
-            }
-            onExport={exportVisibleAssets}
-          />
-        ) : null;
-      case "poi":
-        return (
           <div className={styles.toolPanelStack}>
             <label className={styles.poiLayerToggle}>
               <input
@@ -1547,7 +1527,7 @@ export default function MapWrapper({ permissions = [] }) {
                 checked={poiEnabled}
                 onChange={(event) => setPoiEnabled(event.target.checked)}
               />
-              <span>Hiển thị POI trên bản đồ</span>
+              <span>Hiển thị tài sản trên bản đồ</span>
             </label>
             <PoiSearchPanel
               mapBounds={mapViewport?.bounds}
@@ -1562,7 +1542,7 @@ export default function MapWrapper({ permissions = [] }) {
               }}
             />
           </div>
-        );
+        ) : null;
       case "filters":
         return canUseFilters ? (
           <FilterToolPanel

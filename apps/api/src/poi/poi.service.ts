@@ -120,16 +120,16 @@ export interface PoiSemanticResult {
 
 interface PoiSqlRow {
   id: string;
+  code: string;
   name: string;
-  category: string;
-  address: string | null;
+  propertyType: string;
+  addressLine: string | null;
   street: string | null;
   ward: string | null;
   district: string | null;
   city: string | null;
-  latitude: number;
-  longitude: number;
-  confidence?: number;
+  centroidLat: number;
+  centroidLng: number;
 }
 
 interface PoiDensityRow {
@@ -211,13 +211,20 @@ export class PoiService {
       : this.categoryMapper.knownCategories();
     const limit = Math.min(query.limit || 200, 200);
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {
+      deletedAt: null
+    };
 
     if (categories.length > 0) {
-      where.category = { in: categories };
+      where.propertyType = { in: categories };
     } else if (trimmedQuery) {
-      // Fallback: direct substring match on category field
-      where.category = { contains: trimmedQuery };
+      where.OR = [
+        { name: { contains: trimmedQuery } },
+        { propertyType: { contains: trimmedQuery } }
+      ];
+    } else {
+      // If no query at all, just limit to known POI property types
+      where.propertyType = { in: this.categoryMapper.knownCategories() };
     }
 
     // Apply viewport bounds if provided
@@ -227,34 +234,39 @@ export class PoiService {
       query.north != null &&
       query.east != null
     ) {
-      where.latitude = { gte: query.south, lte: query.north };
-      where.longitude = { gte: query.west, lte: query.east };
+      where.centroidLat = { gte: query.south, lte: query.north };
+      where.centroidLng = { gte: query.west, lte: query.east };
     }
 
-    const places = await this.prisma.place.findMany({
+    const places = await this.prisma.buildingProperty.findMany({
       where,
       take: limit,
-      orderBy: { confidence: "desc" },
+      orderBy: { name: "asc" },
       select: {
         id: true,
+        code: true,
         name: true,
-        category: true,
-        latitude: true,
-        longitude: true,
-        address: true,
+        propertyType: true,
+        centroidLat: true,
+        centroidLng: true,
+        addressLine: true,
         street: true
       }
     });
 
     const items: PoiSearchItem[] = places.map((place) => ({
       id: place.id,
-      name: place.name,
-      category: place.category,
-      vietnameseCategory: this.categoryMapper.getVietnameseLabel(place.category),
-      latitude: place.latitude,
-      longitude: place.longitude,
-      address: place.address,
-      street: place.street
+      code: place.code,
+      name: place.name || place.code,
+      category: place.propertyType,
+      vietnameseCategory: this.categoryMapper.getVietnameseLabel(place.propertyType),
+      latitude: place.centroidLat || 0,
+      longitude: place.centroidLng || 0,
+      centroidLat: place.centroidLat || 0,
+      centroidLng: place.centroidLng || 0,
+      address: place.addressLine || null,
+      street: place.street || null,
+      propertyType: place.propertyType
     }));
 
     return { items, total: items.length };
@@ -382,7 +394,7 @@ export class PoiService {
 
   private locationFilters(normalizedQuery: string): PoiLocationFilter {
     const locations = this.sqlite?.all<{ ward: string | null; district: string | null }>(
-      `SELECT DISTINCT ward, district FROM "Place" WHERE district IS NOT NULL OR ward IS NOT NULL`
+      `SELECT DISTINCT "ward", "district" FROM "BuildingProperty" WHERE "deletedAt" IS NULL AND ("district" IS NOT NULL OR "ward" IS NOT NULL)`
     ) || [];
     const sorted = [...locations].sort(
       (left, right) =>
@@ -411,16 +423,16 @@ export class PoiService {
     const rows = this.sqlite!.all<PoiDensityRow>(
       `
       SELECT
-        ward,
-        district,
+        "ward",
+        "district",
         COUNT(*) AS count,
-        AVG(latitude) AS centerLat,
-        AVG(longitude) AS centerLng
-      FROM "Place"
-      WHERE ${where.sql}
-        AND ward IS NOT NULL
-      GROUP BY ward, district
-      ORDER BY count ${order}, ward ASC
+        AVG("centroidLat") AS centerLat,
+        AVG("centroidLng") AS centerLng
+      FROM "BuildingProperty"
+      WHERE "deletedAt" IS NULL AND (${where.sql})
+        AND "ward" IS NOT NULL
+      GROUP BY "ward", "district"
+      ORDER BY count ${order}, "ward" ASC
       LIMIT 10
       `,
       ...where.params
@@ -453,7 +465,7 @@ export class PoiService {
   private semanticCount(intent: PoiSemanticIntent): PoiSemanticResult {
     const where = this.poiWhereClause(intent);
     const row = this.sqlite!.all<{ count: number }>(
-      `SELECT COUNT(*) AS count FROM "Place" WHERE ${where.sql}`,
+      `SELECT COUNT(*) AS count FROM "BuildingProperty" WHERE "deletedAt" IS NULL AND (${where.sql})`,
       ...where.params
     )[0];
     const count = Number(row?.count || 0);
@@ -479,10 +491,10 @@ export class PoiService {
     const where = this.poiWhereClause(intent);
     const rows = this.sqlite!.all<PoiSqlRow>(
       `
-      SELECT id, name, category, address, street, ward, district, city, latitude, longitude, confidence
-      FROM "Place"
-      WHERE ${where.sql}
-      ORDER BY confidence DESC, name ASC
+      SELECT "id", "code", "name", "propertyType", "addressLine", "street", "ward", "district", "city", "centroidLat", "centroidLng"
+      FROM "BuildingProperty"
+      WHERE "deletedAt" IS NULL AND (${where.sql})
+      ORDER BY "name" ASC
       LIMIT ?
       `,
       ...where.params,
@@ -511,17 +523,16 @@ export class PoiService {
     const conditions: string[] = [];
     const params: unknown[] = [];
     const categoryPlaceholders = intent.categories.map(() => "?").join(", ");
-    const subcategoryConditions = intent.categories.map(() => `subcategories LIKE ?`);
-    conditions.push(`(category IN (${categoryPlaceholders}) OR ${subcategoryConditions.join(" OR ")})`);
-    params.push(...intent.categories, ...intent.categories.map((category) => `%"${category}"%`));
+    conditions.push(`"propertyType" IN (${categoryPlaceholders})`);
+    params.push(...intent.categories);
 
     if (intent.filters.ward) {
-      conditions.push("ward = ?");
+      conditions.push('"ward" = ?');
       params.push(intent.filters.ward);
     }
 
     if (intent.filters.district) {
-      conditions.push("district = ?");
+      conditions.push('"district" = ?');
       params.push(intent.filters.district);
     }
 
@@ -551,21 +562,21 @@ export class PoiService {
   private poiItem(row: PoiSqlRow): PoiSearchItem {
     return {
       id: row.id,
-      code: `POI-${row.id.slice(-8)}`,
-      name: row.name,
-      category: row.category,
-      vietnameseCategory: this.categoryMapper.getVietnameseLabel(row.category),
-      latitude: Number(row.latitude),
-      longitude: Number(row.longitude),
-      centroidLat: Number(row.latitude),
-      centroidLng: Number(row.longitude),
-      address: row.address,
+      code: row.code,
+      name: row.name || row.code,
+      category: row.propertyType,
+      vietnameseCategory: this.categoryMapper.getVietnameseLabel(row.propertyType),
+      latitude: Number(row.centroidLat || 0),
+      longitude: Number(row.centroidLng || 0),
+      centroidLat: Number(row.centroidLat || 0),
+      centroidLng: Number(row.centroidLng || 0),
+      address: row.addressLine,
       street: row.street,
       ward: row.ward,
       district: row.district,
       city: row.city,
       status: "POI",
-      propertyType: this.categoryMapper.getVietnameseLabel(row.category)
+      propertyType: row.propertyType
     };
   }
 

@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { PROPERTY_TYPE_OPTIONS } from "@/features/filters/filter-state";
 import { DISTRICTS, getWardsForDistrict } from "@/features/filters/district-ward-data";
+
+const MiniMapPicker = dynamic(() => import("./MiniMapPicker"), { ssr: false });
 
 const STATUS_OPTIONS = [
   ["ACTIVE", "Đang hoạt động"],
@@ -85,11 +88,11 @@ export default function AssetForm({ mode = "create", property = null, onSaved })
     }));
   }
 
-  function pickMapCenter() {
+  function pickMapCenter(location) {
     setForm((current) => ({
       ...current,
-      centroidLat: current.centroidLat || "16.0471",
-      centroidLng: current.centroidLng || "108.2068"
+      centroidLat: String(location.lat.toFixed(6)),
+      centroidLng: String(location.lng.toFixed(6))
     }));
   }
 
@@ -202,9 +205,14 @@ export default function AssetForm({ mode = "create", property = null, onSaved })
           <input name="centroidLng" type="number" step="0.000001" value={form.centroidLng} onChange={updateField} />
         </label>
       </div>
-      <button className="asset-map-picker" type="button" onClick={pickMapCenter}>
-        Chọn trên bản đồ
-      </button>
+      <div className="asset-form-map-section" style={{ gridColumn: "1 / -1", marginBottom: "1rem" }}>
+        <p style={{ fontWeight: 500, marginBottom: "8px" }}>Chọn vị trí trên bản đồ</p>
+        <MiniMapPicker 
+          lat={form.centroidLat} 
+          lng={form.centroidLng} 
+          onLocationSelected={pickMapCenter} 
+        />
+      </div>
       {error ? <p className="form-error">{error}</p> : null}
       <button className="primary-button" type="submit" disabled={saving}>
         {isEdit ? "Cập nhật tài sản" : "Lưu tài sản"}
