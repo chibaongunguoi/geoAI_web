@@ -1,22 +1,22 @@
 import {
-  DATA_LAYERS,
-  DEFAULT_LAYER_STORAGE_KEY,
   createDefaultLayerState,
   filterLayersByQuery,
+  focusLayerVisibility,
+  hideAllLayerVisibility,
   layerIsVisibleAtZoom,
   moveLayer,
   readStoredLayerState,
   reorderLayer,
   selectLayerVisibility,
-  focusLayerVisibility,
-  hideAllLayerVisibility,
-  setLayerOpacity,
   setLayerGroupVisibility,
+  setLayerOpacity,
   toggleLayerVisibility,
   validateGeoJsonPayload,
   validateLayerConfig,
   visibleLayerIds
 } from "./layers";
+import DATA_LAYERS from "../../../public/data/layers.json";
+import { DEFAULT_LAYER_STORAGE_KEY } from "./layers";
 
 describe("data layers", () => {
   it("creates default visibility, opacity, and order from the catalog", () => {
@@ -207,7 +207,7 @@ describe("data layers", () => {
       )
     };
 
-    const state = readStoredLayerState(storage);
+    const state = readStoredLayerState(storage, DATA_LAYERS);
 
     expect(storage.getItem).toHaveBeenCalledWith(DEFAULT_LAYER_STORAGE_KEY);
     expect(state.visible.unknown).toBeUndefined();
@@ -233,7 +233,7 @@ describe("data layers", () => {
       )
     };
 
-    const state = readStoredLayerState(storage);
+    const state = readStoredLayerState(storage, DATA_LAYERS);
 
     expect(visibleLayerIds(state)).toEqual([
       "sample-assets",

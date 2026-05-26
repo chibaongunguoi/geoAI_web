@@ -29,12 +29,13 @@ async function test() {
 
   console.log("Measuring list API performance...");
   const start = Date.now();
-  const getRes = await fetch(`http://localhost:3000/api/properties?query=h%C3%B2a+c%C6%B0%E1%BB%9Dng&status=ACTIVE&propertyType=building&district=H%E1%BA%A3i+Ch%C3%A2u&ward=Thu%E1%BA%ADn+Ph%C6%B0%E1%BB%9Bc&sort=updatedAt`, {
+  const getRes = await fetch(`http://localhost:4000/properties?query=&status=ACTIVE&propertyType=cafe&district=H%E1%BA%A3i+Ch%C3%A2u&ward=Thu%E1%BA%ADn+Ph%C6%B0%E1%BB%9Bc&sort=updatedAt`, {
     headers: { "Cookie": setCookie }
   });
   const end = Date.now();
   
-  console.log("Get status:", getRes.status, "Time:", end - start, "ms");
+  const result = await getRes.json();
+  console.log("Get status:", getRes.status, "Time:", end - start, "ms", "Items:", result.items?.length);
 }
 
 test();

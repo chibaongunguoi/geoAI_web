@@ -1,99 +1,15 @@
 export const DEFAULT_LAYER_STORAGE_KEY = "geoai.dataLayers";
 
-export const DATA_LAYERS = [
-  {
-    id: "admin-boundaries",
-    label: "Ranh giới hành chính",
-    group: "Nền bản đồ",
-    sourceType: "Dữ liệu ranh giới",
-    source: "/api/admin-boundaries",
-    sourceKind: "geojson",
-    url: "/api/admin-boundaries",
-    renderer: "admin-boundaries",
-    defaultVisible: true,
-    defaultOpacity: 0.9,
-    minZoom: 9,
-    maxZoom: 16,
-    legend: [{ label: "Ranh giới quận", color: "#ef4444" }],
-    keywords: ["district", "boundary", "reference", "ranh gioi", "hanh chinh", "nen ban do"]
-  },
-  {
-    id: "sample-assets",
-    label: "Tài sản mẫu",
-    group: "Tài sản",
-    sourceType: "Điểm trên bản đồ",
-    source: "/data/sample-assets.geojson",
-    sourceKind: "geojson",
-    url: "/data/sample-assets.geojson",
-    renderer: "asset-display",
-    defaultVisible: true,
-    defaultOpacity: 0.85,
-    minZoom: 11,
-    maxZoom: 19,
-    legend: [{ label: "Điểm tài sản", color: "#f59e0b" }],
-    keywords: ["asset", "geojson", "point", "tai san", "diem"]
-  },
-  {
-    id: "demo-wms-states",
-    label: "Lớp ảnh từ máy chủ ngoài",
-    group: "Dữ liệu ngoài",
-    sourceType: "Ảnh bản đồ trực tuyến",
-    source: "Máy chủ bản đồ GeoServer",
-    sourceKind: "wms",
-    url: "https://ahocevar.com/geoserver/wms",
-    wmsOptions: {
-      layers: "topp:states",
-      format: "image/png",
-      transparent: true
-    },
-    defaultVisible: false,
-    defaultOpacity: 0.65,
-    minZoom: 2,
-    maxZoom: 19,
-    legend: [{ label: "Ảnh bản đồ", color: "#38bdf8" }],
-    keywords: ["wms", "external", "service", "anh ban do", "du lieu ngoai"]
-  },
-  {
-    id: "osm-template-overlay",
-    label: "Lớp nền OpenStreetMap",
-    group: "Dữ liệu ngoài",
-    sourceType: "Lớp nền trực tuyến",
-    source: "Mẫu tile OpenStreetMap",
-    sourceKind: "wmts",
-    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: "&copy; OpenStreetMap contributors",
-    defaultVisible: false,
-    defaultOpacity: 1,
-    minZoom: 2,
-    maxZoom: 19,
-    legend: [{ label: "Lớp nền", color: "#22c55e" }],
-    keywords: ["wmts", "xyz", "external", "tiles", "osm", "lop nen"]
-  },
-  {
-    id: "analysis-results",
-    label: "Kết quả quét AI",
-    group: "GeoAI",
-    sourceType: "Kết quả hiện tại",
-    source: "Vùng quét hiện tại",
-    sourceKind: "runtime",
-    renderer: "analysis-results",
-    defaultVisible: true,
-    defaultOpacity: 0.75,
-    minZoom: 0,
-    maxZoom: 19,
-    legend: [{ label: "Đối tượng nhận diện", color: "#ef4444" }],
-    keywords: ["ai", "runtime", "scan", "result", "ket qua", "quet"]
-  }
-];
+
 
 const VALID_SOURCE_KINDS = new Set(["geojson", "wms", "wmts", "runtime"]);
 
-function layerIds(layers = DATA_LAYERS) {
-  return layers.map((layer) => layer.id);
+function layerIds(layers = []) {
+  return (Array.isArray(layers) ? layers : []).map((layer) => layer.id);
 }
 
-function layerById(layers = DATA_LAYERS) {
-  return new Map(layers.map((layer) => [layer.id, layer]));
+function layerById(layers = []) {
+  return new Map((Array.isArray(layers) ? layers : []).map((layer) => [layer.id, layer]));
 }
 
 function clampOpacity(value) {
@@ -162,19 +78,20 @@ export function validateGeoJsonPayload(payload) {
   };
 }
 
-export function createDefaultLayerState(layers = DATA_LAYERS) {
+export function createDefaultLayerState(layers = []) {
+  const safeLayers = Array.isArray(layers) ? layers : [];
   return {
     visible: Object.fromEntries(
-      layers.map((layer) => [layer.id, Boolean(layer.defaultVisible)])
+      safeLayers.map((layer) => [layer.id, Boolean(layer.defaultVisible)])
     ),
     opacity: Object.fromEntries(
-      layers.map((layer) => [layer.id, clampOpacity(layer.defaultOpacity)])
+      safeLayers.map((layer) => [layer.id, clampOpacity(layer.defaultOpacity)])
     ),
-    order: layerIds(layers)
+    order: layerIds(safeLayers)
   };
 }
 
-function cleanStoredState(storedState, layers = DATA_LAYERS) {
+function cleanStoredState(storedState, layers = []) {
   const defaults = createDefaultLayerState(layers);
   const validIds = new Set(layerIds(layers));
   const visible = { ...defaults.visible };
@@ -204,7 +121,7 @@ function cleanStoredState(storedState, layers = DATA_LAYERS) {
   };
 }
 
-export function readStoredLayerState(storage, layers = DATA_LAYERS) {
+export function readStoredLayerState(storage, layers = []) {
   const storedValue = storage?.getItem(DEFAULT_LAYER_STORAGE_KEY);
 
   if (!storedValue) {
@@ -273,7 +190,7 @@ export function hideAllLayerVisibility(state, preservedLayerIds = []) {
 }
 
 export function setLayerGroupVisibility(state, layers, group, visible) {
-  const groupLayerIds = layers
+  const groupLayerIds = (Array.isArray(layers) ? layers : [])
     .filter((layer) => layer.group === group)
     .map((layer) => layer.id);
 
@@ -367,6 +284,7 @@ export function orderedLayers(layers, state) {
 }
 
 export function filterLayersByQuery(layers, query) {
+  const safeLayers = Array.isArray(layers) ? layers : [];
   const terms = query
     .trim()
     .toLowerCase()
@@ -374,10 +292,10 @@ export function filterLayersByQuery(layers, query) {
     .filter(Boolean);
 
   if (terms.length === 0) {
-    return layers;
+    return safeLayers;
   }
 
-  return layers.filter((layer) => {
+  return safeLayers.filter((layer) => {
     const haystack = [
       layer.label,
       layer.group,

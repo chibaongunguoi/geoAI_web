@@ -35,10 +35,10 @@ export const LAYER_HISTORY_LABELS = Object.freeze({
   "map.layers.config.export": "Xuất cấu hình lớp",
 });
 
-// LayerPanel group labels (matches DATA_LAYERS.group in apps/web/src/features/map/layers.js).
-export const LAYER_GROUP_LABELS = Object.freeze({
-  basemap: "Nền bản đồ",
-  assets: "Tài sản",
-  external: "Dữ liệu ngoài",
-  geoai: "GeoAI",
-});
+// LayerPanel group labels (matches layers.json group).
+export const LAYER_GROUP_LABELS = {
+  "Nền bản đồ": "Nền bản đồ",
+  "Tài sản": "Tài sản",
+  "Dữ liệu ngoài": "Dữ liệu ngoài",
+  GeoAI: "Kết quả phân tích GeoAI",
+};

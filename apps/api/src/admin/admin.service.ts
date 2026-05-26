@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { ROLE_CODES, RoleCode } from "../rbac/rbac.constants";
+import { AuditLogService } from "./audit-log.service";
 
 type Delegate = {
   findMany?: (args?: unknown) => Promise<unknown[]>;
@@ -17,7 +18,6 @@ type AdminPrisma = {
   userRole: Required<Pick<Delegate, "deleteMany" | "createMany">>;
   permission: Required<Pick<Delegate, "findMany">>;
   rolePermission: Required<Pick<Delegate, "deleteMany" | "createMany">>;
-  auditLog: Required<Pick<Delegate, "findMany" | "create">>;
 };
 
 type UserWithRoles = {
@@ -34,21 +34,15 @@ type ListUsersInput = {
   role?: string;
 };
 
-type ListAuditLogsInput = {
-  action?: string;
-  entityType?: string;
-  entityId?: string;
-  actorUserId?: string;
-  from?: string;
-  to?: string;
-};
-
 const USER_STATUSES = ["ACTIVE", "LOCKED"] as const;
 type UserStatus = (typeof USER_STATUSES)[number];
 
 @Injectable()
 export class AdminService {
-  constructor(@Inject(PrismaService) private readonly prisma: AdminPrisma) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: AdminPrisma,
+    @Inject(AuditLogService) private readonly auditLogService: AuditLogService
+  ) {}
 
   listUsers(input?: string | ListUsersInput) {
     const filters = typeof input === "string" ? { search: input } : input || {};
@@ -113,15 +107,13 @@ export class AdminService {
       data: roles.map((role) => ({ userId, roleId: role.id })),
       skipDuplicates: true
     });
-    await this.prisma.auditLog.create({
-      data: {
-        actorUserId,
-        action: "admin.users.roles.update",
-        entityType: "User",
-        entityId: userId,
-        metadata: {
-          roles: requestedRoleCodes
-        }
+    await this.auditLogService.logAction({
+      actorUserId,
+      action: "admin.users.roles.update",
+      entityType: "User",
+      entityId: userId,
+      metadata: {
+        roles: requestedRoleCodes
       }
     });
 
@@ -144,15 +136,13 @@ export class AdminService {
       data: { status: nextStatus }
     });
 
-    await this.prisma.auditLog.create({
-      data: {
-        actorUserId,
-        action: "admin.users.status.update",
-        entityType: "User",
-        entityId: userId,
-        metadata: {
-          status: nextStatus
-        }
+    await this.auditLogService.logAction({
+      actorUserId,
+      action: "admin.users.status.update",
+      entityType: "User",
+      entityId: userId,
+      metadata: {
+        status: nextStatus
       }
     });
 
@@ -198,47 +188,6 @@ export class AdminService {
     });
   }
 
-  listAuditLogs(filters: ListAuditLogsInput = {}) {
-    const where: Record<string, unknown> = {};
-
-    if (filters.action) {
-      where.action = { contains: filters.action };
-    }
-
-    if (filters.entityType) {
-      where.entityType = filters.entityType;
-    }
-
-    if (filters.entityId) {
-      where.entityId = filters.entityId;
-    }
-
-    if (filters.actorUserId) {
-      where.actorUserId = filters.actorUserId;
-    }
-
-    const createdAt = this.auditDateRange(filters.from, filters.to);
-    if (createdAt) {
-      where.createdAt = createdAt;
-    }
-
-    return this.prisma.auditLog.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: {
-        actor: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            name: true
-          }
-        }
-      }
-    });
-  }
-
   private validRoleCodes(roleCodes: string[]): RoleCode[] {
     return roleCodes.filter((roleCode): roleCode is RoleCode =>
       ROLE_CODES.includes(roleCode as RoleCode)
@@ -255,26 +204,6 @@ export class AdminService {
     }
 
     throw new BadRequestException("User status is invalid");
-  }
-
-  private auditDateRange(from?: string, to?: string) {
-    const range: { gte?: Date; lte?: Date } = {};
-
-    if (from) {
-      const start = new Date(`${from}T00:00:00.000Z`);
-      if (Number.isFinite(start.getTime())) {
-        range.gte = start;
-      }
-    }
-
-    if (to) {
-      const end = new Date(`${to}T23:59:59.999Z`);
-      if (Number.isFinite(end.getTime())) {
-        range.lte = end;
-      }
-    }
-
-    return range.gte || range.lte ? range : undefined;
   }
 
   private async ensureAdminRemains(

@@ -75,7 +75,7 @@ describe("dossier-state", () => {
       history: addDossierHistory([], "status.update", { status: "REVIEW" }),
     };
 
-    expect(dossierWarnings(state)).toEqual(["Missing required technical document."]);
+    expect(dossierWarnings(state)).toEqual(["Thiếu tài liệu kỹ thuật bắt buộc."]);
     expect(filterDossierSections(state, "acme")).toEqual(
       expect.objectContaining({ links: [expect.objectContaining({ label: "Supplier ACME" })] }),
     );

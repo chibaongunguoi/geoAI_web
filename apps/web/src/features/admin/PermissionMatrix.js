@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import EmptyState from "../shared/EmptyState";
 import Pagination from "../shared/Pagination";
 import { usePermissionDisplay } from "./permissions/usePermissionDisplay";
+import { usePermissionMatrixData } from "./usePermissionMatrixData";
 
 const ROLE_LABELS = {
   USER: "Người dùng",
@@ -21,41 +22,13 @@ export default function PermissionMatrix({
   fetchData
 }) {
   const { getLabel, getGroupLabel } = usePermissionDisplay();
-  const [roles, setRoles] = useState(initialRoles || []);
-  const [permissions, setPermissions] = useState(initialPermissions || []);
-  const [loading, setLoading] = useState(!initialRoles && !initialPermissions && !!fetchData);
-  const [error, setError] = useState(null);
+  const { roles, permissions, loading, error, loadData } = usePermissionMatrixData({
+    roles: initialRoles,
+    permissions: initialPermissions,
+    fetchData
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 20;
-
-  const loadData = useCallback(async () => {
-    if (!fetchData) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchData();
-      setRoles(data.roles || []);
-      setPermissions(data.permissions || []);
-    } catch (err) {
-      setError(err.message || "Không thể tải dữ liệu quyền.");
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (!initialRoles && !initialPermissions && fetchData) {
-      loadData();
-    }
-  }, [initialRoles, initialPermissions, fetchData, loadData]);
-
-  useEffect(() => {
-    if (initialRoles) setRoles(initialRoles);
-  }, [initialRoles]);
-
-  useEffect(() => {
-    if (initialPermissions) setPermissions(initialPermissions);
-  }, [initialPermissions]);
 
   if (loading) {
     return (

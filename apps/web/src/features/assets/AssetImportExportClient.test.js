@@ -20,10 +20,10 @@ describe("AssetImportExportClient", () => {
   it("shows import/export controls with permission-aware states", () => {
     render(<AssetImportExportClient initialFilters={{}} canImport={false} canExport={false} />);
 
-    expect(screen.getByRole("button", { name: /import csv/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /export csv/i })).toBeDisabled();
-    expect(screen.getByText(/import requires asset import/i)).toBeInTheDocument();
-    expect(screen.getByText(/export requires export permission/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /nhập csv/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /xuất csv/i })).toBeDisabled();
+    expect(screen.getByText(/Cần có quyền nhập tài sản và quản lý để thực hiện/i)).toBeInTheDocument();
+    expect(screen.getByText(/cần có quyền xuất dữ liệu để thực hiện/i)).toBeInTheDocument();
   });
 
   it("previews CSV rows and confirms only valid rows", async () => {
@@ -40,7 +40,7 @@ describe("AssetImportExportClient", () => {
     expect(await screen.findByText("DN-001")).toBeInTheDocument();
     expect(screen.getByText("Name is required.")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
+    fireEvent.click(screen.getByRole("button", { name: /xác nhận nhập/i }));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
@@ -52,6 +52,6 @@ describe("AssetImportExportClient", () => {
       );
     });
     expect(global.fetch.mock.calls[0][1].body).not.toContain("DN-002");
-    expect(await screen.findByText(/imported 1 rows/i)).toBeInTheDocument();
+    expect(await screen.findByText(/đã nhập 1 dòng/i)).toBeInTheDocument();
   });
 });

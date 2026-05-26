@@ -163,8 +163,8 @@ export function dossierWarnings(state) {
   const current = normalizeDossierState(state);
   const hasTechnicalDocument = current.documents.some((document) => document.type === "technical");
   const warnings = [];
-  if (!hasTechnicalDocument) warnings.push("Missing required technical document.");
-  if (current.inspections.length === 0) warnings.push("Missing inspection record.");
+  if (!hasTechnicalDocument) warnings.push("Thiếu tài liệu kỹ thuật bắt buộc.");
+  if (current.inspections.length === 0) warnings.push("Thiếu biên bản kiểm tra.");
   return warnings;
 }
 

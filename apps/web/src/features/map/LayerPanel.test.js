@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import LayerPanel from "./LayerPanel";
-import { DATA_LAYERS, createDefaultLayerState, selectLayerVisibility } from "./layers";
+import { createDefaultLayerState, selectLayerVisibility } from "./layers";
+import DATA_LAYERS from "../../../public/data/layers.json";
 import {
   LAYER_GROUP_LABELS,
   LAYER_HISTORY_LABELS,
@@ -191,11 +192,12 @@ describe("LayerPanel", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: new RegExp(LAYER_GROUP_LABELS.geoai) }));
+    const geoaiGroup = layerById("analysis-results").group;
+    fireEvent.click(screen.getAllByRole("button", { name: new RegExp(geoaiGroup) })[0]);
     fireEvent.dragStart(screen.getAllByText(layerById("analysis-results").label)[0].closest("article"));
     fireEvent.drop(screen.getAllByText(layerById("admin-boundaries").label)[0].closest("article"));
 
-    expect(onToggleGroup).toHaveBeenCalledWith(LAYER_GROUP_LABELS.geoai, expect.any(Boolean));
+    expect(onToggleGroup).toHaveBeenCalledWith(geoaiGroup, expect.any(Boolean));
     expect(onReorder).toHaveBeenCalledWith("analysis-results", "admin-boundaries");
   });
 

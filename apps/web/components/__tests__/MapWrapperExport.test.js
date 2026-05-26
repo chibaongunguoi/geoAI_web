@@ -2,6 +2,18 @@ import { fireEvent, render, screen } from "@testing-library/react";
 
 import MapWrapper from "../MapWrapper";
 
+beforeAll(() => {
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      json: () => Promise.resolve([]),
+    })
+  );
+});
+
+afterAll(() => {
+  delete global.fetch;
+});
+
 jest.mock("next/dynamic", () => () => {
   const MockMap = (props) => (
     <div
@@ -65,15 +77,15 @@ describe("MapWrapper export and share tools", () => {
   it("renders export/share tools when permissions are present", () => {
     render(<MapWrapper permissions={["export.use", "share.create"]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Export & share" }));
-    expect(screen.getByRole("heading", { name: "Export & share" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /copy share link/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Xuất & Chia sẻ" }));
+    expect(screen.getByRole("heading", { name: "Xuất & Chia sẻ" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /sao chép liên kết chia sẻ/i }));
     expect(screen.getByTestId("mock-map")).toHaveAttribute("data-has-viewport-callback", "yes");
   });
 
   it("hides export/share tools without permissions", () => {
     render(<MapWrapper permissions={[]} />);
 
-    expect(screen.queryByText("Export & share")).not.toBeInTheDocument();
+    expect(screen.queryByText("Xuất & Chia sẻ")).not.toBeInTheDocument();
   });
 });

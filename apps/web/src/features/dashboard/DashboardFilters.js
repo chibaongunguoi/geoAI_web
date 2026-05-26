@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PropertyFilterControls } from "@/features/filters/PropertyFilterControls";
 
 export default function DashboardFilters({
   filters,
@@ -21,39 +22,11 @@ export default function DashboardFilters({
   return (
     <section className="dashboard-controls" aria-label="Bộ lọc bảng điều khiển">
       <div className="dashboard-filter-grid">
-        <label>
-          Trạng thái
-          <select value={draft.status || ""} onChange={(event) => update("status", event.target.value)}>
-            <option value="">Tất cả</option>
-            <option value="ACTIVE">Đang hoạt động</option>
-            <option value="INACTIVE">Không hoạt động</option>
-            <option value="REVIEW">Cần xem xét</option>
-            <option value="ARCHIVED">Lưu trữ</option>
-          </select>
-        </label>
-        <label>
-          Loại
-          <select value={draft.propertyType || ""} onChange={(event) => update("propertyType", event.target.value)}>
-            <option value="">Tất cả</option>
-            <option value="building">Tòa nhà</option>
-          </select>
-        </label>
-        <label>
-          Quận/huyện
-          <input value={draft.district || ""} onChange={(event) => update("district", event.target.value)} />
-        </label>
-        <label>
-          Phường/xã
-          <input value={draft.ward || ""} onChange={(event) => update("ward", event.target.value)} />
-        </label>
-        <label>
-          Từ ngày
-          <input type="date" value={draft.updatedFrom || ""} onChange={(event) => update("updatedFrom", event.target.value)} />
-        </label>
-        <label>
-          Đến ngày
-          <input type="date" value={draft.updatedTo || ""} onChange={(event) => update("updatedTo", event.target.value)} />
-        </label>
+        <PropertyFilterControls 
+          filters={draft} 
+          updateFilter={update} 
+          showDateRange={true} 
+        />
       </div>
 
       <div className="dashboard-action-grid">

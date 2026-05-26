@@ -69,7 +69,7 @@ describe("assetSearchQuery", () => {
         limit: 100
       })
     ).toBe(
-      "query=Nguyen&status=ACTIVE&propertyType=building&district=Lien+Chieu&ward=Hoa+Khanh+Bac&updatedFrom=2026-05-01&updatedTo=2026-05-09&limit=100"
+      "query=Nguyen&status=ACTIVE&propertyType=building&district=Lien+Chieu&ward=Hoa+Khanh+Bac&updatedFrom=2026-05-01&updatedTo=2026-05-09&source=all&limit=100"
     );
   });
 });

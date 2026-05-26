@@ -5,6 +5,8 @@ import {
   PropertySearchProviderResult,
   PropertySearchProviderRow
 } from "./property-search-provider";
+import { ElasticsearchQueryBuilder } from "./elasticsearch-query-builder";
+
 
 type HydrationPrisma = {
   buildingProperty: {
@@ -74,7 +76,10 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
       DEFAULT_EMBEDDING_SERVICE_URL;
     this.embeddingModel =
       options.embeddingModel || process.env.EMBEDDING_MODEL || DEFAULT_EMBEDDING_MODEL;
+    this.queryBuilder = new ElasticsearchQueryBuilder(this.indexName);
   }
+
+  private readonly queryBuilder: ElasticsearchQueryBuilder;
 
   async search(input: PropertySearchProviderInput): Promise<PropertySearchProviderResult> {
     this.throwIfAborted(input.signal);
@@ -162,65 +167,12 @@ export class ElasticsearchPropertySearchProvider implements PropertySearchProvid
   }
 
   private async searchHits(input: PropertySearchProviderInput, queryVector: number[]) {
-    const filters: unknown[] = [{ term: { deleted: false } }];
-    const should: unknown[] = [
-      {
-        multi_match: {
-          query: input.query || input.normalizedQuery,
-          fields: [
-            "code^5",
-            "name^4",
-            "addressLine^4",
-            "street^3",
-            "ward^2",
-            "district^2",
-            "searchText^2",
-            "searchTextNormalized"
-          ],
-          fuzziness: "AUTO",
-          operator: "or"
-        }
-      }
-    ];
-
-    if (input.status) {
-      filters.push({ term: { status: input.status } });
-    }
-
-    if (input.propertyType) {
-      filters.push({ term: { propertyType: input.propertyType } });
-    }
-
-    if (input.source) {
-      filters.push({ term: { source: input.source } });
-    }
-    for (const term of this.locationTerms(input.filters)) {
-      filters.push({ match_phrase: { searchTextNormalized: term } });
-    }
+    const queryPayload = this.queryBuilder.buildHybridSearchQuery(input, queryVector);
 
     let response: Awaited<ReturnType<ElasticsearchClient["search"]>>;
     try {
       response = await this.client.search(
-        {
-          index: this.indexName,
-          size: Math.max(input.limit * 2, input.limit),
-          query: {
-            script_score: {
-              query: {
-                bool: {
-                  filter: filters,
-                  should
-                }
-              },
-              script: {
-                source: "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
-                params: {
-                  query_vector: queryVector
-                }
-              }
-            }
-          }
-        },
+        queryPayload,
         { requestTimeout: ELASTICSEARCH_TIMEOUT_MS, signal: input.signal }
       );
     } catch (error) {

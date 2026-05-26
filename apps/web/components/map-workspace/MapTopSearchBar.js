@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback, useEffect } from "react";
 import { Search, X } from "lucide-react";
 
 const TEXT = {
@@ -14,19 +15,35 @@ const TEXT = {
 
 export default function MapTopSearchBar({
   styles,
-  query,
-  suggestions,
-  sampleQueries,
+  initialQuery = "",
   isSearching,
   status,
-  onQueryChange,
-  onFetchSuggestions,
   onSearch
 }) {
+  const [query, setQuery] = useState(initialQuery);
+  const [suggestions, setSuggestions] = useState([]);
+
+  // Sync initialQuery if it changes from outside
+  useEffect(() => {
+    if (initialQuery) {
+      setQuery(initialQuery);
+    }
+  }, [initialQuery]);
+
   const updateQuery = (event) => {
     const value = event.target.value;
-    onQueryChange(value);
-    onFetchSuggestions(value);
+    setQuery(value);
+    
+    if (!value || value.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    
+    // Fetch suggestions
+    fetch(`/api/properties/suggestions?q=${encodeURIComponent(value)}`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setSuggestions(data.slice(0, 5)))
+      .catch(() => setSuggestions([]));
   };
 
   return (
@@ -35,7 +52,7 @@ export default function MapTopSearchBar({
         className={styles.topSearchForm}
         onSubmit={(event) => {
           event.preventDefault();
-          onSearch();
+          onSearch(query);
         }}
       >
         <label className={styles.searchLabel}>
@@ -58,7 +75,7 @@ export default function MapTopSearchBar({
             type="button"
             className={styles.searchIconButton}
             aria-label={TEXT.clear}
-            onClick={() => onQueryChange("")}
+            onClick={() => { setQuery(""); setSuggestions([]); }}
           >
             <X size={18} aria-hidden="true" />
           </button>

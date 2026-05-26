@@ -4,11 +4,15 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RequirePermissions } from "../rbac/permissions.decorator";
 import { PermissionsGuard } from "../rbac/permissions.guard";
 import { AdminService } from "./admin.service";
+import { AuditLogService } from "./audit-log.service";
 
 @Controller("admin")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly auditLog: AuditLogService
+  ) {}
 
   @Get("users")
   @RequirePermissions("admin.users.view")
@@ -69,6 +73,6 @@ export class AdminController {
     @Query("from") from?: string,
     @Query("to") to?: string
   ) {
-    return this.admin.listAuditLogs({ action, entityType, entityId, actorUserId, from, to });
+    return this.auditLog.listAuditLogs({ action, entityType, entityId, actorUserId, from, to });
   }
 }

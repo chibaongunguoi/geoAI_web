@@ -3,6 +3,18 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MEASUREMENT_LABELS } from "../../src/test-utils/vn-labels";
 import MapWrapper from "../MapWrapper";
 
+beforeAll(() => {
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      json: () => Promise.resolve([]),
+    })
+  );
+});
+
+afterAll(() => {
+  delete global.fetch;
+});
+
 jest.mock("next/dynamic", () => () => {
   const MockMap = (props) => (
     <div

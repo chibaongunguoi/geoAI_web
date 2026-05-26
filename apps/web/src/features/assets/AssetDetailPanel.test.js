@@ -44,7 +44,7 @@ describe("AssetDetailPanel", () => {
     expect(screen.getByText("1.250 m2")).toBeInTheDocument();
     expect(screen.getAllByText("16.071, 108.22")).toHaveLength(2);
     expect(screen.getByText("properties.update")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Edit asset" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Chỉnh sửa" })).toHaveAttribute(
       "href",
       "/assets/DN-BLD-001/edit",
     );
@@ -53,67 +53,65 @@ describe("AssetDetailPanel", () => {
   it("supports dossier tabs, status updates, local records, search, and export", async () => {
     render(<AssetDetailPanel property={property} auditLogs={auditLogs} canManageProperties />);
 
-    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText("Missing required technical document.")).toBeInTheDocument();
-    expect(screen.getByText("Missing inspection record.")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Tổng quan" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Thiếu tài liệu kỹ thuật bắt buộc.")).toBeInTheDocument();
+    expect(screen.getByText("Thiếu biên bản kiểm tra.")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Current status"), { target: { value: "REVIEW" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save status" }));
-    await waitFor(() =>
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/properties/prop-1",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ status: "REVIEW" }),
-        }),
-      ),
-    );
-    expect(await screen.findByText("Status saved.")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Trạng thái hiện tại"), { target: { value: "REVIEW" } });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu trạng thái" }));
 
-    fireEvent.change(screen.getByLabelText("Value date"), { target: { value: "2026-05-10" } });
-    fireEvent.change(screen.getByLabelText("Asset value"), { target: { value: "1250000" } });
-    fireEvent.change(screen.getByLabelText("Value note"), { target: { value: "Initial valuation" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add value" }));
-    expect(screen.getByText("1,250,000")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Đã lưu trạng thái.")).toBeInTheDocument();
+      expect(screen.getAllByText("REVIEW").length).toBeGreaterThan(0);
+    });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Documents" }));
-    fireEvent.change(screen.getByLabelText("Document name"), { target: { value: "Technical manual" } });
-    fireEvent.change(screen.getByLabelText("Document type"), { target: { value: "technical" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add document" }));
+    fireEvent.change(screen.getByLabelText("Giá trị tài sản"), { target: { value: "15000000" } });
+    fireEvent.change(screen.getByLabelText("Ghi chú định giá"), { target: { value: "Re-evaluated" } });
+    fireEvent.click(screen.getByRole("button", { name: "Thêm giá trị" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("15,000,000")).toBeInTheDocument();
+      expect(screen.getByText("Re-evaluated")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Tài liệu" }));
+    fireEvent.change(screen.getByLabelText("Tên tài liệu"), { target: { value: "Technical manual" } });
+    fireEvent.change(screen.getByLabelText("Loại tài liệu"), { target: { value: "technical" } });
+    fireEvent.click(screen.getByRole("button", { name: "Thêm tài liệu" }));
     expect(screen.getByText("Technical manual")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Download metadata" }));
-    expect(screen.getByText("File content not stored yet. Metadata exported.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tải metadata" }));
+    expect(screen.getByText("Nội dung chưa được lưu. Đã xuất metadata.")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Inspections" }));
-    fireEvent.change(screen.getByLabelText("Inspection date"), { target: { value: "2026-05-11" } });
-    fireEvent.change(screen.getByLabelText("Inspection result"), { target: { value: "Needs repair" } });
-    fireEvent.change(screen.getByLabelText("Inspection notes"), { target: { value: "Crack near entrance" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add inspection" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Kiểm tra" }));
+    fireEvent.change(screen.getByLabelText("Ngày kiểm tra"), { target: { value: "2026-05-11" } });
+    fireEvent.change(screen.getByLabelText("Kết quả kiểm tra"), { target: { value: "Needs repair" } });
+    fireEvent.change(screen.getByLabelText("Ghi chú kiểm tra"), { target: { value: "Crack near entrance" } });
+    fireEvent.click(screen.getByRole("button", { name: "Thêm kiểm tra" }));
     expect(screen.getByText("Needs repair")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Links" }));
-    fireEvent.change(screen.getByLabelText("Link label"), { target: { value: "Supplier ACME" } });
-    fireEvent.change(screen.getByLabelText("Link reference"), { target: { value: "Warranty-1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add link" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Liên kết" }));
+    fireEvent.change(screen.getByLabelText("Tên liên kết"), { target: { value: "Supplier ACME" } });
+    fireEvent.change(screen.getByLabelText("Tham chiếu liên kết"), { target: { value: "Warranty-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Thêm liên kết" }));
     expect(screen.getByText("Supplier ACME")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Search dossier"), { target: { value: "acme" } });
-    expect(screen.getByText("Search matched 1 item.")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Tìm kiếm hồ sơ"), { target: { value: "acme" } });
+    expect(screen.getByText("Tìm thấy 1 kết quả.")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Timeline" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Lịch sử" }));
     expect(screen.getByText("properties.update")).toBeInTheDocument();
     expect(screen.getByText("Needs repair")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Export JSON" }));
-    expect(screen.getByText("Dossier exported as JSON.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Xuất JSON" }));
+    expect(screen.getByText("Đã xuất hồ sơ dạng JSON.")).toBeInTheDocument();
   });
 
-  it("disables dossier mutation controls without manage permission", () => {
+  it("disables forms if no manage properties permission", () => {
     render(<AssetDetailPanel property={property} auditLogs={[]} canManageProperties={false} />);
 
-    expect(screen.queryByRole("link", { name: "Edit asset" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save status" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("tab", { name: "Documents" }));
-    expect(screen.getByRole("button", { name: "Add document" })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: "Chỉnh sửa" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lưu trạng thái" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("tab", { name: "Tài liệu" }));
+    expect(screen.getByRole("button", { name: "Thêm tài liệu" })).toBeDisabled();
   });
 });

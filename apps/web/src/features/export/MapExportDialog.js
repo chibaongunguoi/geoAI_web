@@ -24,45 +24,45 @@ export default function MapExportDialog({
     <div className="map-export-dialog">
       <div className="export-field-grid">
         <label>
-          Title
+          Tiêu đề
           <input
             value={current.title || ""}
             onChange={(event) => update({ title: event.target.value })}
           />
         </label>
         <label>
-          Organization
+          Tổ chức
           <input
             value={current.organization || ""}
             onChange={(event) => update({ organization: event.target.value })}
           />
         </label>
         <label>
-          Format
+          Định dạng
           <select value={current.format || "png"} onChange={(event) => update({ format: event.target.value })}>
             <option value="png">PNG</option>
             <option value="pdf">PDF</option>
           </select>
         </label>
         <label>
-          Paper
+          Khổ giấy
           <select value={current.paperSize || "A4"} onChange={(event) => update({ paperSize: event.target.value })}>
             <option value="A4">A4</option>
             <option value="Letter">Letter</option>
           </select>
         </label>
         <label>
-          Orientation
+          Hướng giấy
           <select
             value={current.orientation || "landscape"}
             onChange={(event) => update({ orientation: event.target.value })}
           >
-            <option value="landscape">Landscape</option>
-            <option value="portrait">Portrait</option>
+            <option value="landscape">Khổ ngang</option>
+            <option value="portrait">Khổ dọc</option>
           </select>
         </label>
         <label>
-          Share expiry
+          Hạn chia sẻ (giờ)
           <input
             type="number"
             min="1"
@@ -80,7 +80,7 @@ export default function MapExportDialog({
             checked={current.includeLegend !== false}
             onChange={(event) => update({ includeLegend: event.target.checked })}
           />
-          Legend
+          Chú giải
         </label>
         <label>
           <input
@@ -88,7 +88,7 @@ export default function MapExportDialog({
             checked={current.includeScale !== false}
             onChange={(event) => update({ includeScale: event.target.checked })}
           />
-          Scale
+          Tỉ lệ
         </label>
         <label>
           <input
@@ -96,7 +96,7 @@ export default function MapExportDialog({
             checked={current.includeTimestamp !== false}
             onChange={(event) => update({ includeTimestamp: event.target.checked })}
           />
-          Timestamp
+          Thời gian
         </label>
         <label>
           <input
@@ -104,27 +104,27 @@ export default function MapExportDialog({
             checked={current.includeWatermark !== false}
             onChange={(event) => update({ includeWatermark: event.target.checked })}
           />
-          Watermark
+          Đóng dấu bản quyền
         </label>
       </div>
 
       <div className="export-action-grid">
         <button type="button" disabled={!canExport} onClick={onExportPng}>
-          Export PNG
+          Xuất PNG
         </button>
         <button type="button" disabled={!canExport} onClick={onExportPdf}>
-          Export PDF
+          Xuất PDF
         </button>
         <button type="button" disabled={!canShare} onClick={onShare}>
-          Copy share link
+          Sao chép liên kết chia sẻ
         </button>
         <button type="button" disabled={!canExport} onClick={onSaveTemplate}>
-          Save template
+          Lưu mẫu
         </button>
       </div>
 
       {templates.length > 0 ? (
-        <div className="export-template-list" aria-label="Export templates">
+        <div className="export-template-list" aria-label="Mẫu xuất">
           {templates.slice(0, 4).map((template) => (
             <button key={template.name} type="button" onClick={() => onLoadTemplate?.(template)}>
               {template.name}
@@ -136,7 +136,7 @@ export default function MapExportDialog({
       {status ? <p className="export-status">{status}</p> : null}
 
       {history.length > 0 ? (
-        <ol className="export-history" aria-label="Export history">
+        <ol className="export-history" aria-label="Lịch sử xuất">
           {history.slice(0, 4).map((item) => (
             <li key={item.id || `${item.createdAt}-${item.format}`}>
               <span>{item.format}</span>

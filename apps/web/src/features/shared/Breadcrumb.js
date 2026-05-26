@@ -17,7 +17,7 @@ export default function Breadcrumb({ items = [] }) {
           const isLast = index === items.length - 1;
 
           return (
-            <li key={index} className="breadcrumb__item">
+            <li key={item.href || item.label} className="breadcrumb__item">
               {!isLast && item.href ? (
                 <>
                   <Link href={item.href} className="breadcrumb__link">

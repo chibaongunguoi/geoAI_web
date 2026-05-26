@@ -2,6 +2,18 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import MapWrapper from "../MapWrapper";
 
+beforeAll(() => {
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      json: () => Promise.resolve([]),
+    })
+  );
+});
+
+afterAll(() => {
+  delete global.fetch;
+});
+
 jest.mock("next/dynamic", () => () => {
   const MockMap = (props) => (
     <button
@@ -60,8 +72,8 @@ describe("MapWrapper spatial draw tools", () => {
   it("renders spatial draw tools and passes mode to Map when permission is present", async () => {
     render(<MapWrapper permissions={["properties.manage"]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Spatial draw/edit" }));
-    expect(screen.getByRole("heading", { name: "Spatial draw/edit" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Vẽ không gian (Spatial draw)" }));
+    expect(screen.getByRole("heading", { name: "Vẽ không gian (Spatial draw)" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Line" }));
     fireEvent.click(screen.getByTestId("mock-map"));
 
@@ -74,7 +86,7 @@ describe("MapWrapper spatial draw tools", () => {
   it("hides spatial draw tools when permission is missing", () => {
     render(<MapWrapper permissions={[]} />);
 
-    expect(screen.queryByRole("button", { name: "Spatial draw/edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Vẽ không gian (Spatial draw)" })).not.toBeInTheDocument();
     expect(screen.getByTestId("mock-map")).toHaveAttribute("data-spatial-mode", "idle");
   });
 
@@ -96,7 +108,7 @@ describe("MapWrapper spatial draw tools", () => {
 
     render(<MapWrapper permissions={["properties.manage"]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Spatial draw/edit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Vẽ không gian (Spatial draw)" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("mock-map")).toHaveAttribute("data-spatial-mode", "point");

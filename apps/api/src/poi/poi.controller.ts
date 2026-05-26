@@ -11,7 +11,10 @@ import {
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RequirePermissions } from "../rbac/permissions.decorator";
 import { PermissionsGuard } from "../rbac/permissions.guard";
-import { PoiService, PoiImportFeature } from "./poi.service";
+import { PoiSearchService } from "./poi-search.service";
+import { PoiSemanticService } from "./poi-semantic.service";
+import { PoiImportService } from "./poi-import.service";
+import { PoiImportFeature } from "./poi.types";
 
 type AuthenticatedRequest = {
   user?: { id?: string; sub?: string };
@@ -20,7 +23,11 @@ type AuthenticatedRequest = {
 @Controller("poi")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PoiController {
-  constructor(private readonly poiService: PoiService) {}
+  constructor(
+    private readonly searchService: PoiSearchService,
+    private readonly semanticService: PoiSemanticService,
+    private readonly importService: PoiImportService
+  ) {}
 
   @Get("search")
   @RequirePermissions("search.use")
@@ -32,7 +39,7 @@ export class PoiController {
     @Query("east") east?: string,
     @Query("limit") limit?: string
   ) {
-    return this.poiService.searchByCategory({
+    return this.searchService.searchByCategory({
       q: q || "",
       south: south ? Number(south) : undefined,
       west: west ? Number(west) : undefined,
@@ -48,7 +55,7 @@ export class PoiController {
     @Query("q") q: string,
     @Query("limit") limit?: string
   ) {
-    return this.poiService.semanticSearch(q || "", limit ? Number(limit) : undefined);
+    return this.semanticService.semanticSearch(q || "", limit ? Number(limit) : undefined);
   }
 
   @Post("import")
@@ -56,7 +63,7 @@ export class PoiController {
   importPlaces(
     @Body() body: { features?: PoiImportFeature[]; sourceVersion?: string }
   ) {
-    return this.poiService.importPlaces(
+    return this.importService.importPlaces(
       body.features || [],
       body.sourceVersion
     );
@@ -69,6 +76,6 @@ export class PoiController {
     @Req() request: AuthenticatedRequest
   ) {
     const userId = request.user?.sub || request.user?.id || "unknown";
-    return this.poiService.convertToAsset(placeId, userId);
+    return this.importService.convertToAsset(placeId, userId);
   }
 }

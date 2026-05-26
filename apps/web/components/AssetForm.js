@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { PROPERTY_TYPE_OPTIONS } from "@/features/filters/filter-state";
 import { DISTRICTS, getWardsForDistrict } from "@/features/filters/district-ward-data";
@@ -48,6 +49,7 @@ function cleanPayload(form) {
 }
 
 export default function AssetForm({ mode = "create", property = null, onSaved }) {
+  const router = useRouter();
   const [form, setForm] = useState({
     code: fieldValue(property, "code"),
     name: fieldValue(property, "name"),
@@ -120,7 +122,7 @@ export default function AssetForm({ mode = "create", property = null, onSaved })
         onSaved(nextPath);
         return;
       }
-      window.location.assign(nextPath);
+      router.push(nextPath);
     } catch (submitError) {
       setError(submitError.message);
       setSaving(false);
