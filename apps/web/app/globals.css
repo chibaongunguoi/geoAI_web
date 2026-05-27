@@ -2275,6 +2275,22 @@ select:focus-visible,
   display: inline-block;
 }
 
+.ward-label {
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75), 0 0 2px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+}
+
+.ward-label span {
+  display: inline-block;
+  opacity: 0.85;
+}
+
 .property-density-label {
   color: #ffffff;
   font-size: 13px;

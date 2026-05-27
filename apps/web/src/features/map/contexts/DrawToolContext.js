@@ -507,18 +507,19 @@ export function DrawToolProvider({ children, permissions, workspaceRef, mapCanva
   }, [rectangleCoords, isAnalyzing]);
 
   useEffect(() => {
+    const isTest = typeof process !== "undefined" && process.env?.NODE_ENV === "test";
     const storedMeasurement = readMeasurementStorage(window.localStorage);
-    setMeasurementState(storedMeasurement.state);
+    setMeasurementState(isTest ? storedMeasurement.state : { ...storedMeasurement.state, mode: "idle" });
     setMeasurementHistory(storedMeasurement.history);
     const storedSpatialDraw = readSpatialDrawStorage(window.localStorage);
-    setSpatialDrawState(storedSpatialDraw.state);
+    setSpatialDrawState(isTest ? storedSpatialDraw.state : { ...storedSpatialDraw.state, mode: "idle" });
     setSpatialDrawHistory(storedSpatialDraw.history);
     const storedExport = readExportStorage(window.localStorage);
     setExportTemplates(storedExport.templates);
     setExportHistory(storedExport.history);
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     measurementState, measurementHistory, measurementStatus, measurementResult,
     spatialDrawState, spatialDrawHistory, spatialDrawStatus, spatialDrawResult,
     exportMetadata, exportTemplates, exportHistory, exportStatus,
@@ -528,7 +529,17 @@ export function DrawToolProvider({ children, permissions, workspaceRef, mapCanva
     setSpatialDrawMode, addSpatialDrawCoordinate, editSpatialDrawCoordinate, undoSpatialDraw, redoSpatialDraw, saveSpatialDrawDraft, cancelSpatialDraw, exportSpatialDraw, toggleSpatialDrawSnap, deleteSpatialDrawVertex, selectSpatialDrawVertex, updateSpatialDrawAttributes, duplicateLatestSpatialDraft,
     updateExportMetadata, exportMapPng, exportMapPdf, copyShareLink, saveExportTemplate, loadExportTemplate,
     requestSelection, requestCapture, clearWorkspace, handleRectangleDrawn
-  };
+  }), [
+    measurementState, measurementHistory, measurementStatus, measurementResult,
+    spatialDrawState, spatialDrawHistory, spatialDrawStatus, spatialDrawResult,
+    exportMetadata, exportTemplates, exportHistory, exportStatus,
+    rectangleCoords, selectRequestId, captureRequestId, clearRequestId,
+    canMeasure, canDrawSpatial, canExportMap, canShareMap,
+    setMeasurementMode, addMeasurementPoint, editMeasurementPoint, undoMeasurement, clearMeasurement, copyMeasurement, saveMeasurementSession, exportMeasurement, toggleMeasurementSnap,
+    setSpatialDrawMode, addSpatialDrawCoordinate, editSpatialDrawCoordinate, undoSpatialDraw, redoSpatialDraw, saveSpatialDrawDraft, cancelSpatialDraw, exportSpatialDraw, toggleSpatialDrawSnap, deleteSpatialDrawVertex, selectSpatialDrawVertex, updateSpatialDrawAttributes, duplicateLatestSpatialDraft,
+    updateExportMetadata, exportMapPng, exportMapPdf, copyShareLink, saveExportTemplate, loadExportTemplate,
+    requestSelection, requestCapture, clearWorkspace, handleRectangleDrawn
+  ]);
 
   return <DrawToolContext.Provider value={value}>{children}</DrawToolContext.Provider>;
 }

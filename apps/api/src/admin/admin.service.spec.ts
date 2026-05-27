@@ -1,5 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import { AdminService } from "./admin.service";
+import { AuditLogService } from "./audit-log.service";
 
 function prismaStub(overrides = {}) {
   return {
@@ -34,10 +35,14 @@ function prismaStub(overrides = {}) {
   };
 }
 
+function auditLogServiceStub(prisma: ReturnType<typeof prismaStub>) {
+  return new AuditLogService(prisma as never);
+}
+
 describe("AdminService", () => {
   it("when roles are updated, assigns only requested valid roles", async () => {
     const prisma = prismaStub();
-    const service = new AdminService(prisma);
+    const service = new AdminService(prisma as never, auditLogServiceStub(prisma));
 
     await service.updateUserRoles("user-1", ["USER", "MANAGER"], "admin-1");
 
@@ -64,7 +69,7 @@ describe("AdminService", () => {
         findMany: jest.fn().mockResolvedValue([])
       }
     });
-    const service = new AdminService(prisma);
+    const service = new AdminService(prisma as never, auditLogServiceStub(prisma));
 
     await expect(
       service.updateUserRoles("admin-user", ["USER"], "admin-user")
@@ -73,7 +78,7 @@ describe("AdminService", () => {
 
   it("filters users by search text and role code", async () => {
     const prisma = prismaStub();
-    const service = new AdminService(prisma);
+    const service = new AdminService(prisma as never, auditLogServiceStub(prisma));
 
     await service.listUsers({ search: "field", role: "MANAGER" });
 
@@ -111,7 +116,7 @@ describe("AdminService", () => {
         update: jest.fn().mockResolvedValue({ id: "user-1", status: "LOCKED" })
       }
     });
-    const service = new AdminService(prisma);
+    const service = new AdminService(prisma as never, auditLogServiceStub(prisma));
 
     await expect(service.updateUserStatus("user-1", "LOCKED", "admin-1")).resolves.toEqual({
       id: "user-1",
@@ -133,7 +138,8 @@ describe("AdminService", () => {
   });
 
   it("rejects invalid user status updates", async () => {
-    const service = new AdminService(prismaStub());
+    const prisma = prismaStub();
+    const service = new AdminService(prisma as never, auditLogServiceStub(prisma));
 
     await expect(service.updateUserStatus("user-1", "DISABLED", "admin-1")).rejects.toBeInstanceOf(
       BadRequestException
@@ -142,9 +148,9 @@ describe("AdminService", () => {
 
   it("filters audit logs by action, entity, actor, and date range", async () => {
     const prisma = prismaStub();
-    const service = new AdminService(prisma);
+    const auditService = auditLogServiceStub(prisma);
 
-    await service.listAuditLogs({
+    await auditService.listAuditLogs({
       action: "admin.users.roles.update",
       entityType: "User",
       entityId: "user-1",

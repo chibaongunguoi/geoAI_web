@@ -56,7 +56,7 @@ export function createClusterIconHtml(count) {
 }
 
 export function shouldCluster(markers) {
-  return markers.length > 120;
+  return markers.length > 30;
 }
 
 export function shouldShowPoiLayer(zoom) {

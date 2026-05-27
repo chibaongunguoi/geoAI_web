@@ -131,6 +131,9 @@ export function useMapEvents({
   }, [map, setCurrentZoom]);
 
   useEffect(() => {
+    // Report initial viewport so dependent queries run immediately
+    reportViewport();
+    
     map.on("moveend", reportViewport);
     map.on("zoomend", reportViewport);
     return () => {

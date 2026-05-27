@@ -1,6 +1,7 @@
 import { BadRequestException } from "@nestjs/common";
-import { PropertiesService } from "./properties.service";
-import { Delegate, PropertiesPrisma, PropertyStatus, BuildingPropertyRow, PropertyDensityRegion, PropertySearchMap, PropertyDensityObject, PropertySearchAnswer, SearchIntent, DensityRegionRow, PropertySearchInput, PropertyHeatmapInput, PropertyMutationInput, AssetImportResult, ImportOptions, OvertureFeature, DEFAULT_CITY, DEFAULT_PROPERTY_TYPE, DEFAULT_STATUS, DEFAULT_SOURCE, OVERTURE_SOURCE, MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_DENSITY_GRID_SIZE, DEFAULT_DENSITY_REGION_LIMIT, DEFAULT_DENSITY_OBJECT_LIMIT, DENSITY_BACKEND_TIMEOUT_MS, SEMANTIC_PROVIDER_TIMEOUT_MS, LIST_SEARCH_TIMEOUT_MS, DEFAULT_EMBEDDING_MODEL, VALID_STATUSES, STOP_WORDS_FOR_TOKENS, LOWEST_DENSITY_PHRASES, HIGHEST_DENSITY_PHRASES, DENSITY_INTENT_KEYWORDS, INTENT_KEYWORDS, STATIC_LOCATIONS, DANANG_DISTRICTS, PropertiesServiceOptions, PROPERTIES_SERVICE_OPTIONS } from "./properties.types";
+import { PropertiesCrudService } from "./properties.crud.service";
+import { PropertiesImportService } from "./properties.import.service";
+import { PropertiesSpatialService } from "./properties.spatial.service";
 
 function prismaStub(overrides = {}) {
   return {
@@ -19,9 +20,15 @@ function prismaStub(overrides = {}) {
   };
 }
 
+function buildService(prisma: ReturnType<typeof prismaStub>) {
+  const crud = new PropertiesCrudService(prisma as never);
+  const spatial = new PropertiesSpatialService(prisma as never);
+  return new PropertiesImportService(prisma as never, crud, spatial);
+}
+
 describe("PropertiesService asset import", () => {
   it("rejects malformed generic import payloads", async () => {
-    const service = new PropertiesService(prismaStub());
+    const service = buildService(prismaStub());
 
     await expect(service.importAssetRows(null, { actorUserId: "admin-1" })).rejects.toBeInstanceOf(
       BadRequestException,
@@ -30,7 +37,7 @@ describe("PropertiesService asset import", () => {
 
   it("creates valid rows and writes audit metadata", async () => {
     const prisma = prismaStub();
-    const service = new PropertiesService(prisma);
+    const service = buildService(prisma);
 
     const result = await service.importAssetRows(
       [{ code: "DN-001", name: "Asset", centroidLat: 16.07, centroidLng: 108.22 }],
@@ -66,7 +73,7 @@ describe("PropertiesService asset import", () => {
         upsert: jest.fn(),
       },
     });
-    const service = new PropertiesService(prisma);
+    const service = buildService(prisma);
 
     const result = await service.importAssetRows(
       [{ code: "DN-001", name: "Asset", centroidLat: 16.07, centroidLng: 108.22 }],

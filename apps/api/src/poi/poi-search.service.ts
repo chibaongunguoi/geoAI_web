@@ -14,7 +14,7 @@ export class PoiSearchService {
     const trimmedQuery = query.q?.trim() || "";
     const categories = trimmedQuery
       ? this.categoryMapper.findCategories(trimmedQuery)
-      : this.categoryMapper.knownCategories();
+      : [];
     const limit = Math.min(query.limit || 250, 250);
 
     const where: Record<string, unknown> = {
@@ -29,7 +29,10 @@ export class PoiSearchService {
         { propertyType: { contains: trimmedQuery } }
       ];
     } else {
-      where.propertyType = { in: this.categoryMapper.knownCategories() };
+      // Exclude generic buildings when no specific query is provided
+      // to prevent loading all 430,000+ buildings during map panning.
+      // This makes POI rendering extremely fast.
+      where.propertyType = { not: "building" };
     }
 
     if (

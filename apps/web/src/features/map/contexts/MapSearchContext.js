@@ -43,7 +43,7 @@ export function MapSearchProvider({ children, permissions }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mapViewport, setMapViewport] = useState(null);
   const [poiResults, setPoiResults] = useState([]);
-  const [poiEnabled, setPoiEnabled] = useState(true);
+  const [poiEnabled, setPoiEnabled] = useState(false); // Default to false to avoid heavy query on load
 
   const { addSearch } = useSearchHistory();
   const canUseFilters = canAccess(permissions, "filters.use");
@@ -88,7 +88,13 @@ export function MapSearchProvider({ children, permissions }) {
           cache: "no-store",
           signal: controller.signal
         });
-        if (!response.ok) return;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Received non-JSON response from server");
+        }
         const data = await response.json();
         const items = Array.isArray(data.items) ? data.items : [];
         poiAutoCacheRef.current.set(viewportKey, items);
@@ -334,7 +340,7 @@ export function MapSearchProvider({ children, permissions }) {
     setFilterHistory(storedFilters.history);
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     propertyQuery, setPropertyQuery, propertySearchResult, setPropertySearchResult,
     propertySearchStatus, setPropertySearchStatus, isSearchingProperties, setIsSearchingProperties,
     focusedProperty, setFocusedProperty, propertyResultView, setPropertyResultView,
@@ -343,7 +349,12 @@ export function MapSearchProvider({ children, permissions }) {
     analysisResults, setAnalysisResults, isAnalyzing, setIsAnalyzing, mapViewport, setMapViewport,
     runPropertySearch, applyFilters, saveFilterPreset, exportFilteredPropertyResults, analyzeImage,
     canUseFilters
-  };
+  }), [
+    propertyQuery, propertySearchResult, propertySearchStatus, isSearchingProperties, focusedProperty,
+    propertyResultView, assetFilters, filterPresets, filterHistory, filterStatus, poiResults, poiEnabled,
+    analysisResults, isAnalyzing, mapViewport, runPropertySearch, applyFilters, saveFilterPreset,
+    exportFilteredPropertyResults, analyzeImage, canUseFilters
+  ]);
 
   return <MapSearchContext.Provider value={value}>{children}</MapSearchContext.Provider>;
 }

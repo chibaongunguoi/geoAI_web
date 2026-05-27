@@ -186,8 +186,19 @@ export function MapStateProvider({ children, permissions }) {
 
   const handleLayerStatusChange = useCallback((layerId, status) => {
     setLayerStatuses((current) => {
-      if (current[layerId] === status) return current;
+      const existing = current[layerId];
+      if (existing && existing.state === status.state && existing.message === status.message) {
+        return current;
+      }
       return { ...current, [layerId]: status };
+    });
+  }, []);
+
+  const setVisibleAssetsSafe = useCallback((newAssets) => {
+    setVisibleAssets((current) => {
+      const next = typeof newAssets === "function" ? newAssets(current) : newAssets;
+      if (current.length === 0 && next.length === 0) return current;
+      return next;
     });
   }, []);
 
@@ -197,8 +208,11 @@ export function MapStateProvider({ children, permissions }) {
       return;
     }
     setIsHeatmapLoading(true);
-    fetch("/api/map/heatmap?type=buildings")
-      .then((r) => r.json())
+    fetch("/api/properties/heatmap")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP error ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         setBuildingHeatmap(data);
         setIsHeatmapLoading(false);
@@ -212,17 +226,24 @@ export function MapStateProvider({ children, permissions }) {
   const selectedBasemap = getBasemap(selectedBasemapId);
   const visibleLayers = useMemo(() => visibleLayerIds(layerState), [layerState]);
 
-  const value = {
+  const value = useMemo(() => ({
     layers, adminArea, setAdminArea, scanMode, setScanMode, selectedBasemapId, setSelectedBasemapId,
     layerState, setLayerState, layerStatuses, layerRefreshRequests, setLayerRefreshRequests,
     layerHistory, layerConfigStatus, hasLoadedLayerConfig, assetDisplayConfig, setAssetDisplayConfig,
     assetDisplayStatus, assetDisplayError, setAssetDisplayError, assetHistory, visibleAssets,
-    setVisibleAssets, hasLoadedAssetConfig, buildingHeatmap, setBuildingHeatmap, isHeatmapLoading,
+    setVisibleAssets: setVisibleAssetsSafe, hasLoadedAssetConfig, buildingHeatmap, setBuildingHeatmap, isHeatmapLoading,
     canViewLayers, canManageLayers, canExportAssets,
     toggleBuildingHeatmap, updateLayerVisibility, updateLayerGroupVisibility, updateLayerOpacity,
     updateLayerOrder, updateLayerReorder, handleLayerStatusChange,
     selectedBasemap, visibleLayers
-  };
+  }), [
+    layers, adminArea, scanMode, selectedBasemapId, layerState, layerStatuses, layerRefreshRequests,
+    layerHistory, layerConfigStatus, hasLoadedLayerConfig, assetDisplayConfig, assetDisplayStatus,
+    assetDisplayError, assetHistory, visibleAssets, setVisibleAssetsSafe, hasLoadedAssetConfig, buildingHeatmap, isHeatmapLoading,
+    canViewLayers, canManageLayers, canExportAssets, toggleBuildingHeatmap, updateLayerVisibility,
+    updateLayerGroupVisibility, updateLayerOpacity, updateLayerOrder, updateLayerReorder,
+    handleLayerStatusChange, selectedBasemap, visibleLayers
+  ]);
 
   return <MapStateContext.Provider value={value}>{children}</MapStateContext.Provider>;
 }

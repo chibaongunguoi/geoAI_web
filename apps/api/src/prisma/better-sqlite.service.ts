@@ -17,9 +17,10 @@ export class BetterSqliteService implements OnModuleDestroy {
   /** Lazy-open so tests can construct the service without a real file. */
   getDb(): Database.Database {
     if (!this.db) {
-      this.db = new Database(this.resolveDbPath());
+      this.db = new Database(this.resolveDbPath(), { timeout: 30000 });
       this.db.pragma("journal_mode = WAL");
       this.db.pragma("foreign_keys = ON");
+      this.db.pragma("busy_timeout = 30000");
       this.ensureRuntimeIndexes(this.db);
     }
     return this.db;

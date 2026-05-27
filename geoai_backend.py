@@ -161,6 +161,7 @@ FALLBACK_ZONE_LABELS = {
 }
 admin_boundaries_cache = None
 building_extractor_cache = None
+admin_wards_cache = None
 
 # Create downloads directory if it doesn't exist
 os.makedirs(geoai_downloads_dir, exist_ok=True)
@@ -645,6 +646,26 @@ def load_or_download_danang_admin_boundaries():
         logger.warning(f"Could not load GADM boundaries, using fallback bboxes: {str(e)}")
         admin_boundaries_cache = fallback_admin_boundaries()
         return admin_boundaries_cache
+
+
+def load_danang_wards():
+    global admin_wards_cache
+    if admin_wards_cache is not None:
+        return admin_wards_cache
+
+    if DANANG_WARDS_GEOJSON.exists():
+        admin_wards_cache = gpd.read_file(DANANG_WARDS_GEOJSON).to_crs("EPSG:4326")
+        return admin_wards_cache
+
+    # If missing, just call load_or_download_danang_admin_boundaries which generates it
+    load_or_download_danang_admin_boundaries()
+    
+    if DANANG_WARDS_GEOJSON.exists():
+        admin_wards_cache = gpd.read_file(DANANG_WARDS_GEOJSON).to_crs("EPSG:4326")
+        return admin_wards_cache
+    
+    # Fallback to empty if still missing
+    return gpd.GeoDataFrame(geometry=[], crs="EPSG:4326")
 
 
 def get_admin_area(admin_area_id=None):
@@ -1394,6 +1415,26 @@ def admin_boundaries():
         }), 200
     except Exception as e:
         logger.error(f"Error loading admin boundaries: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e),
+        }), 500
+
+
+@app.route('/admin-wards', methods=['GET'])
+def admin_wards():
+    try:
+        wards = load_danang_wards()
+        if wards.empty:
+            return jsonify({'success': True, 'wards': {'type': 'FeatureCollection', 'features': []}}), 200
+        
+        features = json.loads(wards.to_crs("EPSG:4326").to_json())
+        return jsonify({
+            'success': True,
+            'wards': features,
+        }), 200
+    except Exception as e:
+        logger.error(f"Error loading admin wards: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e),

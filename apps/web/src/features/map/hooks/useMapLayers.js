@@ -45,7 +45,9 @@ export function useMapLayers({
   const poiMarkersRef = useRef(new globalThis.Map());
   const buildingHeatLayerRef = useRef(null);
   const [adminBoundaries, setAdminBoundaries] = useState(null);
+  const [adminWards, setAdminWards] = useState(null);
   const lastBoundaryViewKeyRef = useRef(null);
+  const lastFittedBoundaryIdRef = useRef(null);
 
   useEffect(() => {
     map.addLayer(assetMarkers);
@@ -94,11 +96,10 @@ export function useMapLayers({
   useEffect(() => {
     const currentMarkers = poiMarkersRef.current;
     const newMarkers = new globalThis.Map();
-    let hasChanges = false;
 
     renderedPoiItems.forEach((entry) => {
-      const key = entry.kind === "cluster" 
-        ? `cluster-${entry.lat}-${entry.lng}-${entry.count}` 
+      const key = entry.kind === "cluster"
+        ? `cluster-${entry.lat}-${entry.lng}-${entry.count}`
         : `poi-${entry.item.id}`;
 
       if (currentMarkers.has(key)) {
@@ -146,20 +147,17 @@ export function useMapLayers({
         }
         marker.addTo(poiLayer);
         newMarkers.set(key, marker);
-        hasChanges = true;
       }
     });
 
-    if (currentMarkers.size > 0) {
-      currentMarkers.forEach((marker) => {
-        poiLayer.removeLayer(marker);
-      });
-      hasChanges = true;
-    }
+    // Remove stale markers
+    currentMarkers.forEach((marker) => {
+      poiLayer.removeLayer(marker);
+    });
 
     poiMarkersRef.current = newMarkers;
 
-    if (hasChanges && newMarkers.size > 0) {
+    if (newMarkers.size > 0) {
       poiLayer.bringToFront();
     }
   }, [poiLayer, renderedPoiItems]);
@@ -169,9 +167,9 @@ export function useMapLayers({
     focusedPropertyLayer.clearLayers();
     if (!focusedProperty) return;
 
-    const lat = focusedProperty.centroidLat;
-    const lng = focusedProperty.centroidLng;
-    if (typeof lat !== 'number' || typeof lng !== 'number') return;
+    const lat = Number(focusedProperty.centroidLat ?? focusedProperty.latitude ?? focusedProperty.centerLat);
+    const lng = Number(focusedProperty.centroidLng ?? focusedProperty.longitude ?? focusedProperty.centerLng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
     const center = L.latLng(lat, lng);
 
@@ -535,12 +533,19 @@ export function useMapLayers({
     let isMounted = true;
     onLayerStatusChange?.("admin-boundaries", { state: "loading", message: "Đang tải" });
 
-    fetch("/api/admin-boundaries")
-      .then((response) => response.json())
-      .then((data) => {
-        if (isMounted && data.success) {
-          setAdminBoundaries(data.districts);
-          onLayerStatusChange?.("admin-boundaries", { state: "ready", message: "Sẵn sàng" });
+    Promise.all([
+      fetch("/api/admin-boundaries").then(res => res.json()),
+      fetch("/api/admin-wards").then(res => res.json()).catch(() => ({ success: false }))
+    ])
+      .then(([districtsData, wardsData]) => {
+        if (isMounted) {
+          if (districtsData.success) {
+            setAdminBoundaries(districtsData.districts);
+            onLayerStatusChange?.("admin-boundaries", { state: "ready", message: "Sẵn sàng" });
+          }
+          if (wardsData && wardsData.success) {
+            setAdminWards(wardsData.wards);
+          }
         }
       })
       .catch((error) => {
@@ -572,13 +577,22 @@ export function useMapLayers({
 
     if (!adminBoundaries?.features?.length) return;
 
+    const layerOpacity = layerOpacities["admin-boundaries"] ?? 1;
+    const selectedId = normalizedAdminArea(selectedAdminArea);
+    const showWards = currentZoom >= 13;
+    const boundaryViewKey = `${selectedId}:${boundaryVisible}:${adminBoundaries.features.length}:${layerOpacity}:${showWards}:${adminWards?.features?.length}`;
+
+    // ONLY clear and redraw if the view key actually changed!
+    if (lastBoundaryViewKeyRef.current === boundaryViewKey) {
+      return;
+    }
+
+    lastBoundaryViewKeyRef.current = boundaryViewKey;
+
     boundaryLayer.clearLayers();
     maskLayer.clearLayers();
-    const layerOpacity = layerOpacities["admin-boundaries"] ?? 1;
 
-    const selectedId = normalizedAdminArea(selectedAdminArea);
     const isAllDaNang = selectedId === "all_da_nang" || selectedId === "all";
-    const boundaryViewKey = `${selectedId}:${boundaryVisible}:${adminBoundaries.features.length}`;
     const selectedFeatures = isAllDaNang
       ? adminBoundaries.features
       : adminBoundaries.features.filter(
@@ -627,6 +641,41 @@ export function useMapLayers({
       },
     }).addTo(boundaryLayer);
 
+    // Draw wards if zoomed in enough and we have data
+    if (showWards && adminWards?.features?.length > 0) {
+      const wardFeatures = isAllDaNang
+        ? adminWards.features
+        : adminWards.features.filter((f) => f.properties?.district_id === selectedId || f.properties?.admin_id === selectedId || f.properties?.NAME_2?.toLowerCase().includes(selectedId.replace('_', '')));
+
+      if (wardFeatures.length > 0) {
+        L.geoJSON({ type: "FeatureCollection", features: wardFeatures }, {
+          style: {
+            color: "#fb923c", // subtle orange
+            weight: 1,
+            opacity: 0.6 * layerOpacity,
+            dashArray: "3 5",
+            fillOpacity: 0,
+            interactive: false,
+          },
+        }).addTo(boundaryLayer);
+
+        wardFeatures.forEach((feature) => {
+          const center = featureCenter(feature);
+          if (center) {
+            L.marker(center, {
+              interactive: false,
+              icon: L.divIcon({
+                className: "ward-label",
+                html: `<span>${escapeHtml(feature.properties?.NAME_3 || feature.properties?.name || "Phường")}</span>`,
+                iconSize: [120, 24],
+                iconAnchor: [60, 12],
+              }),
+            }).addTo(boundaryLayer);
+          }
+        });
+      }
+    }
+
     selectedFeatures.forEach((feature) => {
       const center = featureCenter(feature);
       if (center) {
@@ -642,21 +691,21 @@ export function useMapLayers({
       }
     });
 
-    const bounds = L.geoJSON(selectedCollection).getBounds();
-    if (
-      bounds.isValid() &&
-      lastBoundaryViewKeyRef.current !== boundaryViewKey &&
-      !hasPropertyDensityFocus
-    ) {
-      lastBoundaryViewKeyRef.current = boundaryViewKey;
-      map.fitBounds(bounds.pad(isAllDaNang ? 0.08 : 0.22), {
-        animate: true,
-        padding: isAllDaNang ? [16, 16] : [32, 32],
-        maxZoom: isAllDaNang ? 12 : 15,
-      });
+    const fitBoundsKey = `${selectedId}:${boundaryVisible}`;
+    if (lastFittedBoundaryIdRef.current !== fitBoundsKey) {
+      const bounds = L.geoJSON(selectedCollection).getBounds();
+      if (bounds.isValid() && !hasPropertyDensityFocus) {
+        map.fitBounds(bounds.pad(isAllDaNang ? 0.08 : 0.22), {
+          animate: true,
+          padding: isAllDaNang ? [16, 16] : [32, 32],
+          maxZoom: isAllDaNang ? 12 : 15,
+        });
+      }
+      lastFittedBoundaryIdRef.current = fitBoundsKey;
     }
   }, [
     adminBoundaries,
+    adminWards,
     selectedAdminArea,
     boundaryLayer,
     maskLayer,
