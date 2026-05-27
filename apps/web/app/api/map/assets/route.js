@@ -13,11 +13,15 @@ export async function GET(request) {
   }
 
   try {
+    const [minLng, minLat, maxLng, maxLat] = bbox;
     const cookie = request.headers.get("cookie");
-    const response = await fetch(`${API_URL}/properties?limit=5000&source=all`, {
-      headers: cookie ? { cookie } : {},
-      cache: "no-store"
-    });
+    const response = await fetch(
+      `${API_URL}/poi/search?limit=5000&south=${minLat}&west=${minLng}&north=${maxLat}&east=${maxLng}`,
+      {
+        headers: cookie ? { cookie } : {},
+        cache: "no-store"
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`Backend returned ${response.status}`);

@@ -40,14 +40,33 @@ export function useMapLayers({
   const [propertySearchLayer] = useState(() => new L.FeatureGroup());
   const [buildingHeatmapLayer] = useState(() => new L.FeatureGroup());
   const [poiLayer] = useState(() => new L.FeatureGroup());
+  const [reportLayer] = useState(() => new L.FeatureGroup());
   const [focusedPropertyLayer] = useState(() => new L.FeatureGroup());
   const externalLayersRef = useRef(new globalThis.Map());
   const poiMarkersRef = useRef(new globalThis.Map());
+  const assetMarkersMapRef = useRef(new globalThis.Map());
   const buildingHeatLayerRef = useRef(null);
   const [adminBoundaries, setAdminBoundaries] = useState(null);
   const [adminWards, setAdminWards] = useState(null);
   const lastBoundaryViewKeyRef = useRef(null);
   const lastFittedBoundaryIdRef = useRef(null);
+  const [reports, setReports] = useState([]);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const res = await fetch("/api/reports?status=PENDING");
+        if (res.ok) setReports(await res.json());
+      } catch (e) {
+        console.error("Failed to fetch reports:", e);
+      }
+    };
+    fetchReports();
+
+    const handleRefresh = () => fetchReports();
+    window.addEventListener("geoai:refresh-reports", handleRefresh);
+    return () => window.removeEventListener("geoai:refresh-reports", handleRefresh);
+  }, []);
 
   useEffect(() => {
     map.addLayer(assetMarkers);
@@ -65,23 +84,30 @@ export function useMapLayers({
       map.removeLayer(buildingHeatmapLayer);
       map.removeLayer(propertySearchLayer);
       map.removeLayer(poiLayer);
+      map.removeLayer(reportLayer);
       map.removeLayer(focusedPropertyLayer);
       externalLayersRef.current.forEach((layer) => map.removeLayer(layer));
       externalLayersRef.current.clear();
     };
-  }, [map, assetMarkers, maskLayer, boundaryLayer, buildingHeatmapLayer, propertySearchLayer, poiLayer, focusedPropertyLayer]);
+  }, [map, assetMarkers, maskLayer, boundaryLayer, buildingHeatmapLayer, propertySearchLayer, poiLayer, reportLayer, focusedPropertyLayer]);
 
-  const renderedPoiItems = useMemo(() => {
-    if (!shouldShowPoiLayer(currentZoom)) {
-      return [];
-    }
-
+  const clusteredPoiItems = useMemo(() => {
     const items = Array.isArray(poiResults) ? poiResults : [];
     const validItems = items.filter((item) =>
       Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)),
     );
+
     return clusterPoiMarkers(validItems);
-  }, [currentZoom, poiResults]);
+  }, [poiResults]);
+
+  const EMPTY_POI_ARRAY = useMemo(() => [], []);
+
+  const renderedPoiItems = useMemo(() => {
+    if (!shouldShowPoiLayer(currentZoom)) {
+      return EMPTY_POI_ARRAY;
+    }
+    return clusteredPoiItems;
+  }, [clusteredPoiItems, currentZoom, EMPTY_POI_ARRAY]);
 
 
   const isLayerActive = passedIsLayerActive || useCallback(
@@ -95,6 +121,15 @@ export function useMapLayers({
 
   useEffect(() => {
     const currentMarkers = poiMarkersRef.current;
+    
+    if (renderedPoiItems === EMPTY_POI_ARRAY) {
+      currentMarkers.forEach((marker) => {
+        poiLayer.removeLayer(marker);
+      });
+      poiMarkersRef.current = new globalThis.Map();
+      return;
+    }
+
     const newMarkers = new globalThis.Map();
 
     renderedPoiItems.forEach((entry) => {
@@ -150,18 +185,49 @@ export function useMapLayers({
       }
     });
 
-    // Remove stale markers
-    currentMarkers.forEach((marker) => {
-      poiLayer.removeLayer(marker);
+    // Keep old markers that are out of bounds to prevent them from vanishing abruptly
+    currentMarkers.forEach((marker, key) => {
+      newMarkers.set(key, marker);
     });
 
-    poiMarkersRef.current = newMarkers;
-
-    if (newMarkers.size > 0) {
-      poiLayer.bringToFront();
+    // If we have too many markers, maybe prune them, but for now we just accumulate
+    if (newMarkers.size > 2000) {
+      // Very simple prune if memory gets too large
+      let i = 0;
+      newMarkers.forEach((marker, key) => {
+        if (i++ > 1000) {
+           poiLayer.removeLayer(marker);
+           newMarkers.delete(key);
+        }
+      });
     }
-  }, [poiLayer, renderedPoiItems]);
 
+    poiMarkersRef.current = newMarkers;
+  }, [poiLayer, renderedPoiItems, EMPTY_POI_ARRAY]);
+
+  useEffect(() => {
+    reportLayer.clearLayers();
+    reports.forEach(report => {
+      if (!report.latitude || !report.longitude) return;
+      const marker = L.marker([report.latitude, report.longitude], {
+        icon: L.divIcon({
+          className: "report-marker-icon",
+          html: `<div style="background:#f43f5e;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);font-weight:bold;">!</div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        })
+      });
+      
+      marker.bindPopup(`
+        <div style="padding:4px;">
+          <h4 style="margin:0 0 4px;font-size:14px;color:#0f172a">${report.reason}</h4>
+          <p style="margin:0 0 8px;font-size:12px;color:#475569">${report.message}</p>
+          <span style="font-size:10px;background:#fef3c7;color:#d97706;padding:2px 6px;border-radius:12px;">Đang chờ xử lý</span>
+        </div>
+      `);
+      marker.addTo(reportLayer);
+    });
+  }, [reportLayer, reports]);
 
   useEffect(() => {
     focusedPropertyLayer.clearLayers();
@@ -406,7 +472,6 @@ export function useMapLayers({
       }).addTo(map);
       buildingHeatmapLayer.bringToFront();
       propertySearchLayer.bringToFront();
-      poiLayer.bringToFront();
     }
 
     return () => {
@@ -457,33 +522,55 @@ export function useMapLayers({
           const opacity = layerOpacities["sample-assets"] ?? 1;
           const config = assetDisplayConfig || createDefaultAssetDisplayConfig();
 
-          assetMarkers.clearLayers();
+          const currentMarkers = assetMarkersMapRef.current;
+          const newMarkers = new globalThis.Map();
+
           clusterAssets(features, map.getZoom()).forEach((item) => {
-            if (item.kind === "cluster") {
-              L.marker([item.lat, item.lng], {
-                icon: clusterIcon(item.count),
-                opacity,
-              }).addTo(assetMarkers);
-              return;
-            }
-
             const feature = item.feature;
-            const [lng, lat] = feature.geometry.coordinates;
-            const marker = L.marker([lat, lng], {
-              icon: assetMarkerIcon(feature, config),
-              opacity,
-            }).bindPopup(assetPopup(feature, config, permissions));
-            marker.addTo(assetMarkers);
+            const id = feature.id || feature.properties?.id || feature.properties?.code;
+            const key = `asset-${id}`;
 
-            const label = assetLabel(feature, config.labelMode);
-            if (label) {
-              L.marker([lat, lng], {
-                icon: labelIcon(label),
-                interactive: false,
+            if (currentMarkers.has(key)) {
+              newMarkers.set(key, currentMarkers.get(key));
+              currentMarkers.delete(key);
+            } else {
+              const layerGroup = L.layerGroup();
+              const [lng, lat] = feature.geometry.coordinates;
+              const marker = L.marker([lat, lng], {
+                icon: assetMarkerIcon(feature, config),
                 opacity,
-              }).addTo(assetMarkers);
+              }).bindPopup(assetPopup(feature, config, permissions));
+              marker.addTo(layerGroup);
+
+              const label = assetLabel(feature, config.labelMode);
+              if (label) {
+                L.marker([lat, lng], {
+                  icon: labelIcon(label),
+                  interactive: false,
+                  opacity,
+                }).addTo(layerGroup);
+              }
+              layerGroup.addTo(assetMarkers);
+              newMarkers.set(key, layerGroup);
             }
           });
+
+          // Keep old markers to prevent edge-vanishing
+          currentMarkers.forEach((group, key) => {
+            newMarkers.set(key, group);
+          });
+
+          if (newMarkers.size > 2000) {
+            let i = 0;
+            newMarkers.forEach((group, key) => {
+              if (i++ > 1000) {
+                 assetMarkers.removeLayer(group);
+                 newMarkers.delete(key);
+              }
+            });
+          }
+
+          assetMarkersMapRef.current = newMarkers;
 
           onAssetLoad?.(features);
           onAssetError?.(null);
@@ -849,8 +936,15 @@ export function useMapLayers({
 
 
   return {
-    assetMarkers, boundaryLayer, maskLayer, propertySearchLayer,
-    buildingHeatmapLayer, poiLayer, focusedPropertyLayer, externalLayersRef,
+    assetMarkers,
+    boundaryLayer,
+    maskLayer,
+    propertySearchLayer,
+    buildingHeatmapLayer,
+    poiLayer,
+    reportLayer,
+    focusedPropertyLayer,
+    externalLayersRef,
     isLayerActive
   };
 }

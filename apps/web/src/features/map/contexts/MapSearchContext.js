@@ -50,7 +50,7 @@ export function MapSearchProvider({ children, permissions }) {
   const abortControllerRef = useRef(null);
 
   useEffect(() => {
-    if (!poiEnabled || !mapViewport?.bounds || mapViewport.zoom < 12) {
+    if (!poiEnabled || !mapViewport?.bounds || mapViewport.zoom < 10) {
       return undefined;
     }
 
@@ -109,7 +109,7 @@ export function MapSearchProvider({ children, permissions }) {
           setPoiResults((current) => (current.length > 0 ? [] : current));
         }
       }
-    }, 450);
+    }, 500);
 
     return () => {
       clearTimeout(timeout);

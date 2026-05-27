@@ -10,6 +10,7 @@ import {
   AssetDisplayToolPanel, BasemapToolPanel, ExportShareToolPanel, FilterToolPanel,
   LayerToolPanel, MeasurementToolPanel, ScanToolPanel, SpatialDrawToolPanel
 } from "./map-workspace/ToolPanels";
+import ReportToolPanel from "@/features/report/ReportToolPanel";
 import { useMapState } from "@/features/map/contexts/MapStateContext";
 import { useMapSearch } from "@/features/map/contexts/MapSearchContext";
 import { useDrawTool } from "@/features/map/contexts/DrawToolContext";
@@ -55,6 +56,7 @@ const TOOL_TEXT = {
   filters: "Bộ lọc nâng cao",
   measurement: "Đo khoảng cách/diện tích",
   draw: "Vẽ không gian (Spatial draw)",
+  report: "Phản ánh hiện trường",
   exportShare: "Xuất & Chia sẻ",
   exitFullscreen: "Thoát toàn màn hình",
   fullscreen: "Toàn màn hình"
@@ -67,6 +69,10 @@ export default function MapWorkspace({ permissions, workspaceRef, mapCanvasRef }
 
   const [activeTool, setActiveTool] = useState("scan");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Report states
+  const [isPickingReportLocation, setIsPickingReportLocation] = useState(false);
+  const [reportLocation, setReportLocation] = useState(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -88,6 +94,7 @@ export default function MapWorkspace({ permissions, workspaceRef, mapCanvasRef }
 
   const leftTools = useMemo(() => [
     { id: "scan", label: TOOL_TEXT.scan, icon: "scan", badge: drawTool.rectangleCoords ? "1" : null },
+    { id: "report", label: TOOL_TEXT.report, icon: "alert" },
     { id: "basemap", label: TOOL_TEXT.basemap, icon: "basemap" },
     mapState.canViewLayers ? { id: "layers", label: TOOL_TEXT.layers, icon: "layers", badge: mapState.visibleLayers.length || null } : null,
     mapState.canViewLayers ? { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: mapSearch.poiEnabled ? "ON" : null } : null,
@@ -142,6 +149,29 @@ export default function MapWorkspace({ permissions, workspaceRef, mapCanvasRef }
             selectedBasemapId={mapState.selectedBasemapId}
             selectedBasemap={mapState.selectedBasemap}
             onChange={mapState.setSelectedBasemapId}
+          />
+        );
+      case "report":
+        return (
+          <ReportToolPanel
+            styles={styles}
+            isPickingLocation={isPickingReportLocation}
+            reportLocation={reportLocation}
+            onEnablePickLocation={() => {
+              setIsPickingReportLocation(true);
+              setReportLocation(null);
+            }}
+            onCancelPick={() => {
+              setIsPickingReportLocation(false);
+              setReportLocation(null);
+            }}
+            onReportCreated={() => {
+              setIsPickingReportLocation(false);
+              setReportLocation(null);
+              // We should trigger a refresh of reports here. 
+              // We can do it by firing a global event.
+              window.dispatchEvent(new Event("geoai:refresh-reports"));
+            }}
           />
         );
       case "layers":

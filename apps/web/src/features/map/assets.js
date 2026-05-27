@@ -158,41 +158,7 @@ export function assetLabel(feature, labelMode) {
 }
 
 export function clusterAssets(features, zoom) {
-  if (zoom >= 13) {
-    return features.map((feature) => ({ kind: "asset", feature }));
-  }
-
-  const cellSize = zoom <= 11 ? 1 : 0.04;
-  const clusters = new Map();
-
-  features.forEach((feature) => {
-    const [lng, lat] = feature.geometry.coordinates;
-    const key = `${Math.floor(lng / cellSize)}:${Math.floor(lat / cellSize)}`;
-    const cluster = clusters.get(key) || {
-      kind: "cluster",
-      count: 0,
-      features: [],
-      lat: 0,
-      lng: 0
-    };
-    cluster.count += 1;
-    cluster.features.push(feature);
-    cluster.lat += lat;
-    cluster.lng += lng;
-    clusters.set(key, cluster);
-  });
-
-  return [...clusters.values()].map((cluster) => {
-    if (cluster.count === 1) {
-      return { kind: "asset", feature: cluster.features[0] };
-    }
-
-    return {
-      ...cluster,
-      lat: cluster.lat / cluster.count,
-      lng: cluster.lng / cluster.count
-    };
-  });
+  return features.map((feature) => ({ kind: "asset", feature }));
 }
 
 export function assetDetailUrl(feature) {

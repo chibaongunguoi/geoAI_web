@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Navigation menu items configuration
  * Each item includes:
  * - href: The route path
@@ -23,6 +23,11 @@ export const navigationItems = [
     href: "/dashboard",
     translationKey: "navigation.dashboard",
     permission: "dashboard.view"
+  },
+  {
+    href: "/reports",
+    translationKey: "navigation.reports",
+    permission: "map.view"
   },
   {
     href: "/admin/users",

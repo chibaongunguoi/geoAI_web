@@ -31,7 +31,7 @@ const GROUP_ICONS = {
   services: '<path d="M7 20V5a2 2 0 0 1 2-2h6v17"/><path d="M7 9h8"/><path d="M15 8h2a3 3 0 0 1 3 3v7a2 2 0 0 1-4 0v-3"/>'
 };
 
-export const POI_MIN_ZOOM = 12;
+export const POI_MIN_ZOOM = 10;
 
 export function getCategoryGroup(category) {
   for (const [group, categories] of Object.entries(CATEGORY_GROUPS)) {
@@ -64,29 +64,6 @@ export function shouldShowPoiLayer(zoom) {
 }
 
 export function clusterPoiMarkers(items, cellSize = 0.005) {
-  if (!shouldCluster(items)) {
-    return items.map((item) => ({ kind: "poi", item }));
-  }
-
-  const clusters = new Map();
-  for (const item of items) {
-    const key = `${Math.floor(item.latitude / cellSize)}:${Math.floor(item.longitude / cellSize)}`;
-    const cluster = clusters.get(key) || { kind: "cluster", items: [], lat: 0, lng: 0, count: 0 };
-    cluster.items.push(item);
-    cluster.count++;
-    cluster.lat += item.latitude;
-    cluster.lng += item.longitude;
-    clusters.set(key, cluster);
-  }
-
-  return [...clusters.values()].map((cluster) => {
-    if (cluster.count === 1) {
-      return { kind: "poi", item: cluster.items[0] };
-    }
-    return {
-      ...cluster,
-      lat: cluster.lat / cluster.count,
-      lng: cluster.lng / cluster.count
-    };
-  });
+  // Disabled clustering completely as requested by user
+  return items.map((item) => ({ kind: "poi", item }));
 }

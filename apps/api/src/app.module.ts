@@ -8,6 +8,7 @@ import { PropertiesModule } from "./properties/properties.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { PoiModule } from "./poi/poi.module";
+import { ReportModule } from "./report/report.module";
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { PoiModule } from "./poi/poi.module";
     MapAssetsModule,
     MapLayersModule,
     PropertiesModule,
-    PoiModule
+    PoiModule,
+    ReportModule
   ]
 })
 export class AppModule {}

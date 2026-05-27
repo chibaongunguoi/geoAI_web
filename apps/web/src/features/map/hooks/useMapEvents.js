@@ -4,7 +4,9 @@ export function useMapEvents({
   map, 
   selectedBasemap, 
   onViewportChange, 
-  setCurrentZoom
+  setCurrentZoom,
+  isPickingReportLocation,
+  onReportLocationPick
 }) {
   const rightDragState = useRef(null);
 
@@ -103,12 +105,19 @@ export function useMapEvents({
       container.classList.remove("leaflet-dragging");
     };
 
+    const handleMapClick = (e) => {
+      if (isPickingReportLocation) {
+        onReportLocationPick?.(e.latlng);
+      }
+    };
+
     container.addEventListener("contextmenu", handleContextMenu, true);
     container.addEventListener("mousedown", handleMouseDown, true);
     container.addEventListener("auxclick", stopMiddleMouseAction, true);
     window.addEventListener("mousemove", handleMouseMove, true);
     window.addEventListener("mouseup", stopRightDrag, true);
     window.addEventListener("blur", stopRightDrag);
+    map.on("click", handleMapClick);
 
     return () => {
       container.removeEventListener("contextmenu", handleContextMenu, true);
@@ -117,10 +126,9 @@ export function useMapEvents({
       window.removeEventListener("mousemove", handleMouseMove, true);
       window.removeEventListener("mouseup", stopRightDrag, true);
       window.removeEventListener("blur", stopRightDrag);
-      rightDragState.current = null;
-      container.classList.remove("leaflet-dragging");
+      map.off("click", handleMapClick);
     };
-  }, [map]);
+  }, [map, isPickingReportLocation, onReportLocationPick]);
 
   useEffect(() => {
     const handleZoomEnd = () => setCurrentZoom?.(map.getZoom());
