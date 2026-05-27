@@ -34,7 +34,10 @@ export class ElasticsearchQueryBuilder {
   }
 
   private buildFilters(input: PropertySearchProviderInput): unknown[] {
-    const filters: unknown[] = [{ term: { deleted: false } }];
+    const filters: unknown[] = [
+      { term: { deleted: false } },
+      { exists: { field: "embedding" } }
+    ];
 
     if (input.status) {
       filters.push({ term: { status: input.status } });

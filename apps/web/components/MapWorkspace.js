@@ -11,10 +11,12 @@ import {
   LayerToolPanel, MeasurementToolPanel, ScanToolPanel, SpatialDrawToolPanel
 } from "./map-workspace/ToolPanels";
 import ReportToolPanel from "@/features/report/ReportToolPanel";
+import { ReportService } from "@/features/report/report.service";
 import { useMapState } from "@/features/map/contexts/MapStateContext";
 import { useMapSearch } from "@/features/map/contexts/MapSearchContext";
 import { useDrawTool } from "@/features/map/contexts/DrawToolContext";
 import { BASEMAPS } from "@/features/map/basemaps";
+import { canAccess } from "@/features/auth/auth-client";
 
 const Map = dynamic(() => import("./Map"), {
   ssr: false,
@@ -62,10 +64,12 @@ const TOOL_TEXT = {
   fullscreen: "Toàn màn hình"
 };
 
-export default function MapWorkspace({ permissions, workspaceRef, mapCanvasRef }) {
+export default function MapWorkspace({ permissions = [], workspaceRef, mapCanvasRef }) {
   const mapState = useMapState();
   const mapSearch = useMapSearch();
   const drawTool = useDrawTool();
+
+  const isOfficerOrAdmin = canAccess(permissions, "admin.users.view") || canAccess(permissions, "properties.manage");
 
   const [activeTool, setActiveTool] = useState("scan");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -73,6 +77,22 @@ export default function MapWorkspace({ permissions, workspaceRef, mapCanvasRef }
   // Report states
   const [isPickingReportLocation, setIsPickingReportLocation] = useState(false);
   const [reportLocation, setReportLocation] = useState(null);
+  const [showMyReports, setShowMyReports] = useState(false);
+  const [myReports, setMyReports] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (showMyReports) {
+      ReportService.getReports("PENDING").then(data => {
+        if (isMounted) setMyReports(data || []);
+      }).catch(err => {
+        console.error("Failed to fetch reports:", err);
+      });
+    } else {
+      setMyReports([]);
+    }
+    return () => { isMounted = false; };
+  }, [showMyReports]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -94,12 +114,12 @@ export default function MapWorkspace({ permissions, workspaceRef, mapCanvasRef }
 
   const leftTools = useMemo(() => [
     { id: "scan", label: TOOL_TEXT.scan, icon: "scan", badge: drawTool.rectangleCoords ? "1" : null },
-    { id: "report", label: TOOL_TEXT.report, icon: "alert" },
+    !isOfficerOrAdmin ? { id: "report", label: TOOL_TEXT.report, icon: "alert" } : null,
     { id: "basemap", label: TOOL_TEXT.basemap, icon: "basemap" },
     mapState.canViewLayers ? { id: "layers", label: TOOL_TEXT.layers, icon: "layers", badge: mapState.visibleLayers.length || null } : null,
     mapState.canViewLayers ? { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: mapSearch.poiEnabled ? "ON" : null } : null,
     { id: "heatmap", label: TOOL_TEXT.heatmap, icon: "heatmap", badge: mapState.buildingHeatmap ? "ON" : mapState.isHeatmapLoading ? "..." : null, onClick: mapState.toggleBuildingHeatmap }
-  ].filter(Boolean), [mapState.buildingHeatmap, mapState.canViewLayers, mapState.isHeatmapLoading, mapSearch.poiResults.length, drawTool.rectangleCoords, mapState.toggleBuildingHeatmap, mapState.visibleAssets.length, mapState.visibleLayers.length, mapSearch.poiEnabled]);
+  ].filter(Boolean), [mapState.buildingHeatmap, mapState.canViewLayers, mapState.isHeatmapLoading, mapSearch.poiResults.length, drawTool.rectangleCoords, mapState.toggleBuildingHeatmap, mapState.visibleAssets.length, mapState.visibleLayers.length, mapSearch.poiEnabled, isOfficerOrAdmin]);
 
   const rightTools = useMemo(() => [
     mapSearch.canUseFilters ? { id: "filters", label: TOOL_TEXT.filters, icon: "filters" } : null,
@@ -155,8 +175,11 @@ export default function MapWorkspace({ permissions, workspaceRef, mapCanvasRef }
         return (
           <ReportToolPanel
             styles={styles}
+            permissions={permissions}
             isPickingLocation={isPickingReportLocation}
             reportLocation={reportLocation}
+            showMyReports={showMyReports}
+            setShowMyReports={setShowMyReports}
             onEnablePickLocation={() => {
               setIsPickingReportLocation(true);
               setReportLocation(null);
@@ -342,6 +365,14 @@ export default function MapWorkspace({ permissions, workspaceRef, mapCanvasRef }
         </div>
         <Map
           onRectangleDrawn={drawTool.handleRectangleDrawn}
+          isPickingReportLocation={isPickingReportLocation}
+          showMyReports={showMyReports}
+          myReports={myReports}
+          reportLocation={reportLocation}
+          onReportLocationPick={(latlng) => {
+            setReportLocation(latlng);
+            setIsPickingReportLocation(false);
+          }}
           onAnalyzeImage={mapSearch.analyzeImage}
           analysisObjects={mapSearch.analysisResults?.analysis?.objects || []}
           selectedBasemap={mapState.selectedBasemap}

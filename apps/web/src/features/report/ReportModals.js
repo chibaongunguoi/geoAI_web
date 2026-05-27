@@ -2,6 +2,18 @@ import React, { useState } from "react";
 import { ReportService } from "./report.service";
 import "./report.css";
 
+import L from "leaflet";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
+const icon = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+
 export function CreateReportModal({ location, onClose, onSuccess }) {
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
@@ -100,6 +112,8 @@ export function ReportDetailsModal({ report, user, onClose, onUpdate }) {
     }
   };
 
+  const hasLocation = report.latitude && report.longitude;
+
   return (
     <div className="report-modal-overlay">
       <div className="report-modal">
@@ -123,6 +137,23 @@ export function ReportDetailsModal({ report, user, onClose, onUpdate }) {
           <p>{report.message}</p>
         </div>
 
+        {hasLocation && (
+          <div className="report-detail-group">
+            <label>Vị trí:</label>
+            <div style={{ height: "180px", width: "100%", borderRadius: "8px", overflow: "hidden", marginTop: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <MapContainer 
+                center={[report.latitude, report.longitude]} 
+                zoom={15} 
+                style={{ height: "100%", width: "100%", zIndex: 1 }}
+                zoomControl={false}
+              >
+                <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                <Marker position={[report.latitude, report.longitude]} icon={icon} />
+              </MapContainer>
+            </div>
+          </div>
+        )}
+
         {report.responseMessage && (
           <div className="report-response-box">
             <label>Phản hồi từ Cán bộ:</label>
@@ -134,21 +165,22 @@ export function ReportDetailsModal({ report, user, onClose, onUpdate }) {
           <div className="report-field">
             <label>Nhập lời phản hồi (Dành cho Cán bộ):</label>
             <textarea 
-              rows={3} 
+              rows={5} 
+              style={{ padding: "12px", fontSize: "14px" }}
               value={responseMsg} 
               onChange={e => setResponseMsg(e.target.value)} 
               placeholder="Trả lời công dân về sự cố này..."
             />
-            <button onClick={handleRespond} disabled={loading || !responseMsg} className="btn-submit" style={{ marginTop: '8px' }}>
-              Gửi Phản Hồi
+            <button onClick={handleRespond} disabled={loading || !responseMsg} className="btn-submit" style={{ marginTop: '12px', padding: "10px 16px", fontWeight: "bold" }}>
+              Đánh dấu Đã tiếp nhận & Gửi Phản Hồi
             </button>
           </div>
         )}
 
-        <div className="report-actions">
+        <div className="report-actions" style={{ marginTop: "24px" }}>
           <button onClick={onClose} className="btn-cancel">Đóng</button>
           
-          {(isCreator || isOfficerOrAdmin) && report.status !== 'RESOLVED' && (
+          {isCreator && report.status !== 'RESOLVED' && (
             <button onClick={handleResolve} disabled={loading} className="btn-resolve">
               Đánh dấu Đã Giải Quyết
             </button>

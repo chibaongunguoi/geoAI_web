@@ -19,19 +19,14 @@ function csvEscape(value) {
 }
 
 export function dashboardCsv(summary) {
-  const totals = summary?.totals || {};
-  const rows = [["metric", "value"]];
-  for (const key of ["total", "active", "inactive", "review", "archived", "recentlyUpdated", "missingGeometry"]) {
-    rows.push([key, totals[key] ?? 0]);
-  }
-
-  rows.push([]);
-  rows.push(["asset_code", "name", "status", "district", "ward"]);
-  (summary?.topAssets || []).forEach((asset) => {
-    rows.push([asset.code, asset.name || "", asset.status || "", asset.district || "", asset.ward || ""]);
+  const byDistrict = summary?.buckets?.byDistrict || [];
+  const rows = [["Quận/Huyện", "Số lượng Building"]];
+  
+  byDistrict.forEach((item) => {
+    rows.push([item.label, item.count]);
   });
 
-  return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+  return "\uFEFF" + rows.map((row) => row.map(csvEscape).join(",")).join("\n");
 }
 
 export function addDashboardHistory(history = [], action, detail = {}) {

@@ -608,7 +608,7 @@ export class PropertiesSearchService {
       : undefined;
     const filters = {
       ward: knownWard || wardFromMarker || (locationIsKnownDistrict ? undefined : locationAfterAt),
-      district: district || (locationIsKnownDistrict ? knownLocationDistrict : undefined),
+      district: district || (locationIsKnownDistrict ? knownLocationDistrict : "Hải Châu"),
       status: matchStatus(normalizedQuery),
       propertyType: matchPropertyType(normalizedQuery)
     };

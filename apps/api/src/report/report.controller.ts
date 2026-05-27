@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -22,8 +23,12 @@ export class ReportController {
     @Req() req: any,
     @Body() body: { reason: string; message: string; latitude: number; longitude: number }
   ) {
-    const userId = req.user.sub || req.user.id;
-    return this.reportService.createReport(userId, body);
+    try {
+      const userId = req.user.sub || req.user.id;
+      return await this.reportService.createReport(userId, body);
+    } catch (e) {
+      throw new BadRequestException(`Report creation failed: ${e.message || e}`);
+    }
   }
 
   @Get()

@@ -154,16 +154,46 @@ export function MapSearchProvider({ children, permissions }) {
         ...(canUseFilters ? assetFilters : DEFAULT_ASSET_FILTERS),
         limit: 10
       });
-      const response = await fetch(`/api/properties?query=${encodeURIComponent(query)}&${filterParams}`, {
-        cache: "no-store",
-        signal: controller.signal
-      });
+      const [propResponse, poiResponse] = await Promise.allSettled([
+        fetch(`/api/properties?query=${encodeURIComponent(query)}&${filterParams}`, {
+          cache: "no-store",
+          signal: controller.signal
+        }),
+        fetch(`/api/poi/semantic-search?q=${encodeURIComponent(query)}&limit=15`, {
+          cache: "no-store",
+          signal: controller.signal
+        })
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      let result = null;
+      let combinedItems = [];
+
+      if (propResponse.status === "fulfilled" && propResponse.value.ok) {
+        result = await propResponse.value.json();
+        combinedItems = [...(result.items || [])];
+      } else if (propResponse.status === "rejected" && propResponse.reason?.name === "AbortError") {
+        throw propResponse.reason;
+      } else if (!poiResponse || poiResponse.status === "rejected") {
+        throw new Error("HTTP Fetch Failed");
       }
 
-      const result = await response.json();
+      if (poiResponse.status === "fulfilled" && poiResponse.value.ok) {
+        const poiData = await poiResponse.value.json();
+        const poiItems = (poiData.items || []).map((item) => ({ ...item, isPoi: true }));
+        
+        // Remove duplicates if any property matches POI
+        const poiIds = new Set(poiItems.map((p) => p.id));
+        const filteredProps = combinedItems.filter((p) => !poiIds.has(p.id));
+        
+        combinedItems = [...poiItems, ...filteredProps];
+      }
+
+      if (!result) result = { items: [], meta: {} };
+      result.items = combinedItems;
+      if (result.meta) {
+        result.meta.total = combinedItems.length;
+      }
+
       setPropertySearchResult(result);
       setPoiResults([]);
       setLayerState((current) => hideAllLayerVisibility(current, REFERENCE_LAYER_IDS));

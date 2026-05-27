@@ -9,11 +9,12 @@ function poi(index) {
 }
 
 describe("poi marker rendering", () => {
-  it("keeps the standard auto-search result size as individual markers", () => {
+  it("clusters 120 closely placed markers into a single cluster", () => {
     const rendered = clusterPoiMarkers(Array.from({ length: 120 }, (_, index) => poi(index)));
 
-    expect(rendered).toHaveLength(120);
-    expect(rendered.every((entry) => entry.kind === "poi")).toBe(true);
+    expect(rendered).toHaveLength(1);
+    expect(rendered[0].kind).toBe("cluster");
+    expect(rendered[0].count).toBe(120);
   });
 
   it("labels clustered markers as places rather than exposing POI terminology", () => {

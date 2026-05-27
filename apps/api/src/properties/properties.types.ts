@@ -12,6 +12,7 @@ import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-se
 import { PropertySearchProvider } from "./property-search-provider";
 
 export type Delegate = {
+  findFirst?: (args: unknown) => Promise<unknown>;
   findMany?: (args: unknown) => Promise<unknown[]>;
   findUnique?: (args: unknown) => Promise<unknown>;
   count?: (args?: unknown) => Promise<number>;
@@ -22,7 +23,7 @@ export type Delegate = {
 
 export type PropertiesPrisma = {
   buildingProperty: Required<
-    Pick<Delegate, "findMany" | "findUnique" | "count" | "create" | "update" | "upsert">
+    Pick<Delegate, "findFirst" | "findMany" | "findUnique" | "count" | "create" | "update" | "upsert">
   >;
   auditLog: Required<Pick<Delegate, "create">>;
 };

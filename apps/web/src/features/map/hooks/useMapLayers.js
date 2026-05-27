@@ -32,6 +32,9 @@ export function useMapLayers({
   drawnItems,
   setCurrentCoords,
   onRectangleDrawn,
+  showMyReports,
+  myReports,
+  reportLocation,
   isLayerActive: passedIsLayerActive
 }) {
   const [assetMarkers] = useState(() => new L.FeatureGroup());
@@ -50,23 +53,8 @@ export function useMapLayers({
   const [adminWards, setAdminWards] = useState(null);
   const lastBoundaryViewKeyRef = useRef(null);
   const lastFittedBoundaryIdRef = useRef(null);
-  const [reports, setReports] = useState([]);
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        const res = await fetch("/api/reports?status=PENDING");
-        if (res.ok) setReports(await res.json());
-      } catch (e) {
-        console.error("Failed to fetch reports:", e);
-      }
-    };
-    fetchReports();
-
-    const handleRefresh = () => fetchReports();
-    window.addEventListener("geoai:refresh-reports", handleRefresh);
-    return () => window.removeEventListener("geoai:refresh-reports", handleRefresh);
-  }, []);
+  // Note: reports fetching is now handled by MapWorkspace and passed as myReports
 
   useEffect(() => {
     map.addLayer(assetMarkers);
@@ -75,6 +63,7 @@ export function useMapLayers({
     map.addLayer(buildingHeatmapLayer);
     map.addLayer(propertySearchLayer);
     map.addLayer(poiLayer);
+    map.addLayer(reportLayer);
     map.addLayer(focusedPropertyLayer);
 
     return () => {
@@ -97,8 +86,8 @@ export function useMapLayers({
       Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)),
     );
 
-    return clusterPoiMarkers(validItems);
-  }, [poiResults]);
+    return clusterPoiMarkers(validItems, currentZoom);
+  }, [poiResults, currentZoom]);
 
   const EMPTY_POI_ARRAY = useMemo(() => [], []);
 
@@ -134,12 +123,23 @@ export function useMapLayers({
 
     renderedPoiItems.forEach((entry) => {
       const key = entry.kind === "cluster"
-        ? `cluster-${entry.lat}-${entry.lng}-${entry.count}`
+        ? entry.id
         : `poi-${entry.item.id}`;
 
       if (currentMarkers.has(key)) {
-        newMarkers.set(key, currentMarkers.get(key));
-        currentMarkers.delete(key);
+        const marker = currentMarkers.get(key);
+        if (entry.kind === "cluster") {
+          marker.setLatLng([entry.lat, entry.lng]);
+          marker.setIcon(L.divIcon({
+            className: "poi-cluster-icon",
+            html: createClusterIconHtml(entry.count),
+            iconSize: [42, 42],
+            iconAnchor: [21, 21],
+          }));
+          marker.setPopupContent(`${Number(entry.count || 0).toLocaleString("vi-VN")} \u0111\u1ecba \u0111i\u1ec3m`);
+          marker.setTooltipContent(`${Number(entry.count || 0).toLocaleString("vi-VN")} địa điểm`);
+        }
+        newMarkers.set(key, marker);
       } else {
         let marker;
         if (entry.kind === "cluster") {
@@ -185,49 +185,56 @@ export function useMapLayers({
       }
     });
 
-    // Keep old markers that are out of bounds to prevent them from vanishing abruptly
+    // Remove any markers that are no longer needed
     currentMarkers.forEach((marker, key) => {
-      newMarkers.set(key, marker);
+      if (!newMarkers.has(key)) {
+        poiLayer.removeLayer(marker);
+      }
     });
-
-    // If we have too many markers, maybe prune them, but for now we just accumulate
-    if (newMarkers.size > 2000) {
-      // Very simple prune if memory gets too large
-      let i = 0;
-      newMarkers.forEach((marker, key) => {
-        if (i++ > 1000) {
-           poiLayer.removeLayer(marker);
-           newMarkers.delete(key);
-        }
-      });
-    }
 
     poiMarkersRef.current = newMarkers;
   }, [poiLayer, renderedPoiItems, EMPTY_POI_ARRAY]);
 
   useEffect(() => {
     reportLayer.clearLayers();
-    reports.forEach(report => {
-      if (!report.latitude || !report.longitude) return;
-      const marker = L.marker([report.latitude, report.longitude], {
+    
+    // Draw my reports if toggled
+    if (showMyReports && Array.isArray(myReports)) {
+      myReports.forEach(report => {
+        if (!report.latitude || !report.longitude) return;
+        const marker = L.marker([report.latitude, report.longitude], {
+          icon: L.divIcon({
+            className: "report-marker-icon",
+            html: `<div style="background:#f59e0b;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);font-weight:bold;">!</div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          })
+        });
+        marker.bindPopup(`
+          <div style="padding:4px;">
+            <h4 style="margin:0 0 4px;font-size:14px;color:#0f172a">${escapeHtml(report.reason)}</h4>
+            <p style="margin:0 0 8px;font-size:12px;color:#475569">${escapeHtml(report.message)}</p>
+            <span style="font-size:10px;background:#fef3c7;color:#d97706;padding:2px 6px;border-radius:12px;">Đang chờ xử lý</span>
+          </div>
+        `);
+        marker.addTo(reportLayer);
+      });
+    }
+
+    // Draw temporary picked location if creating new report
+    if (reportLocation) {
+      const marker = L.marker([reportLocation.lat, reportLocation.lng], {
         icon: L.divIcon({
-          className: "report-marker-icon",
-          html: `<div style="background:#f43f5e;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);font-weight:bold;">!</div>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
+          className: "report-location-picking-icon",
+          html: `<div style="background:#ef4444;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 0 0 2px rgba(239,68,68,0.5);font-size:16px;font-weight:bold;">📍</div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
         })
       });
-      
-      marker.bindPopup(`
-        <div style="padding:4px;">
-          <h4 style="margin:0 0 4px;font-size:14px;color:#0f172a">${report.reason}</h4>
-          <p style="margin:0 0 8px;font-size:12px;color:#475569">${report.message}</p>
-          <span style="font-size:10px;background:#fef3c7;color:#d97706;padding:2px 6px;border-radius:12px;">Đang chờ xử lý</span>
-        </div>
-      `);
+      marker.bindTooltip("Vị trí phản ánh bạn đã chọn", { direction: "top", offset: [0, -10], permanent: true });
       marker.addTo(reportLayer);
-    });
-  }, [reportLayer, reports]);
+    }
+  }, [reportLayer, showMyReports, myReports, reportLocation]);
 
   useEffect(() => {
     focusedPropertyLayer.clearLayers();

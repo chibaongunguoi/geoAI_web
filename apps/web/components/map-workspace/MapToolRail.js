@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   BoxSelect,
   Download,
   Expand,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 
 const ICONS = {
+  alert: AlertTriangle,
   scan: ScanLine,
   basemap: Map,
   layers: Layers,

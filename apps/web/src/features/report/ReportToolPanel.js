@@ -1,8 +1,12 @@
 import React, { useState } from "react";
 import { CreateReportModal } from "./ReportModals";
+import { canAccess } from "../auth/auth-client";
 
-export default function ReportToolPanel({ styles, onEnablePickLocation, isPickingLocation, reportLocation, onCancelPick, onReportCreated }) {
+export default function ReportToolPanel({ styles, onEnablePickLocation, isPickingLocation, reportLocation, showMyReports, setShowMyReports, onCancelPick, onReportCreated, permissions = [] }) {
   const [showModal, setShowModal] = useState(false);
+
+  // Admin and officers (who have properties.manage or admin permissions) can only view reports
+  const isOfficerOrAdmin = canAccess(permissions, "properties.manage") || canAccess(permissions, "admin.users.view");
 
   return (
     <div className={styles?.toolPanelStack || "toolPanelStack"}>
@@ -33,10 +37,25 @@ export default function ReportToolPanel({ styles, onEnablePickLocation, isPickin
             </button>
           </div>
         </div>
+      ) : !isOfficerOrAdmin ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <button onClick={onEnablePickLocation} style={{ padding: "8px 16px", background: "#3b82f6", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
+            Tạo Phản Ánh Mới
+          </button>
+          <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#f8fafc", cursor: "pointer", marginTop: "8px" }}>
+            <input 
+              type="checkbox" 
+              checked={showMyReports} 
+              onChange={(e) => setShowMyReports(e.target.checked)}
+              style={{ cursor: "pointer" }}
+            />
+            Hiển thị phản ánh đang chờ xử lý của tôi
+          </label>
+        </div>
       ) : (
-        <button onClick={onEnablePickLocation} style={{ padding: "8px 16px", background: "#3b82f6", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
-          Tạo Phản Ánh Mới
-        </button>
+        <p style={{ fontSize: "13px", color: "#cbd5e1", marginTop: "8px", fontStyle: "italic" }}>
+          Quản trị viên và cán bộ chỉ có quyền xem danh sách phản ánh.
+        </p>
       )}
 
       {showModal && reportLocation && (

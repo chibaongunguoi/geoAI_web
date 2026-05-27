@@ -15,22 +15,7 @@
     "legend": [{"label": "Ranh giới quận", "color": "#ef4444"}],
     "keywords": ["district", "boundary", "reference", "ranh gioi", "hanh chinh", "nen ban do"]
   },
-  {
-    "id": "sample-assets",
-    "label": "Tài sản mẫu",
-    "group": "Tài sản",
-    "sourceType": "Điểm trên bản đồ",
-    "source": "/data/sample-assets.geojson",
-    "sourceKind": "geojson",
-    "url": "/data/sample-assets.geojson",
-    "renderer": "asset-display",
-    "defaultVisible": true,
-    "defaultOpacity": 0.85,
-    "minZoom": 11,
-    "maxZoom": 19,
-    "legend": [{"label": "Điểm tài sản", "color": "#f59e0b"}],
-    "keywords": ["asset", "geojson", "point", "tai san", "diem"]
-  },
+
   {
     "id": "demo-wms-states",
     "label": "Lớp ảnh từ máy chủ ngoài",

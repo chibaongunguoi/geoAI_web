@@ -10,7 +10,7 @@ import {
 const summary = {
   filters: { status: "ACTIVE" },
   totals: { total: 2, active: 2, inactive: 0, review: 0, archived: 0, recentlyUpdated: 1, missingGeometry: 0 },
-  buckets: { byStatus: [{ key: "ACTIVE", label: "Active", count: 2 }] },
+  buckets: { byDistrict: [{ key: "Lien Chieu", label: "Liên Chiểu", count: 2 }] },
   trend: [{ date: "2026-05-09", count: 2 }],
   topAssets: [{ code: "DN-001", name: "Asset", status: "ACTIVE", district: "Lien Chieu", ward: "Hoa Khanh Bac" }]
 };
@@ -23,9 +23,8 @@ describe("dashboard-state", () => {
     expect(dashboardJsonPayload(summary)).toEqual(
       expect.objectContaining({ exportedAt: expect.any(String), summary }),
     );
-    expect(dashboardCsv(summary)).toContain("metric,value");
-    expect(dashboardCsv(summary)).toContain("total,2");
-    expect(dashboardCsv(summary)).toContain("DN-001");
+    expect(dashboardCsv(summary)).toContain("Quận/Huyện,Số lượng Building");
+    expect(dashboardCsv(summary)).toContain("Liên Chiểu,2");
   });
 
   it("persists filters, auto refresh config, and history", () => {

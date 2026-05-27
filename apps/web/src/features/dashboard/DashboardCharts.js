@@ -1,103 +1,102 @@
-import EmptyState from "../shared/EmptyState";
+"use client";
 
-const ChartEmptyIcon = () => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <rect x="3" y="12" width="4" height="9" rx="1" />
-    <rect x="10" y="7" width="4" height="14" rx="1" />
-    <rect x="17" y="3" width="4" height="18" rx="1" />
-    <line x1="2" y1="22" x2="22" y2="22" />
-  </svg>
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from "chart.js";
+import { Bar, Pie } from "react-chartjs-2";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
 );
 
-function ChartGroup({ title, items = [], filterKey, onDrilldown }) {
-  const max = Math.max(...items.map((item) => item.count), 1);
+export default function DashboardCharts({ summary }) {
+  const byDistrict = summary?.buckets?.byDistrict || [];
 
-  return (
-    <section className="dashboard-chart" aria-label={title}>
-      <h2>{title}</h2>
-      {items.length === 0 ? (
-        <EmptyState
-          icon={<ChartEmptyIcon />}
-          message={`Không có dữ liệu ${title.toLowerCase()}`}
-        />
-      ) : (
-        <div className="dashboard-bars">
-          {items.slice(0, 8).map((item) => (
-            <button
-              type="button"
-              key={`${filterKey}-${item.key}`}
-              aria-label={`${item.label} ${item.count}`}
-              onClick={() => onDrilldown?.({ [filterKey]: item.key })}
-            >
-              <span>{item.label}</span>
-              <strong>{item.count}</strong>
-              <i style={{ width: `${Math.max(6, (item.count / max) * 100)}%` }} />
-            </button>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-export default function DashboardCharts({ summary, onDrilldown }) {
-  const buckets = summary?.buckets || {};
-  const trend = summary?.trend || [];
-
-  const hasNoData =
-    !buckets.byStatus?.length &&
-    !buckets.byType?.length &&
-    !buckets.byDistrict?.length &&
-    !buckets.byWard?.length &&
-    !trend.length;
-
-  if (hasNoData) {
+  if (byDistrict.length === 0) {
     return (
       <div className="dashboard-chart-grid">
         <section className="dashboard-chart dashboard-chart--empty-full" aria-label="Biểu đồ">
-          <EmptyState
-            icon={<ChartEmptyIcon />}
-            message="Chưa có dữ liệu biểu đồ. Dữ liệu sẽ hiển thị khi có tài sản trong hệ thống."
-          />
+          <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem' }}>Chưa có dữ liệu biểu đồ.</p>
         </section>
       </div>
     );
   }
 
+  const labels = byDistrict.map(item => item.label);
+  const data = byDistrict.map(item => item.count);
+
+  const colors = [
+    "#4f46e5", "#ec4899", "#8b5cf6", "#14b8a6", "#f59e0b",
+    "#ef4444", "#84cc16", "#06b6d4", "#f97316", "#64748b"
+  ];
+
+  const barData = {
+    labels,
+    datasets: [
+      {
+        label: "Số lượng Building",
+        data,
+        backgroundColor: "#4f46e5",
+        borderRadius: 4,
+      },
+    ],
+  };
+
+  const pieData = {
+    labels,
+    datasets: [
+      {
+        label: "Phân bổ theo quận",
+        data,
+        backgroundColor: colors,
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      title: { display: true, text: "Số lượng building theo từng quận/huyện", font: { size: 16 }, align: 'start' },
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+      x: { grid: { display: false } }
+    }
+  };
+
+  const pieOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "right" },
+      title: { display: true, text: "Phân bổ building theo quận/huyện", font: { size: 16 }, align: 'start' },
+    },
+  };
+
   return (
-    <div className="dashboard-chart-grid">
-      <ChartGroup title="Trạng thái" items={buckets.byStatus} filterKey="status" onDrilldown={onDrilldown} />
-      <ChartGroup title="Loại" items={buckets.byType} filterKey="propertyType" onDrilldown={onDrilldown} />
-      <ChartGroup title="Quận/huyện" items={buckets.byDistrict} filterKey="district" onDrilldown={onDrilldown} />
-      <ChartGroup title="Phường/xã" items={buckets.byWard} filterKey="ward" onDrilldown={onDrilldown} />
-      <section className="dashboard-chart" aria-label="Xu hướng cập nhật">
-        <h2>Xu hướng cập nhật</h2>
-        {trend.length === 0 ? (
-          <EmptyState
-            icon={<ChartEmptyIcon />}
-            message="Không có dữ liệu xu hướng cập nhật"
-          />
-        ) : (
-          <ol className="dashboard-trend">
-            {trend.slice(-7).map((item) => (
-              <li key={item.date}>
-                <span>{item.date}</span>
-                <strong>{item.count}</strong>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginTop: '1.5rem' }}>
+      <div style={{ flex: '1 1 60%', minWidth: '400px', height: '400px', padding: '1.5rem', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
+        <Bar options={barOptions} data={barData} />
+      </div>
+      <div style={{ flex: '1 1 30%', minWidth: '300px', height: '400px', padding: '1.5rem', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
+        <Pie options={pieOptions} data={pieData} />
+      </div>
     </div>
   );
 }

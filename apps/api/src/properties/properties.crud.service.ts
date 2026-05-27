@@ -104,9 +104,15 @@ export class PropertiesCrudService {
   }
 
   private async findProperty(id: string) {
-    const property = (await this.prisma.buildingProperty.findUnique({
+    let property = (await this.prisma.buildingProperty.findUnique({
       where: { id }
     })) as BuildingPropertyRow | undefined;
+
+    if (!property) {
+      property = (await this.prisma.buildingProperty.findFirst({
+        where: { code: id }
+      })) as BuildingPropertyRow | undefined;
+    }
 
     if (!property || property.deletedAt) {
       throw new NotFoundException("Property not found");

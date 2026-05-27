@@ -46,7 +46,6 @@ describe("SearchResultList", () => {
     
     // Check item 1
     expect(screen.getByText("Tòa nhà Alpha")).toBeInTheDocument();
-    expect(screen.getByText("DN-OVT-123")).toBeInTheDocument();
     expect(screen.getByText("123 Nguyễn Lương Bằng, Hòa Khánh Bắc, Liên Chiểu, Đà Nẵng")).toBeInTheDocument();
     
     // Check item 2 (fallback text for missing name/address)

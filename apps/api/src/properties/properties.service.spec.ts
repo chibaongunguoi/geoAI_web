@@ -1045,7 +1045,10 @@ describe("PropertiesService", () => {
             query: expect.objectContaining({
               bool: expect.objectContaining({
                 should: expect.arrayContaining([expect.objectContaining({ multi_match: expect.any(Object) })]),
-                filter: [{ term: { deleted: false } }]
+                filter: [
+                  { term: { deleted: false } },
+                  { exists: { field: "embedding" } }
+                ]
               })
             }),
             script: expect.objectContaining({

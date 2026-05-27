@@ -106,6 +106,7 @@ export function useMapEvents({
     };
 
     const handleMapClick = (e) => {
+      console.log("MAP CLICKED", { isPickingReportLocation, latlng: e.latlng });
       if (isPickingReportLocation) {
         onReportLocationPick?.(e.latlng);
       }

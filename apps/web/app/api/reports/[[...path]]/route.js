@@ -8,10 +8,12 @@ export async function GET(request, { params }) {
 
 export async function POST(request, { params }) {
   const path = (await params).path?.join('/') || '';
-  return proxyToApi(request, `/reports${path ? `/${path}` : ''}`, { method: "POST" });
+  const body = await request.text();
+  return proxyToApi(request, `/reports${path ? `/${path}` : ''}`, { method: "POST", body });
 }
 
 export async function PATCH(request, { params }) {
   const path = (await params).path?.join('/') || '';
-  return proxyToApi(request, `/reports${path ? `/${path}` : ''}`, { method: "PATCH" });
+  const body = await request.text();
+  return proxyToApi(request, `/reports${path ? `/${path}` : ''}`, { method: "PATCH", body });
 }

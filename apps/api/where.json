@@ -1,3 +1,21 @@
 {
-  "deletedAt": null
+  "deletedAt": null,
+  "source": "overture",
+  "AND": [
+    {
+      "searchTextNormalized": {
+        "contains": "nguyen"
+      }
+    },
+    {
+      "searchTextNormalized": {
+        "contains": "luong"
+      }
+    },
+    {
+      "searchTextNormalized": {
+        "contains": "bang"
+      }
+    }
+  ]
 }

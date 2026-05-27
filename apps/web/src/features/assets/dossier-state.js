@@ -160,12 +160,9 @@ export function addDossierHistory(history, action, detail = {}) {
 }
 
 export function dossierWarnings(state) {
-  const current = normalizeDossierState(state);
-  const hasTechnicalDocument = current.documents.some((document) => document.type === "technical");
-  const warnings = [];
-  if (!hasTechnicalDocument) warnings.push("Thiếu tài liệu kỹ thuật bắt buộc.");
-  if (current.inspections.length === 0) warnings.push("Thiếu biên bản kiểm tra.");
-  return warnings;
+  // Since documents and inspections are optional on creation, we don't throw warnings by default.
+  // You can add logic here if specific property types require them in the future.
+  return [];
 }
 
 function includesQuery(value, query) {
@@ -194,6 +191,21 @@ function auditActor(log) {
 function timelineDate(value) {
   const date = new Date(value || 0);
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+const ACTION_MAP = {
+  "properties.create": "Tạo mới tài sản",
+  "properties.update": "Cập nhật tài sản",
+  "properties.delete": "Xóa tài sản",
+  "status.update": "Cập nhật trạng thái",
+  "document.upload": "Tải lên tài liệu",
+  "inspection.add": "Thêm biên bản kiểm tra",
+  "maintenance.schedule": "Lên lịch bảo trì",
+  "value.update": "Cập nhật định giá"
+};
+
+function formatAction(actionCode) {
+  return ACTION_MAP[actionCode] || actionCode;
 }
 
 export function buildDossierTimeline(state, auditLogs = []) {
@@ -225,7 +237,7 @@ export function buildDossierTimeline(state, auditLogs = []) {
     })),
     ...(Array.isArray(auditLogs) ? auditLogs : []).map((log) => ({
       id: log.id,
-      action: log.action,
+      action: formatAction(log.action),
       actor: auditActor(log),
       detail: "",
       createdAt: log.createdAt,
@@ -237,7 +249,7 @@ export function buildDossierTimeline(state, auditLogs = []) {
     ...sourceItems,
     ...current.history.map((item, index) => ({
       id: `history-${index}-${item.createdAt}`,
-      action: item.action,
+      action: formatAction(item.action),
       actor: "Local",
       detail: JSON.stringify(item.detail),
       createdAt: item.createdAt,

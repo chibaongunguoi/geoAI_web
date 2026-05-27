@@ -31,7 +31,7 @@ const GROUP_ICONS = {
   services: '<path d="M7 20V5a2 2 0 0 1 2-2h6v17"/><path d="M7 9h8"/><path d="M15 8h2a3 3 0 0 1 3 3v7a2 2 0 0 1-4 0v-3"/>'
 };
 
-export const POI_MIN_ZOOM = 10;
+export const POI_MIN_ZOOM = 12;
 
 export function getCategoryGroup(category) {
   for (const [group, categories] of Object.entries(CATEGORY_GROUPS)) {
@@ -63,7 +63,46 @@ export function shouldShowPoiLayer(zoom) {
   return Number(zoom) >= POI_MIN_ZOOM;
 }
 
-export function clusterPoiMarkers(items, cellSize = 0.005) {
-  // Disabled clustering completely as requested by user
-  return items.map((item) => ({ kind: "poi", item }));
+export function clusterPoiMarkers(items, zoom = 12, cellSize = 0.005) {
+  if (items.length <= 30 || zoom >= 16) {
+    return items.map((item) => ({ kind: "poi", item }));
+  }
+
+  const grid = new Map();
+
+  items.forEach((item) => {
+    const lat = Number(item.latitude);
+    const lng = Number(item.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const gridX = Math.floor(lng / cellSize);
+    const gridY = Math.floor(lat / cellSize);
+    const key = `${gridX},${gridY}`;
+
+    if (!grid.has(key)) {
+      grid.set(key, { count: 0, latTotal: 0, lngTotal: 0, gridX, gridY, items: [] });
+    }
+    const cell = grid.get(key);
+    cell.count += 1;
+    cell.latTotal += lat;
+    cell.lngTotal += lng;
+    cell.items.push(item);
+  });
+
+  const results = [];
+  grid.forEach((cell) => {
+    if (cell.count === 1) {
+      results.push({ kind: "poi", item: cell.items[0] });
+    } else {
+      results.push({
+        kind: "cluster",
+        id: `cluster-${cell.gridX}-${cell.gridY}`,
+        count: cell.count,
+        lat: cell.latTotal / cell.count,
+        lng: cell.lngTotal / cell.count,
+      });
+    }
+  });
+
+  return results;
 }
