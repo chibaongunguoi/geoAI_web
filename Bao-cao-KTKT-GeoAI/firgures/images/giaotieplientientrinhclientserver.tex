@@ -1,0 +1,62 @@
+\begin{tikzpicture}[
+    scale=0.7, transform shape,
+    node distance = 2.5cm and 1.5cm,
+    thick,
+    font=\sffamily,
+    % Style cho Node quy trình
+    process/.style={
+        ellipse, draw, minimum width=2.5cm, minimum height=1.5cm, align=center, fill=white
+    },
+    % Style mũi tên
+    biarrow/.style={<->, >=stealth, very thick} 
+]
+
+    % --- 1. Vẽ Server và Clients trước ---
+    \node[process] (server) {Server};
+    \node[process, below=of server] (c2) {Client 2};
+    \node[process, left=of c2] (c1) {Client 1};
+    \node[process, right=of c2] (c3) {Client 3};
+
+    % --- 2. VẼ HÌNH TRỤ THỦ CÔNG (Đảm bảo song song) ---
+    % Định nghĩa các thông số hình trụ
+    \def\cylx{0}      % Tọa độ x trung tâm (so với node server)
+    \def\cyly{3.5}    % Tọa độ y trung tâm (cao hơn server)
+    \def\rx{1.0}      % Bán kính ngang (Độ rộng = 2 * rx)
+    \def\ry{0.4}      % Bán kính dọc (Độ cong của elip) -> CHỈNH ĐỘ CONG Ở ĐÂY
+    \def\h{1.8}       % Chiều cao thân hình trụ
+
+    % Xác định điểm gốc để vẽ (tính từ node Server)
+    \path (server.north) ++(\cylx,\cyly) coordinate (db_center);
+
+    % Tính toán các điểm quan trọng
+    \coordinate (top_center) at ($(db_center) + (0, \h/2)$);
+    \coordinate (bottom_center) at ($(db_center) - (0, \h/2)$);
+    \coordinate (bottom_left) at ($(bottom_center) - (\rx, 0)$);
+    \coordinate (bottom_right) at ($(bottom_center) + (\rx, 0)$);
+    \coordinate (top_left) at ($(top_center) - (\rx, 0)$);
+    \coordinate (top_right) at ($(top_center) + (\rx, 0)$);
+
+    % Bước A: Vẽ thân hình trụ (bao gồm đáy dưới cong)
+    % Vẽ từ góc trên trái -> xuống dưới trái -> vòng cung sang phải -> lên trên phải
+    \draw[thick, fill=white] (top_left) -- (bottom_left) 
+        arc (180:360:{\rx} and {\ry}) -- (top_right);
+    
+    % Bước B: Vẽ nắp trên (Hình elip đầy đủ)
+    % Elip này có cùng rx, ry với arc ở trên -> Đảm bảo song song tuyệt đối
+    \draw[thick, fill=white] (top_center) ellipse ({\rx} and {\ry});
+    
+    % Bước C: Vẽ nét đứt đáy sau (tùy chọn, để tạo cảm giác 3D xuyên thấu, nếu không thích thì bỏ dòng này)
+    %\draw[dashed, thin] (bottom_left) arc (180:0:{\rx} and {\ry});
+
+    % Nhãn Database
+    \node[above=0.3cm] at (top_center) {Database};
+
+    % --- 3. Vẽ các đường nối ---
+    % Nối Server lên điểm thấp nhất của đáy dưới (bottom_center - ry)
+    \draw[biarrow] (server.north) -- ($(bottom_center) - (0, \ry)$);
+    
+    \draw[biarrow] (server) -- (c1);
+    \draw[biarrow] (server) -- (c2);
+    \draw[biarrow] (server) -- (c3);
+
+\end{tikzpicture}

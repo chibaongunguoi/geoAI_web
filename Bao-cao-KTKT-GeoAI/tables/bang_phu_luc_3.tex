@@ -1,0 +1,22 @@
+\begin{longtable}{|c|p{4cm}|p{4cm}|p{4.5cm}|}
+\caption{Yêu cầu hạ tầng triển khai \label{tab:phu_luc_3}} \\
+\hline
+\textbf{STT} & \textbf{Thành phần} & \textbf{Cấu hình tối thiểu} & \textbf{Ghi chú} \\ \hline
+\endfirsthead
+\hline
+\textbf{STT} & \textbf{Thành phần} & \textbf{Cấu hình tối thiểu} & \textbf{Ghi chú} \\ \hline
+\endhead
+\hline
+\multicolumn{4}{r}{{Tiếp theo trang sau}} \\
+\endfoot
+\hline
+\endlastfoot
+1 & GeoServer (GIS Engine) & 8 CPU, 32GB RAM, SSD 500GB & Có thể cluster 2 node \\ \hline
+2 & \gls{ai} Processing Server & GPU NVIDIA A 100/ 16 CPU/64GB RAM & Cho inference \gls{ai} real-time \\ \hline
+3 & PostgreSQL + PostGIS & 16 CPU, 64GB RAM, NVMe 2TB & CSDL không gian địa lý \\ \hline
+4 & Application Server (API) & 8 CPU, 32GB RAM x 2 (HA) & FastAPI + load balancer \\ \hline
+5 & MinIO Object Storage & 4 CPU, 16GB RAM, HDD 10TB & Lưu ảnh tài sản \\ \hline
+6 & Redis Cache & 4 CPU, 16GB RAM & Cache bản đồ và phiên \\ \hline
+7 & Kafka Message Queue & 8 CPU, 32GB RAM, SSD 500GB & Stream \gls{iot} data \\ \hline
+8 & Monitoring Stack & 4 CPU, 8GB RAM & Prometheus + Grafana \\ \hline
+\end{longtable}

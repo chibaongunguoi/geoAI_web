@@ -1,0 +1,39 @@
+\begin{figure}[htbp]
+  \centering
+  \resizebox{0.8\textwidth}{!}{%
+  \begin{tikzpicture}[
+    usecase/.style={ellipse, draw=black, thick, align=center, text width=2.8cm, minimum height=1.5cm, font=\small},
+    actor/.style={font=\small\bfseries, align=center}
+    ]
+    
+    % --- VẼ TÁC NHÂN (ACTOR) ---
+    \coordinate (A) at (0,0); % Điểm tâm ngực để xuất phát mũi tên
+    \draw[thick] (0, 0.8) circle (0.25); % Đầu
+    \draw[thick] (0, 0.55) -- (0, -0.5); % Thân
+    \draw[thick] (-0.6, 0.2) -- (0.6, 0.2); % Tay
+    \draw[thick] (0, -0.5) -- (-0.4, -1.2); % Chân trái
+    \draw[thick] (0, -0.5) -- (0.4, -1.2); % Chân phải
+    \node[actor] at (0, -1.6) {Cán bộ CNTT\\(Admin)};
+
+    % --- ĐẶT CÁC USE CASE ---
+    % Nhánh trái
+    \node[usecase] (uc1) at (-4, 2.5) {Cấu hình hệ thống};
+    \node[usecase] (uc2) at (-4, -1) {Xem Dashboard};
+    
+    % Nhánh phải
+    \node[usecase] (uc3) at (4, 3.5) {Quản lý khu vực\\địa lý};
+    \node[usecase] (uc4) at (4.5, 1) {Quản lý người dùng};
+    \node[usecase] (uc5) at (4, -1.5) {Quản lý cơ sở hạ\\tầng};
+
+    % --- VẼ MŨI TÊN ---
+    \draw[-Stealth, thick] (A) -- (uc1);
+    \draw[-Stealth, thick] (A) -- (uc2);
+    \draw[-Stealth, thick] (A) -- (uc3);
+    \draw[-Stealth, thick] (A) -- (uc4);
+    \draw[-Stealth, thick] (A) -- (uc5);
+
+  \end{tikzpicture}%
+  }
+  \caption{Biểu đồ Use Case cho tác nhân Cán bộ CNTT (Admin)}
+  \label{fig:uc_admin}
+\end{figure}

@@ -1,0 +1,25 @@
+\begin{xltabular}{\textwidth}{|c|p{3.5cm}|p{3cm}|c|r|p{3cm}|}
+\caption{Bảng tính toán chi phí trực tiếp xây dựng phần mềm nội bộ \label{tab:chi_phi_truc_tiep}} \\
+\hline
+\textbf{TT} & \textbf{Hạng mục} & \textbf{Diễn giải} & \textbf{Ký hiệu} & \textbf{Giá trị} & \textbf{Ghi chú} \\ \hline
+\endfirsthead
+\hline
+\textbf{TT} & \textbf{Hạng mục} & \textbf{Diễn giải} & \textbf{Ký hiệu} & \textbf{Giá trị} & \textbf{Ghi chú} \\ \hline
+\endhead
+\hline
+\multicolumn{6}{r}{{Tiếp theo trang sau}} \\
+\endfoot
+\hline
+\endlastfoot
+\multicolumn{6}{|l|}{\textbf{I. Tính điểm trường hợp sử dụng (Use case)}} \\ \hline
+1 & Điểm Actor (TAW) & Phụ lục IV & TAW & 9 & \\ \hline
+2 & Điểm Use case (TBF) & Phụ lục V & TBF & 166 & \\ \hline
+3 & Tính điểm UUCP & $UUCP = TAW + TBF$ & UUCP & 175 & \\ \hline
+4 & Hệ số phức tạp KT-CN (TCF) & $TCF = 0,6 + (0,01 \times TFW)$ & TCF & 0.77 & Phụ lục VI \\ \hline
+5 & Hệ số phức tạp môi trường (EF) & $EF = 1,4 + (-0,03 \times EFW)$ & EF & 0.635 & Phụ lục VII \\ \hline
+6 & Tính điểm AUCP & $UUCP \times TCF \times EF$ & AUCP & 85.56625 & \\ \hline
+\textbf{II} & \textbf{Nội suy thời gian lao động (P)} & Giờ công/điểm UC & P & 20 & Nội suy từ PL VII (20-28 giờ) \\ \hline
+\textbf{III} & \textbf{Giá trị nỗ lực thực tế (E)} & $E = 10/6 \times AUCP$ & E & 142.6104167 & Hệ số điều chỉnh nỗ lực \\ \hline
+\textbf{IV} & \textbf{Mức lương lao động BQ (H)} & đồng/giờ & H & 55.677,38 & Theo QĐ 320/QĐ-BKHCN \\ \hline
+\textbf{V} & \textbf{Chi phí trực tiếp PM nội bộ (G)} & $G = 1,4 \times E \times P \times H$ & G & 222.324.862 & đồng \\ \hline
+\end{xltabular}

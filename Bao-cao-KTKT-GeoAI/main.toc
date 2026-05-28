@@ -1,0 +1,67 @@
+\contentsline {section}{\numberline {I.}GIỚI THIỆU VÀ TÓM TẮT NHIỆM VỤ XÂY DỰNG HỒ SƠ }{7}{section.1}%
+\contentsline {subsection}{\numberline {1.1.}Các căn cứ pháp lý để thực hiện dự án}{7}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2.}Tên dự án}{7}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3.}Tích hợp trên hệ thống}{8}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4.}Tổng dự toán}{8}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.5.}Thời gian thực hiện}{8}{subsection.1.5}%
+\contentsline {subsection}{\numberline {1.6.}Yêu cầu, phạm vi theo chủ trương được phê duyệt}{8}{subsection.1.6}%
+\contentsline {subsection}{\numberline {1.7.}Khái quát nội dung thực hiện}{8}{subsection.1.7}%
+\contentsline {subsection}{\numberline {1.8.}Tuân thủ khung kiến trúc}{10}{subsection.1.8}%
+\contentsline {subsection}{\numberline {1.9.}Đề xuất cấp độ an toàn thông tin}{10}{subsection.1.9}%
+\contentsline {section}{\numberline {II.}HIỆN TRẠNG ỨNG DỤNG CNTT TẠI ĐƠN VỊ}{11}{section.2}%
+\contentsline {subsection}{\numberline {2.1.} Hiện trạng ứng dụng CNTT trong quản lý tài sản đô thị}{11}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2.}Hiện trạng hạ tầng CNTT}{11}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3.}Hiện trạng về nhân lực \gls {cntt}}{11}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4.}Sự cần thiết phải đầu tư}{12}{subsection.2.4}%
+\contentsline {section}{\numberline {III.}PHÂN TÍCH HỆ THỐNG VÀ THUYẾT MINH GIẢI PHÁP KỸ THUẬT }{13}{section.3}%
+\contentsline {subsection}{\numberline {3.1.}Phân tích hệ thống}{13}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Mô tả quy trình nghiệp vụ}{13}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2} Quy trình nghiệp vụ Thống kê và phân tích dữ liệu}{14}{subsubsection.3.1.2}%
+\contentsline {subsection}{\numberline {3.2.}Đề xuất Quy trình tin học hóa}{15}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Quy trình tin học hóa Quản lý tài sản đô thị}{15}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Quy trình tin học hóa Người dân phản ánh sự cố}{16}{subsubsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.3.}Quy trình tin học hóa Thống kê và phân tích dữ liệu}{17}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4.}Xác định khối lượng công việc}{18}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5.}Phân tích các yêu cầu của phần mềm}{18}{subsection.3.5}%
+\contentsline {subsubsection}{\numberline {3.5.1}Yêu cầu chức năng của phần mềm}{18}{subsubsection.3.5.1}%
+\contentsline {subsubsection}{\numberline {3.5.2}Yêu cầu Kiểm thử phần mềm}{19}{subsubsection.3.5.2}%
+\contentsline {subsubsection}{\numberline {3.5.3}Yêu cầu phi chức năng}{19}{subsubsection.3.5.3}%
+\contentsline {subsection}{\numberline {3.6.}Đề xuất giải pháp kỹ thuật công nghệ}{20}{subsection.3.6}%
+\contentsline {subsubsection}{\numberline {3.6.1}Kiến trúc hệ thống tổng thể}{20}{subsubsection.3.6.1}%
+\contentsline {subsubsection}{\numberline {3.6.2}Giải pháp \gls {gis} (Geographic Information System)}{20}{subsubsection.3.6.2}%
+\contentsline {subsubsection}{\numberline {3.6.3}Giải pháp \gls {ai}/Machine Learning}{20}{subsubsection.3.6.3}%
+\contentsline {subsubsection}{\numberline {3.6.4}Giải pháp Backend \gls {api}}{20}{subsubsection.3.6.4}%
+\contentsline {subsubsection}{\numberline {3.6.5}Giải pháp lưu trữ và bảo mật}{20}{subsubsection.3.6.5}%
+\contentsline {section}{\numberline {IV.}THIẾT KẾ HỆ THỐNG}{22}{section.4}%
+\contentsline {subsection}{\numberline {4.1.}Mô hình tổng thể hệ thống}{22}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2.}Mô hình logic}{22}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3.}Thiết kế chi tiết}{23}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.1}Mô hình kiến trúc vật lý}{23}{subsubsection.4.3.1}%
+\contentsline {subsubsection}{\numberline {4.3.2}Danh sách các tác nhân}{24}{subsubsection.4.3.2}%
+\contentsline {subsubsection}{\numberline {4.3.3}Chuyển đổi yêu cầu chức năng sang Use Case}{24}{subsubsection.4.3.3}%
+\contentsline {subsubsection}{\numberline {4.3.4}Mô tả chi tiết các use-case}{26}{subsubsection.4.3.4}%
+\contentsline {subsection}{\numberline {4.4.}Thiết kế cơ sở dữ liệu}{26}{subsection.4.4}%
+\contentsline {subsubsection}{\numberline {4.4.1}Định nghĩa các bảng chính}{26}{subsubsection.4.4.1}%
+\contentsline {subsubsection}{\numberline {4.4.2}Mô tả chi tiết bảng assets (Bảng tài sản)}{28}{subsubsection.4.4.2}%
+\contentsline {subsubsection}{\numberline {4.4.3}Mô tả chi tiết bảng asset\_types (Danh mục loại tài sản)}{28}{subsubsection.4.4.3}%
+\contentsline {subsubsection}{\numberline {4.4.4}Mô tả chi tiết bảng asset\_status\_history (Lịch sử tình trạng tài sản)}{28}{subsubsection.4.4.4}%
+\contentsline {subsubsection}{\numberline {4.4.5}Mô tả chi tiết bảng maintenance\_orders (Phiếu công việc bảo trì)}{29}{subsubsection.4.4.5}%
+\contentsline {subsubsection}{\numberline {4.4.6}Mô tả chi tiết bảng citizen\_reports (Phản ánh công dân)}{30}{subsubsection.4.4.6}%
+\contentsline {subsubsection}{\numberline {4.4.7}Mô tả chi tiết bảng districts (Đơn vị hành chính)}{30}{subsubsection.4.4.7}%
+\contentsline {subsubsection}{\numberline {4.4.8}Mô tả chi tiết bảng users (Người dùng hệ thống)}{31}{subsubsection.4.4.8}%
+\contentsline {subsubsection}{\numberline {4.4.9}Mô tả chi tiết bảng roles\_permissions (Vai trò và phân quyền)}{32}{subsubsection.4.4.9}%
+\contentsline {subsubsection}{\numberline {4.4.10}Sơ đồ mô tả mối quan hệ giữa các bảng}{33}{subsubsection.4.4.10}%
+\contentsline {section}{\numberline {V.}DỰ TOÁN VÀ TRIỂN KHAI}{34}{section.5}%
+\contentsline {subsection}{\numberline {5.1.}Dự toán dự án}{34}{subsection.5.1}%
+\contentsline {subsubsection}{\numberline {5.1.1}Căn cứ lập dự toán}{34}{subsubsection.5.1.1}%
+\contentsline {subsubsection}{\numberline {5.1.2}Dự toán chi tiết}{34}{subsubsection.5.1.2}%
+\contentsline {subsection}{\numberline {5.2.}Tiến độ triển khai}{43}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3.}Phương án tổ chức thực hiện}{43}{subsection.5.3}%
+\contentsline {subsubsection}{\numberline {5.3.1}Phương án cài đặt, triển khai}{43}{subsubsection.5.3.1}%
+\contentsline {subsubsection}{\numberline {5.3.2}Phương án đào tạo}{43}{subsubsection.5.3.2}%
+\contentsline {subsubsection}{\numberline {5.3.3}Phương án vận hành, quản lý, khai thác}{43}{subsubsection.5.3.3}%
+\contentsline {subsubsection}{\numberline {5.3.4}Phương án kiểm thử các yêu cầu chức năng và phi chức năng}{44}{subsubsection.5.3.4}%
+\contentsline {subsubsection}{\numberline {5.3.5}Cam kết bảo hành và hỗ trợ kỹ thuật}{44}{subsubsection.5.3.5}%
+\contentsline {section}{PHỤ LỤC I - SƠ ĐỒ USE CASE HỆ THỐNG GEOAI}{45}{subsubsection.5.3.5}%
+\contentsline {section}{PHỤ LỤC II - BẢNG THỐNG KÊ DỮ LIỆU TÀI SẢN ĐÔ THỊ}{46}{subsubsection.5.3.5}%
+\contentsline {section}{PHỤ LỤC III - YÊU CẦU HẠ TẦNG TRIỂN KHAI}{47}{table.5.13}%

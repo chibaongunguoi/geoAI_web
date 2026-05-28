@@ -1,0 +1,69 @@
+% shapes.tex
+\begin{center}
+\begin{tikzpicture}[scale=0.6, transform shape]
+
+
+    %% --- HÀNG 1: O, I, S, Z ---
+
+    % 1. Khối O (Yellow) - Vị trí (0,0)
+    \filldraw[fill=tetris-yellow, block] (0,0) rectangle (1,1);
+    \filldraw[fill=tetris-yellow, block] (1,0) rectangle (2,1);
+    \filldraw[fill=tetris-yellow, block] (0,1) rectangle (1,2);
+    \filldraw[fill=tetris-yellow, block] (1,1) rectangle (2,2);
+    \node[label-text] at (1, -0.5) {O};
+
+    % 2. Khối I (Cyan) - Vị trí (4,0) - Dạng đứng
+    \foreach \y in {0,1,2,3} {
+        \filldraw[fill=tetris-cyan, block] (4,\y) rectangle (5,\y+1);
+    }
+    \node[label-text] at (4.5, -0.5) {I};
+
+    % 3. Khối S (Red) - Vị trí (7,0)
+    \filldraw[fill=tetris-red, block] (7,0) rectangle (8,1);
+    \filldraw[fill=tetris-red, block] (8,0) rectangle (9,1);
+    \filldraw[fill=tetris-red, block] (8,1) rectangle (9,2);
+    \filldraw[fill=tetris-red, block] (9,1) rectangle (10,2);
+    \node[label-text] at (8.5, -0.5) {S};
+
+    % 4. Khối Z (Green) - Vị trí (12,0)
+    \filldraw[fill=tetris-green, block] (12,1) rectangle (13,2);
+    \filldraw[fill=tetris-green, block] (13,1) rectangle (14,2);
+    \filldraw[fill=tetris-green, block] (13,0) rectangle (14,1);
+    \filldraw[fill=tetris-green, block] (14,0) rectangle (15,1);
+    \node[label-text] at (13.5, -0.5) {Z};
+
+    %% --- HÀNG 2: L, J, T ---
+    % Dịch chuyển xuống dưới (y shift = -5)
+
+    % 5. Khối L (Orange) - Vị trí (2,-5)
+    \filldraw[fill=tetris-orange, block] (2,-5) rectangle (3,-4); % Đáy phải
+    \filldraw[fill=tetris-orange, block] (2,-4) rectangle (3,-3); % Giữa
+    \filldraw[fill=tetris-orange, block] (2,-3) rectangle (3,-2); % Đỉnh
+    \filldraw[fill=tetris-orange, block] (3,-5) rectangle (4,-4); % Đáy trái (phần chìa ra)
+    % Chỉnh lại toạ độ cho đúng hình chữ L đứng trong ảnh (trục dài bên trái, ngắn bên phải)
+    % Ảnh mẫu: Cột cao bên trái, cột thấp bên phải.
+    % Vẽ lại L cho đúng mẫu ảnh:
+    \filldraw[fill=tetris-orange, block] (2,-5) rectangle (3,-4); 
+    \filldraw[fill=tetris-orange, block] (2,-4) rectangle (3,-3);
+    \filldraw[fill=tetris-orange, block] (2,-3) rectangle (3,-2);
+    \filldraw[fill=tetris-orange, block] (3,-5) rectangle (4,-4);
+    \node[label-text] at (3, -5.5) {L};
+
+    % 6. Khối J (Magenta/Pink) - Vị trí (7,-5)
+    % Ảnh mẫu: Cột thấp bên trái, cột cao bên phải.
+    \filldraw[fill=tetris-magenta, block] (7,-5) rectangle (8,-4); % Thấp bên trái
+    \filldraw[fill=tetris-magenta, block] (8,-5) rectangle (9,-4); % Dưới phải
+    \filldraw[fill=tetris-magenta, block] (8,-4) rectangle (9,-3); % Giữa phải
+    \filldraw[fill=tetris-magenta, block] (8,-3) rectangle (9,-2); % Trên phải
+    \node[label-text] at (8, -5.5) {J};
+
+    % 7. Khối T (Purple) - Vị trí (12,-5)
+    % Ảnh mẫu: Hàng ngang 3 ô ở trên, 1 ô ở dưới tâm.
+    \filldraw[fill=tetris-purple, block] (11,-3) rectangle (12,-2); % Trái trên
+    \filldraw[fill=tetris-purple, block] (12,-3) rectangle (13,-2); % Giữa trên
+    \filldraw[fill=tetris-purple, block] (13,-3) rectangle (14,-2); % Phải trên
+    \filldraw[fill=tetris-purple, block] (12,-4) rectangle (13,-3); % Dưới tâm
+    \node[label-text] at (12.5, -5.5) {T};
+
+\end{tikzpicture}
+\end{center}

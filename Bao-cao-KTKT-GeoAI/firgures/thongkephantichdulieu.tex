@@ -1,0 +1,56 @@
+\begin{figure}[htbp]
+  \centering
+  % Tự động thu phóng sơ đồ vừa với chiều rộng trang giấy
+  \resizebox{\textwidth}{!}{
+  \begin{tikzpicture}[
+    % Định nghĩa khoảng cách và kiểu dáng các khối
+    block/.style={rectangle, draw, thick, minimum width=3.5cm, minimum height=1.2cm, text width=3.2cm, align=center, fill=white, font=\small},
+    decision/.style={diamond, draw, thick, minimum width=3cm, minimum height=2.5cm, text width=2cm, align=center, fill=white, font=\small},
+    arrow/.style={draw, thick, -Stealth},
+    ]
+
+    % 1. VẼ KHUNG SWIMLANE
+    % Khung bao quanh toàn bộ sơ đồ
+    \draw [thick] (-7.5, 0) rectangle (7.5, 10.5);
+    % Đường kẻ dọc chia 2 làn
+    \draw [thick] (0, 0) -- (0, 10.5);
+    % Đường kẻ ngang chia phần Tiêu đề
+    \draw [thick] (-7.5, 9.5) -- (7.5, 9.5);
+
+    % Tiêu đề của 2 làn
+    \node[font=\bfseries] at (-3.75, 10) {Cán bộ quản lý};
+    \node[font=\bfseries] at (3.75, 10) {Cơ quan nhà nước};
+
+    % 2. ĐẶT CÁC KHỐI NODE
+    % Làn trái (Cán bộ quản lý)
+    \node [block] (tong_hop) at (-3.75, 8) {Tổng hợp thông tin};
+    \node [block] (thong_ke) at (-3.75, 6) {Thống kê};
+    \node [block] (phan_tich) at (-3.75, 4) {Phân tích};
+    \node [block] (viet_bao_cao) at (-3.75, 1.5) {Viết báo cáo định hướng phát triển đô thị};
+
+    % Làn phải (Cơ quan nhà nước)
+    \node [decision] (phe_duyet) at (3.75, 6) {Phê duyệt};
+    \node [block] (ban_hanh) at (3.75, 3) {Ban hành chủ\\trương};
+
+    % 3. VẼ CÁC ĐƯỜNG MŨI TÊN
+    % Các mũi tên nối thẳng ở làn trái
+    \draw [arrow] (tong_hop.south) -- (thong_ke.north);
+    \draw [arrow] (thong_ke.south) -- (phan_tich.north);
+    \draw [arrow] (phan_tich.south) -- (viet_bao_cao.north);
+
+    % Mũi tên từ "Viết báo cáo..." sang "Phê duyệt"
+    % [yshift=10pt]: Dịch điểm xuất phát lên trên một chút
+    % Đi sang phải đến x=-1.2, đi thẳng lên y=8.8, rồi rẽ vuông góc vào đỉnh khối Phê duyệt
+    \draw [arrow] ([yshift=10pt]viet_bao_cao.east) -- (-1.2, 1.9) -- (-1.2, 8.8) -| (phe_duyet.north);
+
+    % Mũi tên từ "Phê duyệt" trả về "Viết báo cáo..." (Từ chối)
+    % Đi sang trái đến x=-0.5, rẽ vuông góc đi xuống vị trí thấp của khối Viết báo cáo [yshift=-10pt]
+\draw [arrow] (phe_duyet.west) -- node[above, pos=0.5] {Từ chối} (-0.5, 6) |- ([yshift=-10pt]viet_bao_cao.east);
+    % Mũi tên từ "Phê duyệt" đi xuống "Ban hành" (Đồng ý)
+    \draw [arrow] (phe_duyet.south) -- node[right] {Đồng ý} (ban_hanh.north);
+
+  \end{tikzpicture}
+  }
+  \caption{Quy trình nghiệp vụ Thống kê và phân tích dữ liệu}
+  \label{fig:quy_trinh_thong_ke}
+\end{figure}

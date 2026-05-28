@@ -1,0 +1,82 @@
+\begin{figure}[htbp]
+  \centering
+  % Tự động thu phóng vừa với chiều ngang trang giấy
+  \resizebox{\textwidth}{!}{
+  \begin{tikzpicture}[
+    % Hạ cỡ chữ xuống \footnotesize, tăng chiều rộng khối lên 2.8cm
+    block/.style={rectangle, draw, thick, minimum width=2.8cm, minimum height=1.2cm, text width=2.6cm, align=center, fill=white, font=\footnotesize},
+    decision/.style={diamond, draw, thick, minimum width=2.5cm, minimum height=2.5cm, text width=1.8cm, align=center, fill=white, font=\footnotesize},
+    arrow/.style={draw, thick, -Stealth},
+    ]
+
+    % 1. VẼ KHUNG SWIMLANE (LÀN ĐƯỜNG)
+    % Khung bao ngoài cùng (Mở rộng bao trọn toàn bộ các khối)
+    \draw [thick] (-5.5, -2) rectangle (9, 10.5);
+    
+    % Đường kẻ dọc chia 3 làn (Mở rộng khoảng cách các làn)
+    \draw [thick] (-1.5, -2) -- (-1.5, 10.5);
+    \draw [thick] (4, -2) -- (4, 10.5);
+    
+    % Đường kẻ ngang chia phần Tiêu đề
+    \draw [thick] (-5.5, 9.5) -- (9, 9.5);
+
+    % Tiêu đề của 3 làn
+    \node[font=\bfseries] at (-3.5, 10) {Người dân};
+    \node[font=\bfseries] at (1.25, 10) {Hệ thống};
+    \node[font=\bfseries] at (6.5, 10) {Đơn vị xử lý};
+
+    % 2. ĐẶT CÁC KHỐI NODE THEO TỌA ĐỘ
+    % Làn 1: Người dân (Tâm X = -3.5)
+    \node [block] (phat_hien) at (-3.5, 8) {Phát hiện sự cố};
+    \node [block] (phan_anh) at (-3.5, 6) {Phản ánh sự cố};
+
+    % Làn 2: Hệ thống (Tâm X = 1.25)
+    \node [block] (tiep_nhan) at (1.25, 8) {Tự động tiếp nhận sự cố};
+    \node [block] (phan_loai) at (1.25, 6) {Phân loại mức độ ưu tiên};
+    \node [block] (cap_nhat_td) at (1.25, 3) {Cập nhật tiến độ};
+    \node [block] (luu_tru) at (1.25, -0.5) {Lưu trữ vào \gls{csdl}};
+
+    % Làn 3: Đơn vị xử lý (Tâm X = 6.5)
+    \node [block] (xac_thuc) at (6.5, 8) {Xác thực thông tin};
+    \node [block] (thuc_hien) at (6.5, 6) {Thực hiện xử lý sự cố};
+    \node [decision] (hoan_thanh) at (6.5, 3) {Hoàn thành};
+    \node [block] (cap_nhat_tt) at (6.5, -0.5) {Cập nhật thông tin cơ sở hạ tầng};
+
+
+    % 3. VẼ CÁC ĐƯỜNG MŨI TÊN
+    % --- Nội bộ làn 1 ---
+    \draw [arrow] (phat_hien) -- (phan_anh);
+
+    % --- Làn 1 sang Làn 2 ---
+    % Đi ngang sang phải (thêm 1cm) rồi gấp khúc đi thẳng lên khối Tiếp nhận
+    \draw [arrow] (phan_anh.east) -- ++(1,0) |- (tiep_nhan.west);
+
+    % --- Nội bộ làn 2 ---
+    \draw [arrow] (tiep_nhan) -- (phan_loai);
+
+    % --- Làn 2 sang Làn 3 ---
+    \draw [arrow] (phan_loai.east) -- ++(1,0) |- (xac_thuc.west);
+
+    % --- Nội bộ làn 3 ---
+    \draw [arrow] (xac_thuc) -- (thuc_hien);
+    \draw [arrow] (thuc_hien) -- (hoan_thanh);
+
+    % --- Trả kết quả từ Quyết định ---
+    % Trường hợp Sai: Từ Làn 3 chéo ngang về Làn 2
+    \draw [arrow] (hoan_thanh.west) -- node[above,pos=0.6] {Sai} (cap_nhat_td.east);
+    
+    % Vòng lặp từ Cập nhật tiến độ (Làn 2) quay lại Thực hiện xử lý (Làn 3)
+    % Cú pháp này đi lên trên 1 đoạn, rẽ ngang sang phải, rồi chui vào ĐÁY của khối "Thực hiện xử lý" để không đè lên mũi tên Phân loại
+    \draw [arrow] (cap_nhat_td.north) -- ++(0, 1.2) -| ([xshift=-15pt]thuc_hien.south);
+
+    % Trường hợp Đúng: Đi thẳng xuống
+    \draw [arrow] (hoan_thanh.south) -- node[right] {Đúng} (cap_nhat_tt.north);
+
+    % --- Từ Làn 3 về lại Làn 2 (Lưu trữ) ---
+    \draw [arrow] (cap_nhat_tt.west) -- (luu_tru.east);
+
+  \end{tikzpicture}
+  }
+  \caption{Quy trình tin học hóa Người dân phản ánh sự cố}
+  \label{fig:quy_trinh_phan_anh}
+\end{figure}

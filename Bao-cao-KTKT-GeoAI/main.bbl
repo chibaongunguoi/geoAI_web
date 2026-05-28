@@ -1,0 +1,30 @@
+\begin{thebibliography}{1}
+
+\bibitem{oluwatosin2014client}
+H.~S. Oluwatosin, ``Client-server model,'' {\em IOSR Journal of Computer
+  Engineering}, vol.~16, no.~1, pp.~67--71, 2014.
+
+\bibitem{TCPIP_Viblo_2024}
+V.~Fundamentals, ``Tcp/ip model in computer network - mô hình tcp/ip trong
+  mạng máy tính,'' Aug 2024.
+
+\bibitem{sanfilippo2009redis}
+S.~Sanfilippo and P.~Noordhuis, ``Redis,'' 2009.
+
+\bibitem{plank2015russia}
+D.~Plank-Blasko, ``‘from russia with fun!’: Tetris, korobeiniki and the
+  ludic soviet,'' {\em The Soundtrack}, vol.~8, no.~1-2, pp.~7--24, 2015.
+
+\bibitem{stevens2004unix}
+W.~R. Stevens, B.~Fenner, and A.~M. Rudoff, {\em UNIX Network Programming,
+  Volume 1: The Sockets Networking API}, vol.~1.
+\newblock Addison-Wesley Professional, 2004.
+
+\bibitem{rfc6455}
+I.~Fette and A.~Melnikov, ``The websocket protocol,'' RFC 6455, December 2011.
+
+\bibitem{socketio2023}
+S.~Team, ``Socket.io: Real-time bidirectional event-based communication.''
+  \url{https://socket.io/docs/v4/}, 2023.
+
+\end{thebibliography}

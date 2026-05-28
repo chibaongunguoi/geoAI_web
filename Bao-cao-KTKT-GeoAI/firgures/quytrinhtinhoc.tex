@@ -1,0 +1,59 @@
+\begin{figure}[htbp]
+  \centering
+  \resizebox{\textwidth}{!}{
+  \begin{tikzpicture}[
+    % Định nghĩa kiểu dáng khối chữ nhật và hình thoi
+    block/.style={rectangle, draw, thick, minimum width=3.8cm, minimum height=1.2cm, text width=3.5cm, align=center, fill=white, font=\small},
+    decision/.style={diamond, draw, thick, minimum width=3cm, minimum height=2.5cm, text width=2cm, align=center, fill=white, font=\small},
+    arrow/.style={draw, thick, -Stealth},
+    ]
+
+    % 1. VẼ KHUNG SWIMLANE
+    % Khung bao quanh
+    \draw [thick] (-9.5, -1) rectangle (9.5, 10);
+    % Đường kẻ dọc chia 2 làn
+    \draw [thick] (0, -1) -- (0, 10);
+    % Đường kẻ ngang chia tiêu đề
+    \draw [thick] (-9.5, 9) -- (9.5, 9);
+
+    % Tiêu đề các làn
+    \node[font=\bfseries] at (-4.75, 9.5) {Hệ thống};
+    \node[font=\bfseries] at (4.75, 9.5) {Cán bộ quản lý đô thị};
+
+    % 2. ĐẶT CÁC NODE KHỐI
+    % Làn trái (Hệ thống)
+    \node [block] (ai_nhan_dien) at (-6, 7.5) {\gls{ai} nhận diện các cơ sở hạ tầng có trên bản đồ \gls{gis}};
+    \node [decision] (hop_le) at (-7, 3) {Dữ liệu hợp lệ};
+    \node [block] (yeu_cau) at (-2.1, 3) {Yêu cầu chỉnh sửa nội dung};
+    \node [block] (luu_tru) at (-7, 0) {Lưu trữ vào \gls{csdl}};
+
+    % Làn phải (Cán bộ)
+    \node [block] (kiem_tra) at (5, 7.5) {Kiểm tra và chỉnh sửa thông tin};
+    \node [block] (gui_yeu_cau) at (5, 5.5) {Gửi yêu cầu phê duyệt};
+
+    % 3. VẼ CÁC ĐƯỜNG MŨI TÊN
+    % AI nhận diện -> Kiểm tra (Mũi tên đi ngang vào nửa trên khối Kiểm tra)
+    \draw [arrow] ([yshift=10pt]ai_nhan_dien.east) -- ([yshift=10pt]kiem_tra.west);
+
+    % Kiểm tra -> Gửi yêu cầu
+    \draw [arrow] (kiem_tra.south) -- (gui_yeu_cau.north);
+
+    % Gửi yêu cầu -> Dữ liệu hợp lệ
+    % Cú pháp -| giúp mũi tên đi ngang sang trái rồi bẻ góc vuông đi xuống
+    \draw [arrow] (gui_yeu_cau.west) -| (hop_le.north);
+
+    % Dữ liệu hợp lệ -> Lưu trữ (Nhánh Đúng)
+    \draw [arrow] (hop_le.south) -- node[right] {Đúng} (luu_tru.north);
+
+    % Dữ liệu hợp lệ -> Yêu cầu chỉnh sửa (Nhánh Sai)
+    \draw [arrow] (hop_le.east) -- node[above] {Sai} (yeu_cau.west);
+
+    % Yêu cầu chỉnh sửa -> Kiểm tra (Mũi tên trả về)
+    % Cú pháp |- giúp mũi tên đi dọc lên trên rồi bẻ góc vuông sang phải vào nửa dưới khối Kiểm tra
+    \draw [arrow] (yeu_cau.north) |- ([yshift=-10pt]kiem_tra.west);
+
+  \end{tikzpicture}
+  }
+  \caption{Quy trình tin học hóa Quản lý tài sản đô thị}
+  \label{fig:quy_trinh_tin_hoc_hoa}
+\end{figure}

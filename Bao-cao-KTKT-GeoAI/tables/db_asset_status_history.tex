@@ -1,0 +1,25 @@
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{|c|p{3.5cm}|p{4cm}|p{6cm}|}
+    \caption{Cấu trúc bảng asset\_status\_history}
+    \label{tab:db_asset_status_history} \\
+
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\ \hline
+    \endfirsthead
+
+    \hline
+    \endhead
+    \hline
+    \endfoot
+    \hline
+    \endlastfoot
+
+    1 & history\_id & UUID & Khóa chính \\ \hline
+    2 & asset\_id & UUID FK & Tài sản liên quan (FK $\rightarrow$ assets) \\ \hline
+    3 & status\_old & ENUM & Tình trạng trước thay đổi (good/fair/poor/damaged) \\ \hline
+    4 & status\_new & ENUM & Tình trạng sau thay đổi \\ \hline
+    5 & change\_reason & TEXT & Lý do thay đổi tình trạng \\ \hline
+    6 & changed\_by & UUID FK & Người thực hiện thay đổi \\ \hline
+    7 & changed\_at & TIMESTAMPTZ & Thời điểm thay đổi tình trạng \\ \hline
+    8 & note & TEXT & Ghi chú bổ sung \\
+\end{longtable}

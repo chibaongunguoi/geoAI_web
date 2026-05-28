@@ -1,0 +1,60 @@
+\begin{figure}[htbp]
+  \centering
+  \resizebox{\textwidth}{!}{
+  \begin{tikzpicture}[
+    % Định nghĩa kiểu dáng khối. Dùng \footnotesize để chữ gọn gàng trong hộp
+    block/.style={rectangle, draw, thick, minimum width=3.2cm, minimum height=1.2cm, text width=3cm, align=center, fill=white, font=\footnotesize},
+    decision/.style={diamond, draw, thick, minimum width=2.8cm, minimum height=2.8cm, text width=1.8cm, align=center, fill=white, font=\footnotesize},
+    arrow/.style={draw, thick, -Stealth}
+    ]
+
+    % 1. VẼ KHUNG SWIMLANE RỘNG RÃI
+    % Tổng chiều rộng từ -6.75 đến 6.75 (chia làm 3 cột, mỗi cột rộng 4.5cm)
+    \draw [thick] (-6.75, 0) rectangle (7.25, 9.5);
+    \draw [thick] (-2.25, 0) -- (-2.25, 9.5); % Vách 1
+    \draw [thick] (2.25, 0) -- (2.25, 9.5);   % Vách 2
+    \draw [thick] (-6.75, 8.5) -- (7.25, 8.5); % Vách ngang tiêu đề
+
+    % Tiêu đề các làn (Căn giữa mỗi cột)
+    \node[font=\bfseries] at (-4.5, 9) {Hệ thống};
+    \node[font=\bfseries] at (0, 9) {Cán bộ quản lý};
+    \node[font=\bfseries] at (4.5, 9) {Cơ quan nhà nước};
+
+    % 2. ĐẶT CÁC NODE VÀO ĐÚNG TÂM TỪNG CỘT
+    % Làn 1: Hệ thống (Tâm X = -4.5)
+    \node [block] (thong_ke) at (-4.5, 7) {Thống kê};
+
+    % Làn 2: Cán bộ quản lý (Tâm X = 0)
+    \node [block] (truy_van) at (0, 7) {Truy vấn dữ liệu};
+    \node [block] (phan_tich) at (0, 4.5) {Phân tích};
+    \node [block] (viet_bao_cao) at (0, 1.5) {Viết báo cáo định hướng phát triển đô thị};
+
+    % Làn 3: Cơ quan nhà nước (Tâm X = 4.5)
+    % Đẩy khối Phê duyệt lên cao một chút (Y=6) để lấy không gian cho mũi tên chạy
+    \node [decision] (phe_duyet) at (5.5, 6) {Phê duyệt}; 
+    \node [block] (ban_hanh) at (5.5, 1.5) {Ban hành chủ trương};
+
+    % 3. VẼ ĐƯỜNG MŨI TÊN
+    % Làn 1 -> Làn 2
+    \draw [arrow] (thong_ke) -- (truy_van);
+    
+    % Nội bộ Làn 2
+    \draw [arrow] (truy_van) -- (phan_tich);
+    \draw [arrow] (phan_tich) -- (viet_bao_cao);
+
+    % Làn 2 -> Làn 3 (Viết báo cáo -> Phê duyệt)
+    % Điểm xuất phát nhích lên trên 10pt. Kéo ngang sang phải 1.5cm rồi mới gấp khúc đi thẳng lên đỉnh Phê duyệt
+    \draw [arrow] ([yshift=10pt]viet_bao_cao.east) -- ++(0.4,0) |- (phe_duyet.north);
+
+    % Làn 3 -> Làn 2 (Từ chối)
+    % Xuất phát từ cạnh trái Phê duyệt. Kéo ngang sang trái 1.5cm rồi gấp khúc đi thẳng xuống vị trí thấp của Viết báo cáo (-10pt)
+    \draw [arrow] (phe_duyet.west) -- node[above] {Từ chối} ++(-1.5,0) |- ([yshift=-10pt]viet_bao_cao.east);
+
+    % Nội bộ Làn 3 (Đồng ý)
+    \draw [arrow] (phe_duyet.south) -- node[right] {Đồng ý} (ban_hanh.north);
+
+  \end{tikzpicture}
+  }
+  \caption{Quy trình tin học hóa Thống kê và phân tích dữ liệu}
+  \label{fig:quy_trinh_thong_ke_data}
+\end{figure}

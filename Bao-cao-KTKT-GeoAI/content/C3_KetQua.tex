@@ -1,0 +1,195 @@
+\section{PHÂN TÍCH HỆ THỐNG VÀ THUYẾT MINH GIẢI PHÁP KỸ THUẬT
+}
+\subsection{Phân tích hệ thống}
+\subsubsection{Mô tả quy trình nghiệp vụ}
+\input{firgures/images/quytrinhnghiepvu.tex}
+\textbf{Mô tả quy trình:}
+\begin{enumerate}
+    \item \textbf{Bước 1:} Cán bộ quản lý đô thị thực hiện khởi tạo dữ liệu dựa trên loại tác vụ:
+    \begin{itemize}
+        \item Nếu là \textit{Nhập thông tin tài sản}: Cán bộ chọn tác vụ \textbf{Nhập mới}.
+        \item Nếu là \textit{Đo đạc thực địa/Cập nhật}: Cán bộ chọn tác vụ \textbf{Cập nhật}.
+    \end{itemize}
+    
+    \item \textbf{Bước 2:} Sau đó, cán bộ tiến hành \textbf{Nhập thông tin mô tả} chi tiết cho dữ liệu/tài sản đó.
+    
+    \item \textbf{Bước 3:} Cán bộ \textbf{Gửi yêu cầu phê duyệt} để hệ thống kiểm tra dữ liệu có hợp lệ hay không.
+    
+    \item \textbf{Bước 4:} Hệ thống kiểm tra tính hợp lệ của dữ liệu và đưa ra quyết định theo 2 hướng:
+    \begin{itemize}
+        \item \textbf{Trường hợp Đúng:} Dữ liệu sẽ được hệ thống tự động \textbf{Lưu trữ vào \gls{csdl}}.
+        \item \textbf{Trường hợp Sai (Từ chối):} Hệ thống gửi \textbf{Yêu cầu chỉnh sửa nội dung}. Khi đó, quy trình sẽ quay trở lại \textbf{Bước 2} để Cán bộ quản lý đô thị kiểm tra và cập nhật lại thông tin mô tả.
+    \end{itemize}
+\end{enumerate}
+\subsubsection{ Quy trình nghiệp vụ Thống kê và phân tích dữ liệu}
+\input{firgures/thongkephantichdulieu.tex}
+\textbf{Mô tả quy trình:}
+\begin{enumerate}
+    \item \textbf{Bước 1: Cán bộ quản lý thực hiện chuẩn bị dữ liệu.} Cán bộ quản lý tiến hành quy trình xử lý thông tin qua các giai đoạn:
+    \begin{itemize}
+        \item \textbf{Tổng hợp thông tin:} Tập hợp các dữ liệu cần thiết từ nhiều nguồn.
+        \item \textbf{Thống kê:} Hệ thống hóa số liệu dưới dạng các bảng biểu hoặc chỉ số.
+        \item \textbf{Phân tích:} Đánh giá dữ liệu để tìm ra các xu hướng hoặc vấn đề cần giải quyết.
+    \end{itemize}
+    
+    \item \textbf{Bước 2: Lập báo cáo định hướng.} Sau khi có kết quả phân tích, cán bộ thực hiện \textbf{Viết báo cáo định hướng phát triển đô thị} và trình lên cấp có thẩm quyền.
+    
+    \item \textbf{Bước 3: Cơ quan nhà nước thực hiện phê duyệt.} Cơ quan nhà nước xem xét báo cáo và đưa ra quyết định tại bước \textbf{Phê duyệt}:
+    \begin{itemize}
+        \item \textbf{Trường hợp Từ chối:} Báo cáo được gửi trả lại cho Cán bộ quản lý để yêu cầu chỉnh sửa, bổ sung hoặc viết lại định hướng.
+        \item \textbf{Trường hợp Đồng ý:} Cơ quan chức năng tiến hành \textbf{Ban hành chủ trương} chính thức để triển khai các bước tiếp theo trong thực tế.
+    \end{itemize}
+\end{enumerate}
+\subsection{Đề xuất Quy trình tin học hóa}
+\subsubsection{Quy trình tin học hóa Quản lý tài sản đô thị}
+\input{firgures/quytrinhtinhoc.tex}
+\textbf{Mô tả quy trình:}
+\begin{enumerate}
+    \item \textbf{Bước 1: Hệ thống tự động nhận diện dữ liệu.} \\
+    Hệ thống sử dụng công nghệ ``\gls{ai} nhận diện các cơ sở hạ tầng có trên bản đồ \gls{gis}''. Sau khi nhận diện, hệ thống chuyển kết quả cho bộ phận chuyên môn.
+    
+    \item \textbf{Bước 2: Cán bộ quản lý đô thị xử lý thông tin.} \\
+    Cán bộ thực hiện \textbf{Kiểm tra và chỉnh sửa thông tin} để xác minh độ chính xác của các đối tượng mà \gls{ai} đã nhận diện. Tiếp theo, cán bộ tiến hành \textbf{Gửi yêu cầu phê duyệt} lên hệ thống.
+    
+    \item \textbf{Bước 3: Hệ thống kiểm tra tính hợp lệ của dữ liệu và đưa ra quyết định theo 2 hướng:}
+    \begin{itemize}
+        \item \textbf{Trường hợp Đúng:} Dữ liệu sẽ được hệ thống tự động \textbf{Lưu trữ vào \gls{csdl}}.
+        \item \textbf{Trường hợp Sai (Từ chối):} Hệ thống gửi \textbf{Yêu cầu chỉnh sửa nội dung}. Khi đó, quy trình sẽ quay trở lại Bước 2 để Cán bộ quản lý đô thị kiểm tra và cập nhật lại thông tin mô tả.
+    \end{itemize}
+\end{enumerate}
+\subsubsection{Quy trình tin học hóa Người dân phản ánh sự cố}
+\input{firgures/nguoidanphananh.tex}
+\textbf{Mô tả quy trình:}
+\textbf{Mô tả quy trình:}
+\begin{itemize}
+    \item \textbf{Bước 1: Người dân thực hiện gửi phản ánh.} \\
+    Khi phát hiện sự cố, người dân thực hiện gửi thông tin qua bước \textit{Phản ánh sự cố} đến hệ thống quản lý.
+    
+    \item \textbf{Bước 2: Hệ thống tiếp nhận và phân loại tự động.} \\
+    Hệ thống thực hiện \textit{Tự động tiếp nhận sự cố} từ phản ánh của người dân. Sau đó, hệ thống tiến hành \textit{Phân loại mức độ ưu tiên} để chuyển thông tin đến đơn vị có thẩm quyền xử lý tương ứng.
+    
+    \item \textbf{Bước 3: Đơn vị xử lý thực hiện nghiệp vụ.} \\
+    Đơn vị xử lý tiến hành \textit{Xác thực thông tin} để kiểm tra tính chính xác của sự cố. Sau khi xác thực, đơn vị thực hiện bước \textit{Thực hiện xử lý sự cố}.
+    
+    \item \textbf{Bước 4: Kiểm tra kết quả và lưu trữ dữ liệu.} \\
+    Trạng thái công việc được đánh giá tại bước \textit{Hoàn thành}:
+    \begin{itemize}
+        \item \textbf{Trường hợp chưa hoàn thành (Sai):} Đơn vị thực hiện \textit{Cập nhật tiến độ} lên hệ thống và tiếp tục quay lại quy trình xử lý.
+        \item \textbf{Trường hợp đã hoàn thành (Đúng):} Đơn vị tiến hành \textit{Cập nhật thông tin cơ sở hạ tầng}. Cuối cùng, thông tin được chuyển về hệ thống để thực hiện \textit{Lưu trữ vào \gls{csdl}}, hoàn tất quy trình.
+    \end{itemize}
+\end{itemize}
+\subsection{Quy trình tin học hóa Thống kê và phân tích dữ liệu}
+\input{firgures/thongkevaphantichdulieu.tex}
+\textbf{Mô tả quy trình:}
+\begin{enumerate}
+    \item \textbf{Bước 1: Hệ thống cung cấp dữ liệu nền tảng.} \\
+    Hệ thống thực hiện bước \textbf{Thống kê} các số liệu thô và chuyển thông tin cho cán bộ chuyên môn.
+    
+    \item \textbf{Bước 2: Cán bộ quản lý xử lý và lập báo cáo.} \\
+    Cán bộ quản lý tiếp nhận dữ liệu và thực hiện các nghiệp vụ sau:
+    \begin{itemize}
+        \item \textbf{Truy vấn dữ liệu:} Kiểm tra và trích xuất các thông tin cụ thể cần thiết.
+        \item \textbf{Phân tích:} Đánh giá số liệu để tìm ra các định hướng phát triển.
+        \item \textbf{Viết báo cáo định hướng phát triển đô thị:} Hoàn thiện văn bản báo cáo và trình lên cơ quan cấp trên.
+    \end{itemize}
+    
+    \item \textbf{Bước 3: Cơ quan nhà nước thực hiện phê duyệt.} \\
+    Cơ quan có thẩm quyền tiến hành xem xét báo cáo tại bước \textbf{Phê duyệt}:
+    \begin{itemize}
+        \item \textbf{Trường hợp Từ chối:} Báo cáo được gửi trả lại để Cán bộ quản lý chỉnh sửa và cập nhật lại nội dung định hướng.
+        \item \textbf{Trường hợp Đồng ý:} Cơ quan nhà nước tiến hành \textbf{Ban hành chủ trương} chính thức để làm căn cứ thực hiện các kế hoạch phát triển đô thị.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Xác định khối lượng công việc}
+Khối lượng công việc toàn dự án bao gồm:
+\begin{itemize}
+    \item Khảo sát hiện trạng, thu thập yêu cầu từ các sở/ngành và quận/huyện.
+    \item Xây dựng phần mềm \gls{geoai}: module \gls{ai}, ứng dụng desktop.
+    \item Kiểm thử chức năng từng module.
+    \item Kiểm thử an toàn an ninh thông tin.
+    \item Cài đặt, triển khai hệ thống.
+    \item Đào tạo cán bộ quản lý và người dùng.
+\end{itemize}
+
+\subsection{Phân tích các yêu cầu của phần mềm}
+
+\subsubsection{Yêu cầu chức năng của phần mềm}
+ \input{tables/bangmotayeucauchucnang.tex} 
+ \subsubsection{Yêu cầu Kiểm thử phần mềm}
+\begin{itemize}
+    \item Kiểm thử đơn vị (Unit Test) cho toàn bộ các function nghiệp vụ quan trọng, tỷ lệ coverage $\ge$ 80\%.
+    \item Kiểm thử tích hợp giữa các module và với \gls{api} bên ngoài.
+    \item Kiểm thử chức năng theo use case: mỗi use case nhập tối thiểu 10 bộ dữ liệu đầu vào.
+    \item Kiểm thử hiệu năng: hệ thống đáp ứng 500 người dùng đồng thời, thời gian phản hồi $\le$ 3 giây.
+    \item Kiểm thử bảo mật: quét lỗ hổng, kiểm thử xâm nhập.
+    \item Kiểm thử trên bản đồ: xác thực tọa độ GPS, hiển thị đúng điểm trên bản đồ, render nhanh khi có 100.000+ điểm tài sản.
+\end{itemize}
+
+\subsubsection{Yêu cầu phi chức năng}
+
+\textbf{a) Yêu cầu về cơ sở dữ liệu}
+\begin{itemize}
+    \item Sử dụng PostgreSQL với extension PostGIS để lưu trữ và xử lý dữ liệu không gian địa lý.
+    \item Hỗ trợ truy vấn không gian địa lý: giao, tiếp xúc, bao phủ, khoảng cách.
+    \item Backup tự động hàng ngày, lưu trữ 90 ngày, khôi phục trong vòng 2 giờ.
+\end{itemize}
+
+\textbf{b) Yêu cầu về bảo mật}
+\begin{itemize}
+    \item Xác thực đa yếu tố (MFA) cho tài khoản quản trị.
+    \item Mã hóa dữ liệu truyền tải TLS 1.3, mã hóa dữ liệu lưu trữ AES-256.
+    \item Phân quyền chi tiết theo vai trò và khu vực địa lý.
+\end{itemize}
+
+\textbf{c) Yêu cầu về giao diện người dùng}
+\begin{itemize}
+    \item Giao diện \gls{webgis} responsive, hỗ trợ đầy đủ trên máy tính, tablet và điện thoại.
+    \item Bản đồ tương tác: zoom, pan, đo khoảng cách, chuyển đổi lớp bản đồ nền.
+    \item Hỗ trợ tiếng Việt hoàn toàn, bao gồm tìm kiếm địa chỉ bằng tiếng Việt.
+\end{itemize}
+
+\textbf{d) Yêu cầu về tốc độ xử lý}
+\begin{itemize}
+    \item Tải bản đồ với 100.000+ điểm tài sản trong vòng 5 giây.
+    \item \gls{ai} phân tích và trả kết quả phân loại tài sản trong vòng 3 giây/ảnh.
+    \item \gls{api} phản hồi trong vòng 2 giây cho 95\% các request.
+\end{itemize}
+
+% --- CHUYỂN SANG PHẦN MỚI ---
+
+\subsection{Đề xuất giải pháp kỹ thuật công nghệ}
+
+\subsubsection{Kiến trúc hệ thống tổng thể}
+\gls{geoai} áp dụng kiến trúc microservices trên nền tảng cloud, tách biệt các thành phần: Frontend \gls{webgis}, Backend \gls{api} Gateway, \gls{gis} Service, \gls{ai}/\gls{ml} Service, Notification Service và Database Cluster.
+
+\subsubsection{Giải pháp \gls{gis} (Geographic Information System)}
+\begin{itemize}
+    \item Nền tảng \gls{gis}: GeoServer (mã nguồn mở) làm \gls{gis} server.
+    \item Bản đồ nền: OpenStreetMap và Google Maps \gls{api} (satellite view cho kiểm tra thực địa).
+    \item \gls{csdl} không gian: PostgreSQL 16 + PostGIS 3.4 cho lưu trữ và truy vấn dữ liệu địa lý.
+\end{itemize}
+
+\subsubsection{Giải pháp \gls{ai}/Machine Learning}
+\begin{itemize}
+    \item Computer Vision: TensorFlow / PyTorch với các model YOLOv8 để phát hiện và phân loại tài sản từ ảnh.
+    \item Phân tích ảnh vệ tinh: Sentinel-2 data qua \gls{api} cho giám sát thay đổi hạ tầng theo thời gian.
+    \item Dự báo bảo trì: Random Forest / XGBoost dự đoán xác suất hỏng hóc dựa trên tuổi thọ, lịch sử và điều kiện môi trường.
+    \item Model training: MLflow cho quản lý thí nghiệm, Docker cho đóng gói và triển khai model.
+\end{itemize}
+
+\subsubsection{Giải pháp Backend \gls{api}}
+\begin{itemize}
+    \item Framework: FastAPI (Python) - hiệu năng cao, tích hợp tốt với thư viện \gls{ai}/\gls{gis}.
+    \item \gls{api} Gateway: Nginx + Kong cho rate limiting, authentication, load balancing.
+    \item Message Queue: Apache Kafka cho xử lý sự kiện real-time và tích hợp \gls{iot} data.
+    \item Cache: Redis cho cache dữ liệu bản đồ và kết quả \gls{ai} thường xuyên truy vấn.
+\end{itemize}
+
+\subsubsection{Giải pháp lưu trữ và bảo mật}
+\begin{itemize}
+    \item Object Storage: MinIO cho lưu trữ ảnh tài sản quy mô lớn.
+    \item Backup: Automated daily backup với retention 90 ngày, off-site backup sang cloud thứ 2.
+    \item Bảo mật: OAuth 2.0 / JWT cho xác thực, RBAC + ABAC cho phân quyền chi tiết theo không gian địa lý.
+\end{itemize}
+\cleardoublepage

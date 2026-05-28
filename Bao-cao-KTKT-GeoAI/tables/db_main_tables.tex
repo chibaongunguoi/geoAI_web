@@ -1,0 +1,33 @@
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{|c|p{4.5cm}|p{9cm}|}
+    \caption{Danh sách các bảng cơ sở dữ liệu chính}
+    \label{tab:db_main_tables} \\
+
+    % --- Tiêu đề trang đầu tiên ---
+    \hline
+    \textbf{STT} & \multicolumn{1}{c|}{\textbf{Tên bảng}} & \multicolumn{1}{c|}{\textbf{Mô tả}} \\
+    \hline
+    \endfirsthead
+
+    % --- Tiêu đề các trang sau (bỏ trống chữ để không lặp lại) ---
+    \hline
+    \endhead
+
+    % --- Chân trang các trang giữa ---
+    \hline
+    \endfoot
+
+    % --- Chân trang trang cuối ---
+    \hline
+    \endlastfoot
+
+    % --- Nội dung ---
+    1 & assets & Bảng tài sản đô thị - thông tin chính và tọa độ GPS (geometry) \\ \hline
+    2 & asset\_types & Danh mục loại tài sản (cây xanh, đèn đường, biển báo, v.v.) \\ \hline
+    3 & asset\_status\_history & Lịch sử thay đổi tình trạng tài sản theo thời gian \\ \hline
+    4 & maintenance\_orders & Phiếu công việc bảo trì sửa chữa \\ \hline
+    5 & citizen\_reports & Phản ánh sự cố từ công dân \\ \hline
+    6 & districts & Danh mục quận/huyện (geometry ranh giới hành chính) \\ \hline
+    7 & users & Người dùng hệ thống \\ \hline
+    8 & roles\_permissions & Vai trò và phân quyền chi tiết \\
+\end{longtable}

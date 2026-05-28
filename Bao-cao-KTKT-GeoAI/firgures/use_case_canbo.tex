@@ -1,0 +1,45 @@
+\begin{figure}[htbp]
+  \centering
+  \resizebox{0.9\textwidth}{!}{%
+  \begin{tikzpicture}[
+    usecase/.style={ellipse, draw=black, thick, align=center, text width=3cm, minimum height=1.6cm, font=\small},
+    actor/.style={font=\small\bfseries, align=center}
+    ]
+    
+    % --- VẼ TÁC NHÂN (ACTOR) ---
+    \coordinate (A) at (0,0); 
+    \draw[thick] (0, 0.8) circle (0.25); 
+    \draw[thick] (0, 0.55) -- (0, -0.5); 
+    \draw[thick] (-0.6, 0.2) -- (0.6, 0.2); 
+    \draw[thick] (0, -0.5) -- (-0.4, -1.2); 
+    \draw[thick] (0, -0.5) -- (0.4, -1.2); 
+    \node[actor] at (0, -1.6) {Cán bộ quản lý đô thị};
+
+    % --- ĐẶT CÁC USE CASE ---
+    % Nhánh trên
+    \node[usecase, text width=2.5cm] (uc_top) at (0, 3.8) {Thống kê};
+
+    % Nhánh trái
+    \node[usecase] (uc1) at (-4.5, 2.8) {Phân tích và phân\\loại cơ sở hạ tầng};
+    \node[usecase] (uc2) at (-5, 0) {Tạo công việc bảo trì};
+    \node[usecase] (uc3) at (-4.5, -2.8) {Cập nhật tiến độ bảo\\trì};
+    
+    % Nhánh phải
+    \node[usecase] (uc4) at (4.5, 2.8) {Thêm cơ sở hạ tầng\\trên bản đồ};
+    \node[usecase] (uc5) at (5, 0) {Quản lý khu vực\\địa lý};
+    \node[usecase] (uc6) at (4.5, -2.8) {Quản lý cơ sở hạ\\tầng};
+
+    % --- VẼ MŨI TÊN ---
+    \draw[-Stealth, thick] (A) -- (uc_top);
+    \draw[-Stealth, thick] (A) -- (uc1);
+    \draw[-Stealth, thick] (A) -- (uc2);
+    \draw[-Stealth, thick] (A) -- (uc3);
+    \draw[-Stealth, thick] (A) -- (uc4);
+    \draw[-Stealth, thick] (A) -- (uc5);
+    \draw[-Stealth, thick] (A) -- (uc6);
+
+  \end{tikzpicture}%
+  }
+  \caption{Biểu đồ Use Case cho tác nhân Cán bộ quản lý đô thị}
+  \label{fig:uc_canbo_dothi}
+\end{figure}

@@ -1,0 +1,81 @@
+\begin{figure}[htbp]
+  \centering
+  \resizebox{\textwidth}{!}{%
+  \begin{tikzpicture}[
+    % --- ĐỊNH NGHĨA KIỂU DÁNG ---
+    actorcolor/.style={draw=green!60!black, thick},
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, thick, rounded corners=4pt, minimum width=3.8cm, minimum height=1.4cm, text width=3.6cm, align=center, font=\small\bfseries},
+    aibox/.style={rectangle, draw=orange!80!black, fill=orange!10, thick, rounded corners=4pt, minimum width=3.8cm, minimum height=1.4cm, text width=3.6cm, align=center, font=\small\bfseries},
+    gisbox/.style={rectangle, draw=teal!80!black, fill=teal!10, thick, rounded corners=4pt, minimum width=3.8cm, minimum height=1.4cm, text width=3.6cm, align=center, font=\small\bfseries},
+    dbbox/.style={rectangle, draw=purple!80!black, fill=purple!5, thick, rounded corners=4pt, minimum width=4.5cm, minimum height=1.4cm, text width=4.2cm, align=center, font=\small\bfseries},
+    arrow/.style={draw=gray!80!black, thick, Stealth-Stealth},
+    label/.style={font=\footnotesize, text=gray!80!black, fill=gray!5, inner sep=2pt, align=center}, 
+    layerbox/.style={draw=gray!50, dashed, thick, fill=gray!5, rounded corners=6pt}
+    ]
+    %
+    % ==========================================
+    % 1. VẼ CÁC KHUNG TẦNG (LAYER) NỀN
+    % ==========================================
+    % Tầng Giao diện
+    \draw[layerbox] (-4.5, 5.0) rectangle (4.5, 2.0);
+    % ĐÃ THÊM align=left VÀ XUỐNG DÒNG
+    \node[font=\footnotesize\itshape, text=gray!70!black, anchor=north west, align=left] at (-4.5, 5.0) {Tầng Giao diện\\(Presentation)};
+    %
+    % Tầng Xử lý Logic
+    \draw[layerbox] (-9.0, 1.5) rectangle (9.0, -1.5);
+    % ĐÃ THÊM align=left VÀ XUỐNG DÒNG
+    \node[font=\footnotesize\itshape, text=gray!70!black, anchor=north west, align=left] at (-9.0, 1.5) {Tầng Xử lý nghiệp vụ\\(Business Logic)};
+    %
+    % Tầng Dữ liệu
+    \draw[layerbox] (-4.5, -3.0) rectangle (4.5, -6.0);
+    % ĐÃ THÊM align=left VÀ XUỐNG DÒNG
+    \node[font=\footnotesize\itshape, text=gray!70!black, anchor=north west, align=left] at (-4.5, -3.0) {Tầng Dữ liệu\\(Data)};
+    %
+    % ==========================================
+    % 2. VẼ ACTOR
+    % ==========================================
+    \coordinate (head) at (0, 6.8);
+    \draw[thick, actorcolor] (head) circle (0.2);
+    \draw[thick, actorcolor] (0, 6.6) -- (0, 5.9);
+    \draw[thick, actorcolor] (-0.4, 6.3) -- (0.4, 6.3);
+    \draw[thick, actorcolor] (0, 5.9) -- (-0.35, 5.5);
+    \draw[thick, actorcolor] (0, 5.9) -- (0.35, 5.5);
+    % Nhãn Actor
+    \node[rectangle, fill=green!10, draw=green!60!black, font=\footnotesize, rounded corners=2pt, anchor=west] at (0.4, 6.5) {Người dùng cuối};
+    %
+    % ==========================================
+    % 3. ĐẶT CÁC KHỐI CHỨC NĂNG
+    % ==========================================
+    \node[box] (browser) at (0, 3.3) {Trình duyệt Web\\(Giao diện UI)};
+    %
+    \node[box] (nextjs) at (0, 0) {Phần mềm điều hành\\(Next.js Server)};
+    \node[aibox] (ai) at (-6.5, 0) {Module Local AI\\(Nhận diện CSHT)};
+    \node[gisbox] (gis) at (6.5, 0) {GIS Server\\(GeoServer)};
+    %
+    \node[dbbox] (db) at (0, -4.5) {Hệ quản trị CSDL\\(SQL Server \& PostGIS)};
+    %
+    % ==========================================
+    % 4. VẼ CÁC ĐƯỜNG MŨI TÊN KẾT NỐI & CHÚ THÍCH LUỒNG
+    % ==========================================
+    % Từ Actor -> Browser
+    \draw[arrow] (0, 5.4) -- (browser.north) node[midway, right, label] {Tương tác};
+    %
+    % Từ Browser -> Next.js
+    \draw[arrow] (browser.south) -- (nextjs.north) node[midway, right, label] {HTTP / REST API};
+    %
+    % KẾT NỐI NỘI BỘ TẦNG LOGIC 
+    \draw[arrow] (nextjs.west) -- (ai.east) node[midway, below, label] {Chuyển tiếp\\AI};
+    \draw[arrow] (nextjs.east) -- (gis.west) node[midway, below, label] {Giao tiếp\\GIS};
+    %
+    % Từ Next.js -> DB
+    \draw[arrow] (nextjs.south) -- (db.north) node[midway, right, label] {Truy vấn / Lưu trữ};
+    %
+    % Từ GeoServer -> DB
+    \draw[arrow] (gis.south) |- (db.east) node[near start, right, label, xshift=5pt] {Truy xuất dữ liệu không gian};
+    %
+  \end{tikzpicture}%
+  }
+  \caption{Mô hình logic chi tiết của hệ thống GeoAI}
+  \label{fig:logic_he_thong_chitiet}
+\end{figure}
+\cleardoublepage

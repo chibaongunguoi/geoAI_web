@@ -1,0 +1,26 @@
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{|c|p{3.5cm}|p{4cm}|p{6cm}|}
+    \caption{Cấu trúc bảng maintenance\_orders}
+    \label{tab:db_maintenance_orders} \\
+
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\ \hline
+    \endfirsthead
+
+    \hline
+    \endhead
+    \hline
+    \endfoot
+    \hline
+    \endlastfoot
+
+    1 & order\_id & UUID & Khóa chính \\ \hline
+    2 & asset\_id & UUID FK & Tài sản cần bảo trì (FK $\rightarrow$ assets) \\ \hline
+    3 & order\_type & ENUM & Loại: preventive (định kỳ) / corrective (sửa chữa) / emergency \\ \hline
+    4 & priority & ENUM & Mức ưu tiên: low / medium / high / critical \\ \hline
+    5 & title & VARCHAR(300) & Tiêu đề tóm tắt nội dung công việc \\ \hline
+    6 & description & TEXT & Mô tả chi tiết yêu cầu công việc bảo trì \\ \hline
+    7 & due\_date & DATE & Hạn hoàn thành \\ \hline
+    8 & status & ENUM & Trạng thái: pending / in\_progress / done / overdue / cancelled \\ \hline
+    9 & created\_at & TIMESTAMPTZ & Thời điểm tạo phiếu \\
+\end{longtable}
