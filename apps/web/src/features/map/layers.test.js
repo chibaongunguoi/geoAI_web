@@ -24,15 +24,13 @@ describe("data layers", () => {
 
     expect(state.order).toEqual(DATA_LAYERS.map((layer) => layer.id));
     expect(state.visible["admin-boundaries"]).toBe(true);
-    expect(state.visible["sample-assets"]).toBe(true);
     expect(state.visible["analysis-results"]).toBe(true);
-    expect(state.opacity["sample-assets"]).toBe(0.85);
   });
 
   it("filters layers by label, group, source type, and keywords", () => {
-    const filtered = filterLayersByQuery(DATA_LAYERS, "asset geojson");
+    const filtered = filterLayersByQuery(DATA_LAYERS, "scan");
 
-    expect(filtered.map((layer) => layer.id)).toEqual(["sample-assets"]);
+    expect(filtered.map((layer) => layer.id)).toEqual(["analysis-results"]);
   });
 
   it("validates external layer source configs", () => {
@@ -103,11 +101,9 @@ describe("data layers", () => {
     );
 
     expect(state.visible["admin-boundaries"]).toBe(true);
-    expect(state.visible["sample-assets"]).toBe(true);
     expect(state.visible["demo-wms-states"]).toBe(true);
     expect(visibleLayerIds(state)).toEqual([
       "admin-boundaries",
-      "sample-assets",
       "demo-wms-states",
       "analysis-results"
     ]);
@@ -121,7 +117,6 @@ describe("data layers", () => {
     );
 
     expect(state.visible["admin-boundaries"]).toBe(true);
-    expect(state.visible["sample-assets"]).toBe(false);
     expect(state.visible["demo-wms-states"]).toBe(false);
     expect(state.visible["osm-template-overlay"]).toBe(false);
     expect(state.visible["analysis-results"]).toBe(true);
@@ -134,7 +129,6 @@ describe("data layers", () => {
     ]);
 
     expect(state.visible["admin-boundaries"]).toBe(true);
-    expect(state.visible["sample-assets"]).toBe(false);
     expect(state.visible["analysis-results"]).toBe(false);
     expect(visibleLayerIds(state)).toEqual(["admin-boundaries"]);
   });
@@ -142,13 +136,12 @@ describe("data layers", () => {
   it("toggles layer visibility independently", () => {
     const state = toggleLayerVisibility(
       createDefaultLayerState(DATA_LAYERS),
-      "sample-assets"
+      "analysis-results"
     );
 
     expect(state.visible["admin-boundaries"]).toBe(true);
-    expect(state.visible["sample-assets"]).toBe(false);
-    expect(state.visible["analysis-results"]).toBe(true);
-    expect(visibleLayerIds(state)).toEqual(["admin-boundaries", "analysis-results"]);
+    expect(state.visible["analysis-results"]).toBe(false);
+    expect(visibleLayerIds(state)).toEqual(["admin-boundaries"]);
   });
 
   it("toggles all layers in a group", () => {
@@ -166,18 +159,18 @@ describe("data layers", () => {
   });
 
   it("clamps opacity between 0.1 and 1", () => {
-    const low = setLayerOpacity(createDefaultLayerState(DATA_LAYERS), "sample-assets", 0);
-    const high = setLayerOpacity(low, "sample-assets", 2);
+    const low = setLayerOpacity(createDefaultLayerState(DATA_LAYERS), "admin-boundaries", 0);
+    const high = setLayerOpacity(low, "admin-boundaries", 2);
 
-    expect(low.opacity["sample-assets"]).toBe(0.1);
-    expect(high.opacity["sample-assets"]).toBe(1);
+    expect(low.opacity["admin-boundaries"]).toBe(0.1);
+    expect(high.opacity["admin-boundaries"]).toBe(1);
   });
 
   it("moves layers without losing ids", () => {
     const state = createDefaultLayerState(DATA_LAYERS);
-    const moved = moveLayer(state, "sample-assets", -1);
+    const moved = moveLayer(state, "admin-boundaries", -1);
 
-    expect(moved.order[0]).toBe("sample-assets");
+    expect(moved.order[0]).toBe("admin-boundaries");
     expect(moved.order.toSorted()).toEqual(state.order.toSorted());
   });
 
@@ -200,9 +193,9 @@ describe("data layers", () => {
     const storage = {
       getItem: jest.fn().mockReturnValue(
         JSON.stringify({
-          visible: { "sample-assets": false, unknown: true },
-          opacity: { "sample-assets": 0.4 },
-          order: ["sample-assets", "unknown", "admin-boundaries", "analysis-results"]
+          visible: { "analysis-results": false, unknown: true },
+          opacity: { "analysis-results": 0.4 },
+          order: ["analysis-results", "unknown", "admin-boundaries"]
         })
       )
     };
@@ -211,13 +204,12 @@ describe("data layers", () => {
 
     expect(storage.getItem).toHaveBeenCalledWith(DEFAULT_LAYER_STORAGE_KEY);
     expect(state.visible.unknown).toBeUndefined();
-    expect(state.visible["sample-assets"]).toBe(false);
+    expect(state.visible["analysis-results"]).toBe(false);
     expect(state.visible["admin-boundaries"]).toBe(true);
-    expect(state.opacity["sample-assets"]).toBe(0.4);
+    expect(state.opacity["analysis-results"]).toBe(0.4);
     expect(state.order).toEqual([
-      "sample-assets",
-      "admin-boundaries",
       "analysis-results",
+      "admin-boundaries",
       "demo-wms-states",
       "osm-template-overlay"
     ]);
@@ -227,8 +219,8 @@ describe("data layers", () => {
     const storage = {
       getItem: jest.fn().mockReturnValue(
         JSON.stringify({
-          visible: { "admin-boundaries": true, "sample-assets": true },
-          order: ["sample-assets", "admin-boundaries"]
+          visible: { "admin-boundaries": true, "analysis-results": true },
+          order: ["analysis-results", "admin-boundaries"]
         })
       )
     };
@@ -236,9 +228,8 @@ describe("data layers", () => {
     const state = readStoredLayerState(storage, DATA_LAYERS);
 
     expect(visibleLayerIds(state)).toEqual([
-      "sample-assets",
-      "admin-boundaries",
-      "analysis-results"
+      "analysis-results",
+      "admin-boundaries"
     ]);
   });
 });

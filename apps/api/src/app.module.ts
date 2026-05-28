@@ -9,9 +9,22 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { PoiModule } from "./poi/poi.module";
 import { ReportModule } from "./report/report.module";
+import { UploadModule } from './upload/upload.module';
+import { NotificationModule } from './notification/notification.module';
+
+import { CacheModule } from "@nestjs/cache-manager";
+import { redisStore } from "cache-manager-redis-yet";
 
 @Module({
   imports: [
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async () => ({
+        store: await redisStore({
+          url: process.env.REDIS_URL || 'redis://localhost:6379',
+        }),
+      }),
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ["../../.env", ".env"]
@@ -24,7 +37,9 @@ import { ReportModule } from "./report/report.module";
     MapLayersModule,
     PropertiesModule,
     PoiModule,
-    ReportModule
+    ReportModule,
+    UploadModule,
+    NotificationModule
   ]
 })
 export class AppModule {}

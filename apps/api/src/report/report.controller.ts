@@ -21,19 +21,30 @@ export class ReportController {
   @Post()
   async createReport(
     @Req() req: any,
-    @Body() body: { reason: string; message: string; latitude: number; longitude: number }
+    @Body() body: { reason: string; message: string; latitude: number; longitude: number; imageUrl?: string }
   ) {
     try {
       const userId = req.user.sub || req.user.id;
       return await this.reportService.createReport(userId, body);
     } catch (e) {
-      throw new BadRequestException(`Report creation failed: ${e.message || e}`);
+      throw new BadRequestException(`Report creation failed: ${e instanceof Error ? e.message : e}`);
     }
   }
 
   @Get()
   async getReports(@Req() req: any, @Query("status") status?: string) {
     return this.reportService.getReports(req.user, status);
+  }
+
+  @Patch(":id/receive")
+  async receiveReport(
+    @Req() req: any,
+    @Param("id") id: string
+  ) {
+    const isOfficerOrAdmin = req.user.roles.some((r: any) => 
+      ['ADMIN', 'SYSTEM_ADMIN', 'OFFICER'].includes(r)
+    );
+    return this.reportService.receiveReport(id, isOfficerOrAdmin);
   }
 
   @Patch(":id/respond")

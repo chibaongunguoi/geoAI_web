@@ -11,6 +11,11 @@ async function bootstrap() {
     credentials: true
   });
 
+  // Serve the uploads directory statically
+  const express = require('express');
+  const path = require('path');
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
   const port = Number(process.env.API_PORT || 4000);
   await app.listen(port);
 }

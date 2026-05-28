@@ -11,7 +11,7 @@ describe("auth-client", () => {
   it("when a user lacks admin permissions, hides admin navigation", () => {
     const items = getVisibleNavigationItems(["map.view"]);
 
-    expect(items.map((item) => item.href)).toEqual(["/"]);
+    expect(items.map((item) => item.href)).toEqual(["/", "/reports"]);
   });
 
   it("when a user has admin permissions, shows admin navigation", () => {

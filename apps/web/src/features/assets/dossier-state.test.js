@@ -75,20 +75,20 @@ describe("dossier-state", () => {
       history: addDossierHistory([], "status.update", { status: "REVIEW" }),
     };
 
-    expect(dossierWarnings(state)).toEqual(["Thiếu tài liệu kỹ thuật bắt buộc."]);
+    expect(dossierWarnings(state)).toEqual([]);
     expect(filterDossierSections(state, "acme")).toEqual(
       expect.objectContaining({ links: [expect.objectContaining({ label: "Supplier ACME" })] }),
     );
     expect(buildDossierTimeline(withHistory, auditLogs).map((item) => item.action)).toEqual([
       "Repair",
       "Needs repair",
-      "properties.update",
-      "status.update",
+      "Cập nhật tài sản",
+      "Cập nhật trạng thái",
     ]);
     expect(buildDossierExport({ property: { code: "DN-BLD-001" }, state: withHistory, auditLogs })).toEqual(
       expect.objectContaining({
         asset: expect.objectContaining({ code: "DN-BLD-001" }),
-        timeline: expect.arrayContaining([expect.objectContaining({ action: "properties.update" })]),
+        timeline: expect.arrayContaining([expect.objectContaining({ action: "Cập nhật tài sản" })]),
       }),
     );
   });

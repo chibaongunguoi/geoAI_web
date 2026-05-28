@@ -1,6 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthUserRepository, AuthenticatedUser, UserWithSecret } from "./auth.types";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Cache } from "cache-manager";
 
 const userInclude = {
   roles: {
@@ -24,7 +26,10 @@ type PrismaUser = Awaited<
 
 @Injectable()
 export class PrismaAuthUserRepository implements AuthUserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
+  ) {}
 
   async createRegisteredUser(input: {
     username: string;
@@ -55,6 +60,10 @@ export class PrismaAuthUserRepository implements AuthUserRepository {
   }
 
   async findByIdentifier(identifier: string): Promise<UserWithSecret | null> {
+    const cacheKey = `auth:identifier:${identifier}`;
+    const cached = await this.cacheManager.get<UserWithSecret>(cacheKey);
+    if (cached) return cached;
+
     const user = await this.prisma.user.findFirst({
       where: {
         OR: [{ username: identifier }, { email: identifier }]
@@ -62,7 +71,12 @@ export class PrismaAuthUserRepository implements AuthUserRepository {
       include: userInclude
     });
 
-    return user ? this.toUserWithSecret(user) : null;
+    if (user) {
+      const result = this.toUserWithSecret(user);
+      await this.cacheManager.set(cacheKey, result, 1800000); // 30 minutes
+      return result;
+    }
+    return null;
   }
 
   async findByEmail(email: string): Promise<UserWithSecret | null> {
@@ -71,12 +85,21 @@ export class PrismaAuthUserRepository implements AuthUserRepository {
   }
 
   async findById(id: string): Promise<AuthenticatedUser | null> {
+    const cacheKey = `auth:id:${id}`;
+    const cached = await this.cacheManager.get<AuthenticatedUser>(cacheKey);
+    if (cached) return cached;
+
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: userInclude
     });
 
-    return user ? this.toAuthenticatedUser(user) : null;
+    if (user) {
+      const result = this.toAuthenticatedUser(user);
+      await this.cacheManager.set(cacheKey, result, 1800000); // 30 minutes
+      return result;
+    }
+    return null;
   }
 
   findRawByEmail(email: string) {

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReportService } from './report.service';
 import { PrismaService } from '../prisma/prisma.service';
-
+import { NotificationService } from '../notification/notification.service';
 describe('ReportService', () => {
   let service: ReportService;
   let prismaService: PrismaService;
@@ -13,6 +13,13 @@ describe('ReportService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    user: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+  };
+
+  const mockNotificationService = {
+    createNotification: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -20,6 +27,7 @@ describe('ReportService', () => {
       providers: [
         ReportService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: NotificationService, useValue: mockNotificationService },
       ],
     }).compile();
 
@@ -120,6 +128,41 @@ describe('ReportService', () => {
     it('should throw if neither creator nor officer', async () => {
       mockPrismaService.report.findUnique.mockResolvedValue({ id: '1', userId: 'user1' });
       await expect(service.resolveReport('1', 'other_user', false)).rejects.toThrow('Không có quyền đóng phản ánh này.');
+    });
+
+    it('should notify managers when user resolves a report', async () => {
+      mockPrismaService.report.findUnique.mockResolvedValue({ id: '1', userId: 'user1', reason: 'Test' });
+      mockPrismaService.report.update.mockResolvedValue({ id: '1', status: 'RESOLVED' });
+      mockPrismaService.user.findMany.mockResolvedValue([{ id: 'manager1' }]);
+
+      await service.resolveReport('1', 'user1', false);
+      
+      expect(mockPrismaService.user.findMany).toHaveBeenCalled();
+      expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+        'manager1',
+        'Sự cố đã đóng',
+        'Người dân đã đóng sự cố: Test',
+        'REPORT_RESOLVED'
+      );
+    });
+  });
+
+  describe('receiveReport', () => {
+    it('should update status to RECEIVED and notify user', async () => {
+      mockPrismaService.report.findUnique.mockResolvedValue({ id: '1', userId: 'user1', reason: 'Test' });
+      mockPrismaService.report.update.mockResolvedValue({ id: '1', status: 'RECEIVED' });
+
+      const result = await service.receiveReport('1', true);
+      
+      expect(mockPrismaService.report.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: { status: 'RECEIVED' }
+      });
+      expect(result.status).toBe('RECEIVED');
+    });
+
+    it('should throw if not officer or admin', async () => {
+      await expect(service.receiveReport('1', false)).rejects.toThrow('Không có quyền tiếp nhận.');
     });
   });
 });

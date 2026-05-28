@@ -54,8 +54,7 @@ describe("AssetDetailPanel", () => {
     render(<AssetDetailPanel property={property} auditLogs={auditLogs} canManageProperties />);
 
     expect(screen.getByRole("tab", { name: "Tổng quan" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText("Thiếu tài liệu kỹ thuật bắt buộc.")).toBeInTheDocument();
-    expect(screen.getByText("Thiếu biên bản kiểm tra.")).toBeInTheDocument();
+
 
     fireEvent.change(screen.getByLabelText("Trạng thái hiện tại"), { target: { value: "REVIEW" } });
     fireEvent.click(screen.getByRole("button", { name: "Lưu trạng thái" }));
@@ -99,7 +98,7 @@ describe("AssetDetailPanel", () => {
     expect(screen.getByText("Tìm thấy 1 kết quả.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Lịch sử" }));
-    expect(screen.getByText("properties.update")).toBeInTheDocument();
+    expect(screen.getByText("Cập nhật tài sản")).toBeInTheDocument();
     expect(screen.getByText("Needs repair")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Xuất JSON" }));

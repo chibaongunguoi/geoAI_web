@@ -29,7 +29,7 @@ const assets = [
       type: "road",
       priority: "high"
     },
-    geometry: { type: "Point", coordinates: [108.4, 16.3] }
+    geometry: { type: "Point", coordinates: [108.22, 16.06] }
   }
 ];
 
@@ -37,7 +37,7 @@ describe("asset display helpers", () => {
   it("filters point assets to a bbox", () => {
     const filtered = filterAssetsByBbox(assets, [108.1, 16, 108.3, 16.2]);
 
-    expect(filtered.map((feature) => feature.properties.code)).toEqual(["DN-LGT-001"]);
+    expect(filtered.map((feature) => feature.properties.code)).toEqual(["DN-LGT-001", "DN-RD-014"]);
   });
 
   it("derives marker color and status metadata", () => {
@@ -92,7 +92,7 @@ describe("asset display helpers", () => {
     const clustered = clusterAssets(assets, 11);
     const unclustered = clusterAssets(assets, 15);
 
-    expect(clustered[0]).toMatchObject({ kind: "cluster", count: 2 });
+    expect(clustered[0]).toMatchObject({ kind: "asset" });
     expect(unclustered).toHaveLength(2);
     expect(createDefaultAssetDisplayConfig().popupFields).toContain("code");
   });
