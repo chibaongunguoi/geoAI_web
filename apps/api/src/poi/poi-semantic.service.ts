@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Optional } from "@nestjs/common";
-import { BetterSqliteService } from "../prisma/better-sqlite.service";
+import { PrismaService } from "../prisma/prisma.service";
+import { STATIC_LOCATIONS } from "../properties/properties.types";
 import { CategoryMapper } from "./category-mapper";
 import {
   PoiSemanticResult,
@@ -17,7 +18,7 @@ import {
 export class PoiSemanticService {
   constructor(
     private readonly categoryMapper: CategoryMapper,
-    @Optional() private readonly sqlite?: BetterSqliteService
+    private readonly prisma: PrismaService
   ) {}
 
   async semanticSearch(query: string, limit = 20): Promise<PoiSemanticResult> {
@@ -26,21 +27,17 @@ export class PoiSemanticService {
       throw new BadRequestException("POI semantic query is required");
     }
 
-    if (!this.sqlite) {
-      throw new BadRequestException("SQLite POI semantic search is unavailable");
-    }
-
     const intent = this.semanticIntent(trimmedQuery);
 
     if (intent.type === "poi-density") {
-      return this.semanticDensity(intent);
+      return await this.semanticDensity(intent);
     }
 
     if (intent.type === "poi-count") {
-      return this.semanticCount(intent);
+      return await this.semanticCount(intent);
     }
 
-    return this.semanticList(intent, Math.min(Math.max(Number(limit) || 20, 1), 50));
+    return await this.semanticList(intent, Math.min(Math.max(Number(limit) || 20, 1), 50));
   }
 
   private semanticIntent(query: string): PoiSemanticIntent {
@@ -73,9 +70,7 @@ export class PoiSemanticService {
   }
 
   private locationFilters(normalizedQuery: string): PoiLocationFilter {
-    const locations = this.sqlite?.all<{ ward: string | null; district: string | null }>(
-      `SELECT DISTINCT "ward", "district" FROM "BuildingProperty" WHERE "deletedAt" IS NULL AND ("district" IS NOT NULL OR "ward" IS NOT NULL)`
-    ) || [];
+    const locations = STATIC_LOCATIONS.map(([ward, district]) => ({ ward, district }));
     const sorted = [...locations].sort(
       (left, right) =>
         Math.max(right.ward?.length || 0, right.district?.length || 0) -
@@ -97,11 +92,10 @@ export class PoiSemanticService {
     return { district: "H\u1ea3i Ch\u00e2u" };
   }
 
-  private semanticDensity(intent: PoiSemanticIntent): PoiSemanticResult {
+  private async semanticDensity(intent: PoiSemanticIntent): Promise<PoiSemanticResult> {
     const where = this.poiWhereClause(intent);
     const order = intent.direction === "lowest" ? "ASC" : "DESC";
-    const rows = this.sqlite!.all<PoiDensityRow>(
-      `
+    const sql = `
       SELECT
         "ward",
         "district",
@@ -114,7 +108,9 @@ export class PoiSemanticService {
       GROUP BY "ward", "district"
       ORDER BY count ${order}, "ward" ASC
       LIMIT 10
-      `,
+    `;
+    const rows = await this.prisma.$queryRawUnsafe<PoiDensityRow[]>(
+      replacePlaceholders(sql),
       ...where.params
     );
     const regions = rows.map((row, index) => this.densityRegion(row, index));
@@ -142,12 +138,11 @@ export class PoiSemanticService {
     };
   }
 
-  private semanticCount(intent: PoiSemanticIntent): PoiSemanticResult {
+  private async semanticCount(intent: PoiSemanticIntent): Promise<PoiSemanticResult> {
     const where = this.poiWhereClause(intent);
-    const row = this.sqlite!.all<{ count: number }>(
-      `SELECT COUNT(*) AS count FROM "BuildingProperty" WHERE "deletedAt" IS NULL AND (${where.sql})`,
-      ...where.params
-    )[0];
+    const sql = `SELECT COUNT(*) AS count FROM "BuildingProperty" WHERE "deletedAt" IS NULL AND (${where.sql})`;
+    const rowRows = await this.prisma.$queryRawUnsafe<{ count?: any }[]>(replacePlaceholders(sql), ...where.params);
+    const row = rowRows[0];
     const count = Number(row?.count || 0);
     const location = intent.filters.ward || intent.filters.district || "H\u1ea3i Ch\u00e2u";
     return {
@@ -167,16 +162,17 @@ export class PoiSemanticService {
     };
   }
 
-  private semanticList(intent: PoiSemanticIntent, limit: number): PoiSemanticResult {
+  private async semanticList(intent: PoiSemanticIntent, limit: number): Promise<PoiSemanticResult> {
     const where = this.poiWhereClause(intent);
-    const rows = this.sqlite!.all<PoiSqlRow>(
-      `
+    const sql = `
       SELECT "id", "code", "name", "propertyType", "addressLine", "street", "ward", "district", "city", "centroidLat", "centroidLng"
       FROM "BuildingProperty"
       WHERE "deletedAt" IS NULL AND (${where.sql})
       ORDER BY "name" ASC
       LIMIT ?
-      `,
+    `;
+    const rows = await this.prisma.$queryRawUnsafe<PoiSqlRow[]>(
+      replacePlaceholders(sql),
       ...where.params,
       limit
     );
@@ -292,4 +288,9 @@ export class PoiSemanticService {
       .trim()
       .replace(/\s+/g, " ");
   }
+}
+
+function replacePlaceholders(sql: string): string {
+  let count = 1;
+  return sql.replace(/\?/g, () => `$${count++}`);
 }

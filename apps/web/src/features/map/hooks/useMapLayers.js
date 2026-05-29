@@ -277,7 +277,12 @@ export function useMapLayers({
         ? propertySearchResult.map.regions || []
         : [];
 
-    if (regions.length === 0) {
+    const spatialItems =
+      propertySearchResult?.meta?.searchMode === "spatial-relational"
+        ? propertySearchResult.items || []
+        : [];
+
+    if (regions.length === 0 && spatialItems.length === 0) {
       return undefined;
     }
 
@@ -412,6 +417,34 @@ export function useMapLayers({
       });
     });
 
+    spatialItems.forEach((item) => {
+      const lat = Number(item.latitude || item.centroidLat);
+      const lng = Number(item.longitude || item.centroidLng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+      const marker = L.marker([lat, lng], {
+        zIndexOffset: 700,
+        icon: L.divIcon({
+          className: "poi-marker-icon",
+          html: createPoiMarkerHtml(item.propertyType || item.category || "place"),
+          iconSize: [30, 30],
+          iconAnchor: [15, 30],
+          popupAnchor: [0, -26],
+        }),
+      })
+        .bindPopup(poiPopup(item))
+        .bindTooltip(poiTooltip(item), {
+          direction: "top",
+          offset: [0, -26],
+          opacity: 0.96,
+          sticky: true,
+          className: "poi-tooltip",
+        });
+
+      marker.addTo(propertySearchLayer);
+      group.push(marker);
+    });
+
     const bounds = L.featureGroup(focusGroup.length > 0 ? focusGroup : group).getBounds();
     const scanStyleBounds = topRegionBounds?.isValid?.() ? topRegionBounds : bounds;
     if (scanStyleBounds.isValid()) {
@@ -424,7 +457,6 @@ export function useMapLayers({
         map.flyToBounds(scanStyleBounds.pad(0.22), {
           animate: true,
           duration: 0.75,
-          padding: [34, 34],
           maxZoom: targetZoom,
         });
       };
@@ -889,7 +921,7 @@ export function useMapLayers({
             const geoJsonLayer = L.geoJSON(payload, {
               pointToLayer: (feature, latlng) => geoJsonPointLayer(feature, latlng, opacity),
               style: {
-                color: "#f59e0b",
+                color: layer.legend?.[0]?.color || "#f59e0b",
                 weight: 2,
                 opacity,
                 fillOpacity: 0.18 * opacity,

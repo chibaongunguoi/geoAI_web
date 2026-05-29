@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -116,13 +116,10 @@ model BuildingProperty {
   centroidLng          Float?
   bbox                 Json?
   geometry             Json?
-  geom                 Unsupported("geometry(Geometry, 4326)")?
   attributes           Json?
   searchText           String    @default("")
   searchTextNormalized String    @default("")
   embedding            Json?
-  riskFlags            Json?     @default("[]")
-  compositeScore       Float?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   deletedAt            DateTime?
@@ -151,11 +148,9 @@ model Place {
   latitude      Float
   longitude     Float
   geometry      Json
-  location      Unsupported("geometry(Point, 4326)")?
   confidence    Float    @default(0)
   source        String   @default("overture-places")
   sourceVersion String?
-  riskFlags     Json?    @default("[]")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -200,29 +195,4 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
-}
-
-model RiskZone {
-  id          String   @id @default(cuid())
-  zoneType    String   // "flood" or "landslide"
-  riskLevel   String   // "high", "medium", "low"
-  source      String
-  description String?
-  geom        Unsupported("geometry(Polygon, 4326)")?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([zoneType])
-}
-
-model RoadSegment {
-  id        String   @id @default(cuid())
-  osmId     String?  @unique
-  name      String?
-  highway   String   // 'primary', 'secondary', 'residential', etc.
-  geom      Unsupported("geometry(LineString, 4326)")?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([highway])
 }

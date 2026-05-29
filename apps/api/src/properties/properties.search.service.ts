@@ -5,7 +5,7 @@ import {
   NotFoundException,
   Optional
 } from "@nestjs/common";
-import { BetterSqliteService } from "../prisma/better-sqlite.service";
+// BetterSqliteService removed
 import { PrismaService } from "../prisma/prisma.service";
 import { DENSITY_OBJECT_LIMIT } from "./density-config";
 import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
@@ -13,9 +13,15 @@ import { PropertySearchProvider } from "./property-search-provider";
 import { normalizeSearchText, levenshteinDistance, validLimit, searchTokens, searchSource, withSemanticProviderTimeout, searchStatus, semanticSearchFallbackWarning, densitySearchTerms, withDensityTimeout, searchAnswer, withListSearchTimeout, selectLightPropertyFields, isExplicitListQuery, validDateRange, cleanString, isSameSearchTokenFilter, bestFuzzyTokenScore, minimumSearchScore, extractPhraseAfter, matchKnownWard, matchKnownDistrict, matchStatus, matchPropertyType, isDensityQuestion, isCountQuestion, densityDirection, isNaturalLanguageQuestion } from "./properties.utils";
 import { Delegate, PropertiesPrisma, PropertyStatus, BuildingPropertyRow, PropertyDensityRegion, PropertySearchMap, PropertyDensityObject, PropertySearchAnswer, SearchIntent, DensityRegionRow, PropertySearchInput, PropertyHeatmapInput, PropertyMutationInput, AssetImportResult, ImportOptions, OvertureFeature, DEFAULT_CITY, DEFAULT_PROPERTY_TYPE, DEFAULT_STATUS, DEFAULT_SOURCE, OVERTURE_SOURCE, MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_DENSITY_GRID_SIZE, DEFAULT_DENSITY_REGION_LIMIT, DEFAULT_DENSITY_OBJECT_LIMIT, DENSITY_BACKEND_TIMEOUT_MS, SEMANTIC_PROVIDER_TIMEOUT_MS, LIST_SEARCH_TIMEOUT_MS, DEFAULT_EMBEDDING_MODEL, VALID_STATUSES, STOP_WORDS_FOR_TOKENS, LOWEST_DENSITY_PHRASES, HIGHEST_DENSITY_PHRASES, DENSITY_INTENT_KEYWORDS, INTENT_KEYWORDS, STATIC_LOCATIONS, DANANG_DISTRICTS, PropertiesServiceOptions, PROPERTIES_SERVICE_OPTIONS } from "./properties.types";
 import { PropertiesSpatialService } from "./properties.spatial.service";
+import { GroqService, ParsedSpatialQuery } from "../groq/groq.service";
 
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Cache } from "cache-manager";
+
+function replacePlaceholders(sql: string): string {
+  let count = 1;
+  return sql.replace(/\?/g, () => `$${count++}`);
+}
 
 @Injectable()
 export class PropertiesSearchService {
@@ -30,7 +36,7 @@ export class PropertiesSearchService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PropertiesPrisma,
     @Inject(PropertiesSpatialService) private readonly spatialService: PropertiesSpatialService,
-    @Optional() @Inject(BetterSqliteService) private readonly sqlite?: BetterSqliteService,
+    @Inject(GroqService) private readonly groqService: GroqService,
     @Optional() @Inject(PROPERTIES_SERVICE_OPTIONS) options: PropertiesServiceOptions = {},
     @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager?: Cache
   ) {
@@ -77,6 +83,15 @@ export class PropertiesSearchService {
             },
             meta: { limit, tokens: [], searchMode: "coordinate" }
           };
+        }
+      }
+    }
+    if (input.query) {
+      const spatialKeywords = ["gần", "cạnh", "bán kính", "xung quanh", "cách", "giao với", "ngập", "lụt", "sạt", "lở", "rủi ro"];
+      if (spatialKeywords.some(kw => input.query!.toLowerCase().includes(kw))) {
+        const parsedSpatial = await this.groqService.parseSpatialQuery(input.query);
+        if (parsedSpatial.riskType || (parsedSpatial.isRelational && parsedSpatial.referenceName)) {
+          return this.searchRelationalSpatialPostgis(parsedSpatial, limit);
         }
       }
     }
@@ -144,6 +159,149 @@ export class PropertiesSearchService {
     return this.searchPropertiesPostgres(input, limit, intent, tokens, source);
   }
 
+  private async searchRelationalSpatialPostgis(parsed: ParsedSpatialQuery, limit: number): Promise<any> {
+    const { referenceName, targetCategory, distanceMeters = 500, district, ward, riskType } = parsed;
+    
+    // Risk Query without reference name (e.g. "nhà hàng dễ ngập lụt ở quận hải châu")
+    if (riskType && !referenceName) {
+      const isBuilding = targetCategory === "building";
+      const tableName = isBuilding ? "BuildingProperty" : "Place";
+      const catCol = isBuilding ? "propertyType" : "category";
+      
+      const targetRows = await this.prisma.$queryRawUnsafe<any[]>(
+        replacePlaceholders(`
+          SELECT id, name, ${catCol} as category, ${isBuilding ? "''" : "address"} as address, 
+                 ${isBuilding ? '"centroidLng"' : "ST_X(location::geometry)"} as "centroidLng", 
+                 ${isBuilding ? '"centroidLat"' : "ST_Y(location::geometry)"} as "centroidLat"
+          FROM "${tableName}"
+          WHERE ${targetCategory && !isBuilding ? `${catCol} ILIKE '%' || ? || '%'` : "1=1"}
+            ${district ? "AND district ILIKE '%' || ? || '%'" : ""}
+            ${ward ? "AND ward ILIKE '%' || ? || '%'" : ""}
+            AND "riskFlags" @> ?
+          LIMIT ?
+        `),
+        ...(targetCategory && !isBuilding ? [targetCategory] : []),
+        ...(district ? [district] : []),
+        ...(ward ? [ward] : []),
+        `["${riskType}"]`,
+        limit
+      );
+
+      const items = targetRows.map(row => ({
+        id: row.id,
+        name: row.name,
+        propertyType: row.category,
+        addressLine: row.address,
+        centroidLat: row.centroidLat,
+        centroidLng: row.centroidLng,
+        distance: 0
+      }));
+
+      const locationText = [ward, district].filter(Boolean).join(", ");
+
+      return {
+        items,
+        answer: {
+          type: "spatial",
+          text: `Tìm thấy ${items.length} ${targetCategory || "địa điểm"} có rủi ro ${riskType === "flood" ? "ngập lụt" : "sạt lở"} ở ${locationText}.`
+        },
+        meta: {
+          limit,
+          searchMode: "spatial-risk",
+          parsedQuery: parsed
+        }
+      };
+    }
+
+    // Normal Relational Spatial Query
+    // Find reference location in Place
+    const refPlaceRows = await this.prisma.$queryRawUnsafe<any[]>(
+      replacePlaceholders(`
+        SELECT id, name, category, ST_X(location::geometry) as lng, ST_Y(location::geometry) as lat
+        FROM "Place"
+        WHERE name ILIKE '%' || ? || '%' ${district ? "AND district ILIKE '%' || ? || '%'" : ""}
+        LIMIT 1
+      `),
+      referenceName,
+      ...(district ? [district] : [])
+    );
+
+    let refLat: number, refLng: number;
+    let refName = "";
+
+    if (refPlaceRows.length > 0) {
+      refLat = refPlaceRows[0].lat;
+      refLng = refPlaceRows[0].lng;
+      refName = refPlaceRows[0].name;
+    } else {
+      // Fallback to BuildingProperty
+      const refBldgRows = await this.prisma.$queryRawUnsafe<any[]>(
+        replacePlaceholders(`
+          SELECT id, name, "centroidLat" as lat, "centroidLng" as lng
+          FROM "BuildingProperty"
+          WHERE "searchTextNormalized" LIKE '%' || ? || '%' ${district ? "AND district ILIKE '%' || ? || '%'" : ""}
+          LIMIT 1
+        `),
+        normalizeSearchText(referenceName || ""),
+        ...(district ? [district] : [])
+      );
+      if (refBldgRows.length > 0) {
+        refLat = refBldgRows[0].lat;
+        refLng = refBldgRows[0].lng;
+        refName = refBldgRows[0].name || referenceName;
+      } else {
+        return {
+          items: [],
+          meta: { limit, searchMode: "spatial-relational", warnings: [`Không tìm thấy địa điểm mốc: ${referenceName}`] }
+        };
+      }
+    }
+
+    // Now find targets using ST_DWithin
+    const targetRows = await this.prisma.$queryRawUnsafe<any[]>(
+      replacePlaceholders(`
+        SELECT id, name, category, address, ST_X(location::geometry) as "centroidLng", ST_Y(location::geometry) as "centroidLat",
+          ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) as distance
+        FROM "Place"
+        WHERE category ILIKE '%' || ? || '%'
+          AND ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)
+        ORDER BY distance ASC
+        LIMIT ?
+      `),
+      refLng, refLat,
+      targetCategory || "",
+      refLng, refLat, distanceMeters,
+      limit
+    );
+
+    const items = targetRows.map(row => ({
+      id: row.id,
+      name: row.name,
+      propertyType: row.category,
+      addressLine: row.address,
+      centroidLat: row.centroidLat,
+      centroidLng: row.centroidLng,
+      distance: Math.round(row.distance)
+    }));
+
+    return {
+      items,
+      answer: {
+        type: "spatial",
+        text: `Tìm thấy ${items.length} ${targetCategory} trong bán kính ${distanceMeters}m quanh ${refName}.`
+      },
+      map: {
+        type: "focus",
+        center: { lat: refLat, lng: refLng }
+      },
+      meta: {
+        limit,
+        searchMode: "spatial-relational",
+        parsedQuery: parsed
+      }
+    };
+  }
+
   private async searchPropertiesPostgres(
     input: PropertySearchInput,
     limit: number,
@@ -153,16 +311,7 @@ export class PropertiesSearchService {
   ) {
     if (intent.type === "density") {
       const locationFilters = this.spatialService.densityLocationFilters(intent);
-      const terms =
-        locationFilters.ward || locationFilters.district
-          ? []
-          : densitySearchTerms(intent, tokens);
-
-      if (!this.sqlite) {
-        return this.spatialService.densityFallbackResponse(input, limit, intent, tokens, 0, [
-          "BetterSqliteService unavailable for density query."
-        ]);
-      }
+      const terms = densitySearchTerms(intent, tokens);
 
       if (!locationFilters.ward && !locationFilters.district) {
         return this.spatialService.densityFallbackResponse(input, limit, intent, tokens, 0, [
@@ -260,7 +409,7 @@ export class PropertiesSearchService {
     tokens: string[],
     source?: string
   ) {
-    const sqliteResult = this.searchPropertiesSqliteList(input, limit, intent, tokens, source);
+    const sqliteResult = await this.searchPropertiesSqliteList(input, limit, intent, tokens, source);
     if (sqliteResult && sqliteResult.items.length > 0) {
       return sqliteResult;
     }
@@ -302,7 +451,7 @@ export class PropertiesSearchService {
     };
   }
 
-  private searchPropertiesSqliteList(
+  private async searchPropertiesSqliteList(
     input: PropertySearchInput,
     limit: number,
     intent: SearchIntent,
@@ -310,7 +459,6 @@ export class PropertiesSearchService {
     source?: string
   ) {
     if (
-      !this.sqlite ||
       !isExplicitListQuery(input.query) ||
       !this.shouldUseExactLocationColumns(intent)
     ) {
@@ -334,40 +482,19 @@ export class PropertiesSearchService {
       Math.min(MAX_LIMIT, limit + 15)
     );
 
-    const rows = this.sqlite.all<BuildingPropertyRow>(
-      `
+    const sql = `
         SELECT
-          "id",
-          "code",
-          "overtureId",
-          "name",
-          "addressLine",
-          "street",
-          "ward",
-          "district",
-          "city",
-          "propertyType",
-          "status",
-          "source",
-          "sourceVersion",
-          "level",
-          "height",
-          "floors",
-          "areaSqm",
-          "centroidLat",
-          "centroidLng",
-          "bbox",
-          "searchText",
-          "searchTextNormalized",
-          "createdAt",
-          "updatedAt",
-          "deletedAt"
+          "id", "code", "overtureId", "name", "addressLine", "street", "ward", "district", "city", "propertyType", "status", "source", "sourceVersion", "level", "height", "floors", "areaSqm", "centroidLat", "centroidLng", "bbox", "searchText", "searchTextNormalized", "createdAt", "updatedAt", "deletedAt"
         FROM "BuildingProperty"
         WHERE "deletedAt" IS NULL
           ${sourceFilter}
           ${exactFilters}
+        ORDER BY "name" ASC
         LIMIT ?
-      `,
+      `;
+    
+    const rows = await this.prisma.$queryRawUnsafe<BuildingPropertyRow[]>(
+      replacePlaceholders(sql),
       ...params
     );
     const rankedRows = this.rankRows(rows, tokens).slice(0, limit);

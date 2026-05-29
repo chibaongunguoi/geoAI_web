@@ -5,7 +5,7 @@ import {
   NotFoundException,
   Optional
 } from "@nestjs/common";
-import { BetterSqliteService } from "../prisma/better-sqlite.service";
+// import removed
 import { PrismaService } from "../prisma/prisma.service";
 import { DENSITY_OBJECT_LIMIT } from "./density-config";
 import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
@@ -247,11 +247,11 @@ return /\b(cho toi|tim|danh sach|co bao nhieu|bao nhieu|vung nao|noi nao|hay cho
 }
 
 export function densitySearchTerms(intent: SearchIntent, tokens: string[]) {
-const terms = [intent.filters.ward, intent.filters.district, ...tokens].filter(
-  (term): term is string => Boolean(term && term.length >= 3)
-);
+  const terms = tokens.filter(
+    (term): term is string => Boolean(term && term.length >= 2)
+  );
 
-return [...new Set(terms.map((term) => normalizeSearchText(term)))];
+  return [...new Set(terms.map((term) => normalizeSearchText(term)))];
 }
 
 export function densityObjectAllocations(regions: PropertyDensityRegion[]) {
@@ -637,4 +637,31 @@ export function levenshteinDistance(left: string, right: string) {
   }
 
   return previous[right.length];
+}
+
+export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3; // metres
+  const phi1 = lat1 * Math.PI / 180;
+  const phi2 = lat2 * Math.PI / 180;
+  const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+  const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+            Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+export function calculateBoundingBox(lat: number, lng: number, radiusMeters: number) {
+  const latDelta = radiusMeters / 111320;
+  const lngDelta = radiusMeters / (40075000 * Math.cos(lat * Math.PI / 180) / 360);
+  
+  return {
+    south: lat - latDelta,
+    north: lat + latDelta,
+    west: lng - lngDelta,
+    east: lng + lngDelta
+  };
 }

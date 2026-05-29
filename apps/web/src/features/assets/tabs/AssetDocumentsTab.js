@@ -106,6 +106,7 @@ export default function AssetDocumentsTab({
             Tệp tài liệu
             <input
               type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
               onChange={(event) => {
                 const file = event.target.files?.[0] || null;
                 setDocumentForm((current) => ({

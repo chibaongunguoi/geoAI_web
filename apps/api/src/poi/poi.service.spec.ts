@@ -10,16 +10,16 @@ describe("PoiService semantic search", () => {
   ];
 
   function semanticServiceWithSqlite() {
-    const sqlite = {
-      all: jest.fn((sql: string) => {
+    const prisma = {
+      $queryRawUnsafe: jest.fn((sql: string) => {
         if (sql.includes('SELECT DISTINCT "ward"')) {
-          return locations;
+          return Promise.resolve(locations);
         }
         if (sql.includes("COUNT(*) AS count") && !sql.includes('GROUP BY')) {
-          return [{ count: 162 }];
+          return Promise.resolve([{ count: 162 }]);
         }
         if (sql.includes('GROUP BY "ward"')) {
-          return [
+          return Promise.resolve([
             {
               ward: "Hải Châu I",
               district: "Hải Châu",
@@ -34,9 +34,9 @@ describe("PoiService semantic search", () => {
               centerLat: 16.0766,
               centerLng: 108.2187
             }
-          ];
+          ]);
         }
-        return [
+        return Promise.resolve([
           {
             id: "place_1",
             code: "DN-POI-000001",
@@ -50,12 +50,12 @@ describe("PoiService semantic search", () => {
             centroidLat: 16.0704,
             centroidLng: 108.2134
           }
-        ];
+        ]);
       })
     };
     return {
-      service: new PoiSemanticService(new CategoryMapper(), sqlite as never),
-      sqlite
+      service: new PoiSemanticService(new CategoryMapper(), prisma as never),
+      sqlite: { all: prisma.$queryRawUnsafe }
     };
   }
 

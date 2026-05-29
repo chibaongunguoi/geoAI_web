@@ -5,7 +5,7 @@ import {
   NotFoundException,
   Optional
 } from "@nestjs/common";
-import { BetterSqliteService } from "../prisma/better-sqlite.service";
+// import removed
 import { PrismaService } from "../prisma/prisma.service";
 import { DENSITY_OBJECT_LIMIT } from "./density-config";
 import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
@@ -29,7 +29,7 @@ export class PropertiesImportService {
     @Inject(PrismaService) private readonly prisma: PropertiesPrisma,
     @Inject(PropertiesCrudService) private readonly crudService: PropertiesCrudService,
     @Inject(PropertiesSpatialService) private readonly spatialService: PropertiesSpatialService,
-    @Optional() @Inject(BetterSqliteService) private readonly sqlite?: BetterSqliteService,
+    // sqlite injection removed
     @Optional() @Inject(PROPERTIES_SERVICE_OPTIONS) options: PropertiesServiceOptions = {}
   ) {
     this.configuredElasticsearchProvider = options?.elasticsearchProvider;

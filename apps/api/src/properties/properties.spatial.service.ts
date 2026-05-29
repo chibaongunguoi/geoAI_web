@@ -5,7 +5,7 @@ import {
   NotFoundException,
   Optional
 } from "@nestjs/common";
-import { BetterSqliteService } from "../prisma/better-sqlite.service";
+// removed BetterSqliteService import
 import { PrismaService } from "../prisma/prisma.service";
 import { DENSITY_OBJECT_LIMIT } from "./density-config";
 import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
@@ -28,7 +28,7 @@ export class PropertiesSpatialService {
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PropertiesPrisma,
-    @Optional() @Inject(BetterSqliteService) private readonly sqlite?: BetterSqliteService,
+    // sqlite removed
     @Optional()
     @Inject(PROPERTIES_SERVICE_OPTIONS)
     options: PropertiesServiceOptions = {},
@@ -45,12 +45,7 @@ export class PropertiesSpatialService {
       if (cached) return cached;
     }
 
-    if (!this.sqlite) {
-      return {
-        map: { type: "property-density", regions: [] },
-        meta: { searchMode: "sqlite-building-density-heatmap", total: 0, warnings: ["SQLite heatmap unavailable."] }
-      };
-    }
+    // sqlite check removed
 
     const source = searchSource(input.source);
     const gridSize = validDensityGridSize(input.gridSize);
@@ -87,8 +82,8 @@ export class PropertiesSpatialService {
     ];
 
     try {
-      const rows = this.sqlite.all<DensityRegionRow>(
-        `
+      const rows = await this.prisma.$queryRawUnsafe<DensityRegionRow[]>(
+        replacePlaceholders(`
         WITH filtered AS (
           SELECT
             "centroidLat",
@@ -136,13 +131,13 @@ export class PropertiesSpatialService {
         FROM cells
         ORDER BY count DESC, center_lat ASC, center_lng ASC
         LIMIT ?
-        `,
+        `),
         ...params
       );
-      const regions = rows.map((row, index) => this.densityRegion(row, index));
-      const returnedCellTotal = regions.reduce((sum, region) => sum + Number(region.count || 0), 0);
-      const totalRows = this.sqlite.all<{ count?: number }>(
-        `
+      const regions = rows.map((row: any, index: number) => this.densityRegion(row, index));
+      const returnedCellTotal = regions.reduce((sum: number, region: any) => sum + Number(region.count || 0), 0);
+      const totalRows = await this.prisma.$queryRawUnsafe<{ count?: any }[]>(
+        replacePlaceholders(`
         SELECT COUNT(*) AS count
         FROM "BuildingProperty"
         WHERE "deletedAt" IS NULL
@@ -150,9 +145,9 @@ export class PropertiesSpatialService {
           AND "centroidLat" IS NOT NULL
           AND "centroidLng" IS NOT NULL
           ${exactFilters}
-        `,
+        `),
         ...exactFiltersArgs
-      ) || [];
+      );
       const total = Number(totalRows[0]?.count ?? returnedCellTotal);
 
       const result = {
@@ -199,9 +194,7 @@ export class PropertiesSpatialService {
       if (cached) return cached;
     }
 
-    if (!this.sqlite) {
-      return [];
-    }
+    // sqlite check removed
 
     const exactFilters = [
       locationFilters.ward ? `AND "ward" = ?` : "",
@@ -272,9 +265,9 @@ export class PropertiesSpatialService {
       DEFAULT_DENSITY_GRID_SIZE,
       limit
     );
-    const rows = this.sqlite.all<DensityRegionRow>(sql, ...params);
+    const rows = await this.prisma.$queryRawUnsafe<DensityRegionRow[]>(replacePlaceholders(sql), ...params);
 
-    const regions = rows.map((row, index) => this.densityRegion(row, index));
+    const regions = rows.map((row: any, index: number) => this.densityRegion(row, index));
     await this.attachDensityObjects(regions, terms, source, locationFilters);
 
     if (this.cacheManager) {
@@ -297,9 +290,6 @@ export class PropertiesSpatialService {
   }
 
   public locationNames() {
-    if (!this.sqlite) {
-      return { wards: new Map(), districts: new Map() };
-    }
     if (this.locationNameCache) {
       return this.locationNameCache;
     }
@@ -307,32 +297,16 @@ export class PropertiesSpatialService {
     const wards = new Map<string, string>();
     const districts = new Map<string, string>();
 
-    if (process.env.NODE_ENV === "test") {
-      try {
-        const rows = this.sqlite.all<{ ward?: string | null; district?: string | null }>(
-          `SELECT 1`
-        );
-        for (const row of rows) {
-          const ward = cleanString(row.ward);
-          const district = cleanString(row.district);
-          if (ward) wards.set(normalizeSearchText(ward), ward);
-          if (district) districts.set(normalizeSearchText(district), district);
-        }
-      } catch {}
-    }
-
-    if (wards.size === 0 && districts.size === 0) {
-      for (const [wardName, districtName] of STATIC_LOCATIONS) {
-        wards.set(normalizeSearchText(wardName), wardName);
-        districts.set(normalizeSearchText(districtName), districtName);
-      }
+    for (const [wardName, districtName] of STATIC_LOCATIONS) {
+      wards.set(normalizeSearchText(wardName), wardName);
+      districts.set(normalizeSearchText(districtName), districtName);
     }
 
     this.locationNameCache = { wards, districts };
     return this.locationNameCache;
   }
 
-  public densityTotal(
+  public async densityTotal(
     intent: SearchIntent,
     tokens: string[],
     source?: string,
@@ -342,9 +316,7 @@ export class PropertiesSpatialService {
         ? []
         : densitySearchTerms(intent, tokens)
   ) {
-    if (!this.sqlite) {
-      return 0;
-    }
+    // sqlite check removed
 
     const exactFilters = [
       locationFilters.ward ? `AND "ward" = ?` : "",
@@ -366,7 +338,7 @@ export class PropertiesSpatialService {
       ...[locationFilters.ward, locationFilters.district].filter((value): value is string => Boolean(value)),
       ...terms.map((term) => `%${term}%`)
     );
-    const rows = this.sqlite.all<{ count?: number }>(sql, ...params);
+    const rows = await this.prisma.$queryRawUnsafe<{ count?: any }[]>(replacePlaceholders(sql), ...params);
 
     return Number(rows[0]?.count || 0);
   }
@@ -661,4 +633,9 @@ function levenshteinDistance(left: string, right: string) {
   }
 
   return previous[right.length];
+}
+
+function replacePlaceholders(sql: string): string {
+  let count = 1;
+  return sql.replace(/\?/g, () => `$${count++}`);
 }

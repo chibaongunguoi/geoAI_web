@@ -5,7 +5,7 @@ import {
   NotFoundException,
   Optional
 } from "@nestjs/common";
-import { BetterSqliteService } from "../prisma/better-sqlite.service";
+// import removed
 import { PrismaService } from "../prisma/prisma.service";
 import { DENSITY_OBJECT_LIMIT } from "./density-config";
 import { ElasticsearchPropertySearchProvider } from "./elasticsearch-property-search.provider";
@@ -22,6 +22,7 @@ export type Delegate = {
 };
 
 export type PropertiesPrisma = {
+  $queryRawUnsafe: <T = unknown>(query: string, ...values: any[]) => Promise<T>;
   buildingProperty: Required<
     Pick<Delegate, "findFirst" | "findMany" | "findUnique" | "count" | "create" | "update" | "upsert">
   >;

@@ -23,7 +23,7 @@ export class ElasticsearchQueryBuilder {
             }
           },
           script: {
-            source: "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+            source: "(_score * 0.5) + (cosineSimilarity(params.query_vector, 'embedding') + 1.0)",
             params: {
               query_vector: queryVector
             }

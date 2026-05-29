@@ -108,7 +108,7 @@ export default function AssetMaintenanceTab({ canManageProperties, updateDossier
           </label>
           <label>
             Tệp đính kèm
-            <input type="file" onChange={(event) => setMaintenanceForm({ ...maintenanceForm, file: event.target.files?.[0] || null })} />
+            <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" onChange={(event) => setMaintenanceForm({ ...maintenanceForm, file: event.target.files?.[0] || null })} />
           </label>
           <label>
             Ghi chú

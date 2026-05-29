@@ -81,7 +81,7 @@ export default function AssetInspectionsTab({ canManageProperties, updateDossier
           </label>
           <label>
             Tệp đính kèm
-            <input type="file" onChange={(event) => setInspectionForm({ ...inspectionForm, file: event.target.files?.[0] || null })} />
+            <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" onChange={(event) => setInspectionForm({ ...inspectionForm, file: event.target.files?.[0] || null })} />
           </label>
           <label>
             Ghi chú

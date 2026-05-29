@@ -11,18 +11,15 @@ export async function POST(request) {
   const backendUrl = process.env.API_URL || 'http://localhost:4000';
   const url = `${backendUrl}/upload`;
 
-  // Get the auth cookie from request to pass to backend if needed (though upload might not need it or we just pass all cookies)
   const cookie = request.headers.get('cookie') || '';
-  const contentType = request.headers.get('content-type') || '';
+  const formData = await request.formData();
 
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'cookie': cookie,
-      'content-type': contentType
     },
-    body: request.body, // Pass the stream directly
-    duplex: 'half' // required for node fetch with stream body
+    body: formData,
   });
 
   const data = await res.json();

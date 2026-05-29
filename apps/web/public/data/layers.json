@@ -66,5 +66,35 @@
     "maxZoom": 19,
     "legend": [{"label": "Đối tượng nhận diện", "color": "#ef4444"}],
     "keywords": ["ai", "runtime", "scan", "result", "ket qua", "quet"]
+  },
+  {
+    "id": "flood-zones",
+    "label": "Vùng ngập lụt",
+    "group": "Cảnh báo rủi ro",
+    "sourceType": "Dữ liệu cảnh báo",
+    "source": "JRC & OSM",
+    "sourceKind": "geojson",
+    "url": "/api/risk-zones?type=flood",
+    "defaultVisible": false,
+    "defaultOpacity": 0.6,
+    "minZoom": 8,
+    "maxZoom": 20,
+    "legend": [{"label": "Ngập lụt", "color": "#2563eb"}],
+    "keywords": ["flood", "ngap lut", "rui ro", "risk"]
+  },
+  {
+    "id": "landslide-zones",
+    "label": "Vùng sạt lở",
+    "group": "Cảnh báo rủi ro",
+    "sourceType": "Dữ liệu cảnh báo",
+    "source": "NASA & OSM",
+    "sourceKind": "geojson",
+    "url": "/api/risk-zones?type=landslide",
+    "defaultVisible": false,
+    "defaultOpacity": 0.6,
+    "minZoom": 8,
+    "maxZoom": 20,
+    "legend": [{"label": "Sạt lở", "color": "#d97706"}],
+    "keywords": ["landslide", "sat lo", "rui ro", "risk"]
   }
 ]

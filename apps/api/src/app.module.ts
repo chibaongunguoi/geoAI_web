@@ -11,6 +11,8 @@ import { PoiModule } from "./poi/poi.module";
 import { ReportModule } from "./report/report.module";
 import { UploadModule } from './upload/upload.module';
 import { NotificationModule } from './notification/notification.module';
+import { GroqModule } from "./groq/groq.module";
+import { RiskModule } from './risk/risk.module';
 
 import { CacheModule } from "@nestjs/cache-manager";
 import { redisStore } from "cache-manager-redis-yet";
@@ -39,7 +41,9 @@ import { redisStore } from "cache-manager-redis-yet";
     PoiModule,
     ReportModule,
     UploadModule,
-    NotificationModule
+    NotificationModule,
+    GroqModule,
+    RiskModule
   ]
 })
 export class AppModule {}
