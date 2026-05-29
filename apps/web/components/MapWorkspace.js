@@ -117,7 +117,7 @@ export default function MapWorkspace({ permissions = [], workspaceRef, mapCanvas
     !isOfficerOrAdmin ? { id: "report", label: TOOL_TEXT.report, icon: "alert" } : null,
     { id: "basemap", label: TOOL_TEXT.basemap, icon: "basemap" },
     mapState.canViewLayers ? { id: "layers", label: TOOL_TEXT.layers, icon: "layers", badge: mapState.visibleLayers.length || null } : null,
-    mapState.canViewLayers ? { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: mapSearch.poiEnabled ? "ON" : null } : null,
+    mapState.canViewLayers ? { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: mapSearch.poiEnabled ? "ON" : null, onClick: () => mapSearch.setPoiEnabled(!mapSearch.poiEnabled) } : null,
     { id: "heatmap", label: TOOL_TEXT.heatmap, icon: "heatmap", badge: mapState.buildingHeatmap ? "ON" : mapState.isHeatmapLoading ? "..." : null, onClick: mapState.toggleBuildingHeatmap }
   ].filter(Boolean), [mapState.buildingHeatmap, mapState.canViewLayers, mapState.isHeatmapLoading, mapSearch.poiResults.length, drawTool.rectangleCoords, mapState.toggleBuildingHeatmap, mapState.visibleAssets.length, mapState.visibleLayers.length, mapSearch.poiEnabled, isOfficerOrAdmin]);
 
@@ -222,22 +222,7 @@ export default function MapWorkspace({ permissions = [], workspaceRef, mapCanvas
             status={mapState.layerConfigStatus}
           />
         ) : null;
-      case "assets":
-        return mapState.canViewLayers ? (
-          <div className={styles.toolPanelStack}>
-            <label className={styles.poiLayerToggle}>
-              <input
-                type="checkbox"
-                checked={mapSearch.poiEnabled}
-                onChange={(event) => mapSearch.setPoiEnabled(event.target.checked)}
-              />
-              <span>Hiển thị tài sản trên bản đồ</span>
-            </label>
-            <p style={{ marginTop: "12px", fontSize: "14px", color: "#6b7280" }}>
-              Khi bật, các tài sản sẽ tự động hiển thị dưới dạng biểu tượng trên bản đồ.
-            </p>
-          </div>
-        ) : null;
+
       case "filters":
         return mapSearch.canUseFilters ? (
           <FilterToolPanel
@@ -359,6 +344,8 @@ export default function MapWorkspace({ permissions = [], workspaceRef, mapCanvas
           onPropertyResultViewChange={mapSearch.setPropertyResultView}
           onSelectProperty={mapSearch.setFocusedProperty}
           analysisResults={mapSearch.analysisResults}
+          onClearAnalysisResults={() => mapSearch.setAnalysisResults(null)}
+          onClearPropertySearchResults={() => mapSearch.setPropertySearchResult(null)}
         />
         <div className={styles.mapModeBadge} data-mode={mapState.scanMode}>
           {selectedScanMode?.label}

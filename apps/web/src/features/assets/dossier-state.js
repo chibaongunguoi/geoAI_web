@@ -38,6 +38,9 @@ function normalizeDocument(value) {
     type: text(input.type, "technical") || "technical",
     sizeLabel: text(input.sizeLabel, "metadata only") || "metadata only",
     uploadedAt: text(input.uploadedAt) || new Date().toISOString(),
+    fileUrl: text(input.fileUrl),
+    objectKey: text(input.objectKey),
+    contentType: text(input.contentType),
   };
 }
 
@@ -51,6 +54,9 @@ function normalizeInspection(value) {
     result,
     notes: text(input.notes),
     attachmentName: text(input.attachmentName),
+    fileUrl: text(input.fileUrl),
+    objectKey: text(input.objectKey),
+    contentType: text(input.contentType),
   };
 }
 
@@ -64,6 +70,10 @@ function normalizeMaintenance(value) {
     type,
     status: text(input.status, "Planned") || "Planned",
     notes: text(input.notes),
+    attachmentName: text(input.attachmentName),
+    fileUrl: text(input.fileUrl),
+    objectKey: text(input.objectKey),
+    contentType: text(input.contentType),
   };
 }
 

@@ -8,7 +8,7 @@ import {
   cacheBustedUrl, geoJsonPointLayer, geoJsonPopup, assetMarkerIcon, assetPopup,
   labelIcon, clusterIcon, objectColor, escapeHtml, propertyDensityBounds,
   propertyDensityPopup, propertyDensityCenter, propertyDensityObjectPopup,
-  rotatedFootprintPoints, densityHeatPoint, WORLD_RING, boundsToCoordinates,
+  rotatedFootprintPoints, densityHeatPoint, densityHeatRatio, densityHeatColor, WORLD_RING, boundsToCoordinates,
   poiPopup, poiTooltip
 } from "../map-helpers";
 
@@ -463,12 +463,26 @@ export function useMapLayers({
       .map((region) => densityHeatPoint(region, maxRegionCount))
       .filter(Boolean);
 
+    regions.forEach((region) => {
+      const bounds = propertyDensityBounds(region);
+      if (!bounds) return;
+
+      const ratio = densityHeatRatio(region, maxRegionCount);
+      L.rectangle(bounds, {
+        stroke: false,
+        fillColor: densityHeatColor(ratio),
+        fillOpacity: Math.min(0.34, 0.08 + ratio * 0.26),
+      })
+        .bindPopup(propertyDensityPopup(region))
+        .addTo(buildingHeatmapLayer);
+    });
+
     if (heatPoints.length > 0 && typeof L.heatLayer === "function") {
       buildingHeatLayerRef.current = L.heatLayer(heatPoints, {
-        radius: 36,
-        blur: 32,
+        radius: 42,
+        blur: 28,
         maxZoom: 17,
-        minOpacity: 0.26,
+        minOpacity: 0.18,
         gradient: {
           0.12: "#2563eb",
           0.32: "#22c55e",
@@ -478,6 +492,9 @@ export function useMapLayers({
         },
       }).addTo(map);
       buildingHeatmapLayer.bringToFront();
+      if (buildingHeatLayerRef.current?.bringToFront) {
+        buildingHeatLayerRef.current.bringToFront();
+      }
       propertySearchLayer.bringToFront();
     }
 

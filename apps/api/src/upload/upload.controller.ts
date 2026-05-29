@@ -1,27 +1,26 @@
-import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Header, Post, Query, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import type { Response } from 'express';
+import { R2StorageService } from './r2-storage.service';
 
 @Controller('upload')
 export class UploadController {
+  constructor(private readonly storage: R2StorageService) {}
+
   @Post()
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = extname(file.originalname);
-        cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-      }
-    })
-  }))
+  @UseInterceptors(FileInterceptor('file'))
   uploadFile(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
+    return this.storage.uploadFile(file);
+  }
+
+  @Get('object')
+  @Header('Cache-Control', 'private, max-age=300')
+  async getObject(@Query('key') key: string, @Res() res: Response) {
+    const object = await this.storage.getObject(key);
+    res.setHeader('Content-Type', object.contentType);
+    if (object.contentLength !== undefined) {
+      res.setHeader('Content-Length', String(object.contentLength));
     }
-    return {
-      imageUrl: `/uploads/${file.filename}`
-    };
+    object.body.pipe(res);
   }
 }

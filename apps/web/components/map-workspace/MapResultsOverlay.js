@@ -3,6 +3,7 @@
 import { densitySummaryRows, hasDensityResult } from "@/features/map/property-search";
 import PropertyTable from "../PropertyTable";
 import SearchResultList from "../SearchResultList";
+import { X } from "lucide-react";
 
 const TEXT = {
   section: "K\u1ebft qu\u1ea3 b\u1ea3n \u0111\u1ed3",
@@ -25,7 +26,9 @@ export default function MapResultsOverlay({
   propertyResultView,
   onPropertyResultViewChange,
   onSelectProperty,
-  analysisResults
+  analysisResults,
+  onClearAnalysisResults,
+  onClearPropertySearchResults
 }) {
   const hasPropertyResult = Boolean(propertySearchResult);
   const hasAnalysisResult = Boolean(analysisResults);
@@ -38,8 +41,11 @@ export default function MapResultsOverlay({
     <section className={styles.resultsOverlay} aria-label={TEXT.section}>
       {hasDensityResult(propertySearchResult) ? (
         <>
-          <header className={styles.overlayPanelHeader}>
+          <header className={styles.overlayPanelHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>{TEXT.density}</h2>
+            <button onClick={onClearPropertySearchResults} style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }} aria-label="Đóng">
+              <X size={18} />
+            </button>
           </header>
           <ol className={styles.densityList}>
             {densitySummaryRows(propertySearchResult).map((region) => (
@@ -54,8 +60,11 @@ export default function MapResultsOverlay({
 
       {propertySearchResult && !hasDensityResult(propertySearchResult) ? (
         <div className={styles.propertyResultsPanel}>
-          <header className={styles.overlayPanelHeader}>
+          <header className={styles.overlayPanelHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>{TEXT.search}</h2>
+            <button onClick={onClearPropertySearchResults} style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }} aria-label="Đóng">
+              <X size={18} />
+            </button>
           </header>
           <div className={styles.viewSwitcher} role="group" aria-label={TEXT.viewLabel}>
             <button
@@ -86,8 +95,11 @@ export default function MapResultsOverlay({
 
       {analysisResults ? (
         <div className={styles.analysisSummaryPanel}>
-          <header className={styles.overlayPanelHeader}>
+          <header className={styles.overlayPanelHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>{TEXT.scan}</h2>
+            <button onClick={onClearAnalysisResults} style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }} aria-label="Đóng">
+              <X size={18} />
+            </button>
           </header>
           <div className={styles.resultGrid}>
             <div className={styles.metric}>

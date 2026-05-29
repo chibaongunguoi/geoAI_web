@@ -202,7 +202,7 @@ function densityHeatRatio(region, maxCount) {
   if (!Number.isFinite(count) || !Number.isFinite(max) || max <= 0) {
     return 0;
   }
-  return Math.max(0, Math.min(1, count / max));
+  return Math.max(0, Math.min(1, Math.log1p(count) / Math.log1p(max)));
 }
 
 function densityHeatColor(ratio) {

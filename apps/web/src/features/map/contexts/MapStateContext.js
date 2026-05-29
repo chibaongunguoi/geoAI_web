@@ -208,7 +208,7 @@ export function MapStateProvider({ children, permissions }) {
       return;
     }
     setIsHeatmapLoading(true);
-    fetch("/api/properties/heatmap")
+    fetch("/api/properties/heatmap?source=all&limit=1800&gridSize=0.0012")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP error ${r.status}`);
         return r.json();

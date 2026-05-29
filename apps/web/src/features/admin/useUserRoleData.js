@@ -56,18 +56,10 @@ export function useUserRoleData({ users: initialUsers, fetchUsers }) {
   }, [users]);
 
   const toggleRole = useCallback((userId, roleCode) => {
-    setSelectedRoles((current) => {
-      const nextRoles = new Set(current[userId] || []);
-      if (nextRoles.has(roleCode)) {
-        nextRoles.delete(roleCode);
-      } else {
-        nextRoles.add(roleCode);
-      }
-      return {
-        ...current,
-        [userId]: [...nextRoles]
-      };
-    });
+    setSelectedRoles((current) => ({
+      ...current,
+      [userId]: [roleCode]
+    }));
   }, []);
 
   const saveRoles = useCallback((userId) => {

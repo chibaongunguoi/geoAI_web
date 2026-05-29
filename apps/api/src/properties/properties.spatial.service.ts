@@ -140,7 +140,20 @@ export class PropertiesSpatialService {
         ...params
       );
       const regions = rows.map((row, index) => this.densityRegion(row, index));
-      const total = regions.reduce((sum, region) => sum + Number(region.count || 0), 0);
+      const returnedCellTotal = regions.reduce((sum, region) => sum + Number(region.count || 0), 0);
+      const totalRows = this.sqlite.all<{ count?: number }>(
+        `
+        SELECT COUNT(*) AS count
+        FROM "BuildingProperty"
+        WHERE "deletedAt" IS NULL
+          ${sourceFilter}
+          AND "centroidLat" IS NOT NULL
+          AND "centroidLng" IS NOT NULL
+          ${exactFilters}
+        `,
+        ...exactFiltersArgs
+      ) || [];
+      const total = Number(totalRows[0]?.count ?? returnedCellTotal);
 
       const result = {
         map: { type: "property-density", regions },
@@ -149,6 +162,7 @@ export class PropertiesSpatialService {
           source,
           filters: locationFilters,
           total,
+          returnedCellTotal,
           gridSize,
           limit
         }

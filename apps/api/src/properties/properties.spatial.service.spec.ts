@@ -58,5 +58,35 @@ describe('PropertiesSpatialService (TDD Cache)', () => {
       expect(cacheManager.set).toHaveBeenCalled();
       expect(result.meta.total).toBe(0);
     });
+
+    it('should report total buildings separately from returned heatmap cells', async () => {
+      cacheManager.get.mockResolvedValue(null);
+      sqliteService.all.mockImplementation((sql: string) => {
+        if (sql.includes('COUNT(*) AS count') && !sql.includes('GROUP BY')) {
+          return [{ count: 400000 }];
+        }
+        if (sql.includes('GROUP BY lat_cell, lng_cell')) {
+          return [
+            {
+              cellId: '8000:54110',
+              count: 120,
+              centerLat: 16.071,
+              centerLng: 108.221,
+              cellSouth: 16.07,
+              cellWest: 108.22,
+              cellNorth: 16.0712,
+              cellEast: 108.2212
+            }
+          ];
+        }
+        return [];
+      });
+
+      const result: any = await service.getBuildingHeatmap({ source: 'all', limit: 1, gridSize: 0.0012 });
+
+      expect(result.map.regions).toHaveLength(1);
+      expect(result.meta.returnedCellTotal).toBe(120);
+      expect(result.meta.total).toBe(400000);
+    });
   });
 });

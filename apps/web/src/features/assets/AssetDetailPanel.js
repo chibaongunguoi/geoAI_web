@@ -12,21 +12,17 @@ import {
   readDossierStorage,
   writeDossierStorage,
 } from "./dossier-state";
-import { display, downloadJson, dateLabel } from "./tabs/utils";
+import { dateLabel, display, downloadJson } from "./tabs/utils";
 import AssetOverviewTab from "./tabs/AssetOverviewTab";
 import AssetDocumentsTab from "./tabs/AssetDocumentsTab";
 import AssetInspectionsTab from "./tabs/AssetInspectionsTab";
 import AssetMaintenanceTab from "./tabs/AssetMaintenanceTab";
-import AssetTimelineTab from "./tabs/AssetTimelineTab";
-import AssetLinksTab from "./tabs/AssetLinksTab";
 
 const TABS = [
   ["overview", "Tổng quan"],
   ["documents", "Tài liệu"],
   ["inspections", "Kiểm tra"],
   ["maintenance", "Bảo trì"],
-  ["timeline", "Lịch sử"],
-  ["links", "Liên kết"],
 ];
 
 function assetIdentifier(property) {
@@ -35,6 +31,10 @@ function assetIdentifier(property) {
 
 function assetKey(property) {
   return property.id || property.code || "unknown";
+}
+
+function safeTab(value) {
+  return TABS.some(([tab]) => tab === value) ? value : "overview";
 }
 
 export default function AssetDetailPanel({ property, auditLogs = [], canManageProperties }) {
@@ -46,7 +46,7 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
   const [message, setMessage] = useState("");
   const [savingStatus, setSavingStatus] = useState(false);
 
-  const activeTab = dossier.lastConfig.activeTab;
+  const activeTab = safeTab(dossier.lastConfig.activeTab);
   const documentTypeFilter = dossier.lastConfig.documentTypeFilter;
   const searchQuery = dossier.lastConfig.searchQuery;
   const searched = useMemo(() => filterDossierSections(dossier, searchQuery), [dossier, searchQuery]);
@@ -56,8 +56,7 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
     searched.documents.length +
     searched.inspections.length +
     searched.maintenance.length +
-    searched.valueHistory.length +
-    searched.links.length;
+    searched.valueHistory.length;
 
   const coordinate =
     property.centroidLat !== null &&
@@ -121,11 +120,11 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
     }
   }
 
-  function exportDossier(kind = "dossier") {
+  function exportDossier() {
     const payload = buildDossierExport({ property: { ...property, status }, state: dossier, auditLogs });
-    downloadJson(`asset-${identifier}-${kind}.json`, payload);
-    updateDossier((current) => current, kind === "package" ? "package.download" : "export.json", { kind });
-    setMessage(kind === "package" ? "Đã tải gói hồ sơ dạng JSON." : "Đã xuất hồ sơ dạng JSON.");
+    downloadJson(`asset-${identifier}-dossier.json`, payload);
+    updateDossier((current) => current, "export.json", { kind: "dossier" });
+    setMessage("Đã xuất hồ sơ dạng JSON.");
   }
 
   const filteredDocuments =
@@ -139,17 +138,27 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
     <section className="asset-detail-panel">
       <div className="asset-detail-heading">
         <div>
+          <Link className="asset-detail-back" href="/assets">Quay lại danh sách</Link>
           <p className="eyebrow">Hồ sơ tài sản</p>
           <h1>{display(property.name || property.code)}</h1>
+          <div className="asset-detail-meta">
+            <span>{display(property.code || property.id)}</span>
+            <span>{display(status)}</span>
+          </div>
         </div>
-        {canManageProperties ? (
-          <Link className="text-button" href={`/assets/${encodeURIComponent(identifier)}/edit`}>
-            Chỉnh sửa
-          </Link>
-        ) : null}
+        <div className="asset-detail-actions">
+          <button className="text-button" type="button" onClick={exportDossier}>
+            Xuất JSON
+          </button>
+          {canManageProperties ? (
+            <Link className="text-button" href={`/assets/${encodeURIComponent(identifier)}/edit`}>
+              Chỉnh sửa
+            </Link>
+          ) : null}
+        </div>
       </div>
 
-      <div className="dossier-toolbar">
+      <div className="asset-detail-utility">
         <label>
           Tìm kiếm hồ sơ
           <input
@@ -158,12 +167,6 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
             placeholder="Tài liệu, ghi chú, nhà cung cấp"
           />
         </label>
-        <button className="text-button" type="button" onClick={() => exportDossier("dossier")}>
-          Xuất JSON
-        </button>
-        <button className="text-button" type="button" onClick={() => exportDossier("package")}>
-          Tải gói hồ sơ
-        </button>
       </div>
 
       {searchQuery ? <p className="form-status">Tìm thấy {searchCount} kết quả.</p> : null}
@@ -176,7 +179,7 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
         </div>
       ) : null}
 
-      <div className="dossier-tabs" role="tablist" aria-label="Asset dossier sections">
+      <div className="dossier-tabs" role="tablist" aria-label="Các mục hồ sơ tài sản">
         {TABS.map(([value, label]) => (
           <button
             key={value}
@@ -202,6 +205,7 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
           canManageProperties={canManageProperties}
           coordinate={coordinate}
           auditLogs={auditLogs}
+          timeline={timeline}
           searched={searched}
           updateDossier={updateDossier}
         />
@@ -223,6 +227,7 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
           canManageProperties={canManageProperties}
           updateDossier={updateDossier}
           searched={searched}
+          setMessage={setMessage}
         />
       )}
 
@@ -231,35 +236,20 @@ export default function AssetDetailPanel({ property, auditLogs = [], canManagePr
           canManageProperties={canManageProperties}
           updateDossier={updateDossier}
           searched={searched}
+          setMessage={setMessage}
         />
       )}
 
-      {activeTab === "timeline" && (
-        <AssetTimelineTab
-          timeline={timeline}
-        />
-      )}
-
-      {activeTab === "links" && (
-        <AssetLinksTab
-          canManageProperties={canManageProperties}
-          updateDossier={updateDossier}
-          searched={searched}
-        />
-      )}
-
-      <section className="dossier-history" aria-label="Dossier operation history">
-        <h2>Operation history</h2>
-        {dossier.history.length === 0 ? (
-          <p className="empty-list">No local dossier operations yet.</p>
-        ) : null}
+      <details className="dossier-local-history">
+        <summary>Hoạt động cục bộ</summary>
+        {dossier.history.length === 0 ? <p className="empty-list">Chưa có hoạt động cục bộ.</p> : null}
         {dossier.history.slice(0, 6).map((item) => (
           <div className="dossier-row" key={`${item.action}-${item.createdAt}`}>
             <strong>{item.action}</strong>
             <span>{dateLabel(item.createdAt)}</span>
           </div>
         ))}
-      </section>
+      </details>
     </section>
   );
 }

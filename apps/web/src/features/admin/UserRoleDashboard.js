@@ -91,7 +91,8 @@ export default function UserRoleDashboard({ users: initialUsers, canManageRoles,
               <label key={role.code}>
                 <input
                   checked={(selectedRoles[user.id] || []).includes(role.code)}
-                  type="checkbox"
+                  type="radio"
+                  name={`role-${user.id}`}
                   onChange={() => toggleRole(user.id, role.code)}
                 />
                 {role.label}

@@ -21,20 +21,20 @@ export default function DashboardClient({ initialFilters, canExport }) {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
         <div>
           <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bảng điều khiển</p>
-          <h1 style={{ margin: '0.25rem 0 0 0', color: '#0f172a', fontSize: '1.875rem', fontWeight: 700 }}>Thống kê Building</h1>
+          <h1 style={{ margin: '0.25rem 0 0 0', color: 'white', fontSize: '1.875rem', fontWeight: 700 }}>Thống kê Building</h1>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           {loading ? <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Đang tải...</span> : null}
-          <button 
-            type="button" 
-            onClick={exportCsv} 
+          <button
+            type="button"
+            onClick={exportCsv}
             disabled={!canExport || empty}
-            style={{ 
-              padding: '0.625rem 1.25rem', 
-              background: '#0f172a', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '8px', 
+            style={{
+              padding: '0.625rem 1.25rem',
+              background: '#0f172a',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
               cursor: (!canExport || empty) ? 'not-allowed' : 'pointer',
               fontWeight: 600,
               fontSize: '0.875rem',
