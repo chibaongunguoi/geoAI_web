@@ -13,7 +13,7 @@ import { PropertySearchProvider } from "./property-search-provider";
 import { normalizeSearchText, levenshteinDistance, validLimit, searchTokens, searchSource, withSemanticProviderTimeout, searchStatus, semanticSearchFallbackWarning, densitySearchTerms, withDensityTimeout, searchAnswer, withListSearchTimeout, selectLightPropertyFields, isExplicitListQuery, validDateRange, cleanString, isSameSearchTokenFilter, bestFuzzyTokenScore, minimumSearchScore, extractPhraseAfter, matchKnownWard, matchKnownDistrict, matchStatus, matchPropertyType, isDensityQuestion, isCountQuestion, densityDirection, isNaturalLanguageQuestion } from "./properties.utils";
 import { Delegate, PropertiesPrisma, PropertyStatus, BuildingPropertyRow, PropertyDensityRegion, PropertySearchMap, PropertyDensityObject, PropertySearchAnswer, SearchIntent, DensityRegionRow, PropertySearchInput, PropertyHeatmapInput, PropertyMutationInput, AssetImportResult, ImportOptions, OvertureFeature, DEFAULT_CITY, DEFAULT_PROPERTY_TYPE, DEFAULT_STATUS, DEFAULT_SOURCE, OVERTURE_SOURCE, MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_DENSITY_GRID_SIZE, DEFAULT_DENSITY_REGION_LIMIT, DEFAULT_DENSITY_OBJECT_LIMIT, DENSITY_BACKEND_TIMEOUT_MS, SEMANTIC_PROVIDER_TIMEOUT_MS, LIST_SEARCH_TIMEOUT_MS, DEFAULT_EMBEDDING_MODEL, VALID_STATUSES, STOP_WORDS_FOR_TOKENS, LOWEST_DENSITY_PHRASES, HIGHEST_DENSITY_PHRASES, DENSITY_INTENT_KEYWORDS, INTENT_KEYWORDS, STATIC_LOCATIONS, DANANG_DISTRICTS, PropertiesServiceOptions, PROPERTIES_SERVICE_OPTIONS } from "./properties.types";
 import { PropertiesSpatialService } from "./properties.spatial.service";
-import { GroqService, ParsedSpatialQuery } from "../groq/groq.service";
+import { GroqService, ParsedPropertyQuery, ParsedSpatialQuery } from "../groq/groq.service";
 
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Cache } from "cache-manager";
@@ -22,6 +22,23 @@ function replacePlaceholders(sql: string): string {
   let count = 1;
   return sql.replace(/\?/g, () => `$${count++}`);
 }
+
+const HAI_CHAU_DISTRICT = "Hải Châu";
+const HAI_CHAU_WARDS = new Set([
+  "binh hien",
+  "binh thuan",
+  "hai chau i",
+  "hai chau ii",
+  "hoa cuong bac",
+  "hoa cuong nam",
+  "hoa thuan dong",
+  "hoa thuan tay",
+  "nam duong",
+  "phuoc ninh",
+  "thach thang",
+  "thanh binh",
+  "thuan phuoc"
+]);
 
 @Injectable()
 export class PropertiesSearchService {
@@ -87,12 +104,10 @@ export class PropertiesSearchService {
       }
     }
     if (input.query) {
-      const spatialKeywords = ["gần", "cạnh", "bán kính", "xung quanh", "cách", "giao với", "ngập", "lụt", "sạt", "lở", "rủi ro"];
-      if (spatialKeywords.some(kw => input.query!.toLowerCase().includes(kw))) {
-        const parsedSpatial = await this.groqService.parseSpatialQuery(input.query);
-        if (parsedSpatial.riskType || (parsedSpatial.isRelational && parsedSpatial.referenceName)) {
-          return this.searchRelationalSpatialPostgis(parsedSpatial, limit);
-        }
+      const parsedQuery = await this.groqService.parsePropertyQuery(input.query);
+      const llmResult = await this.searchFromLlmIntent(parsedQuery, input, limit);
+      if (llmResult) {
+        return llmResult;
       }
     }
 
@@ -159,6 +174,91 @@ export class PropertiesSearchService {
     return this.searchPropertiesPostgres(input, limit, intent, tokens, source);
   }
 
+  private async searchFromLlmIntent(parsed: ParsedPropertyQuery, input: PropertySearchInput, limit: number) {
+    if (!parsed || parsed.intent === "unknown") {
+      return undefined;
+    }
+
+    const scopeWarning = this.haiChauScopeWarning(parsed);
+    if (scopeWarning) {
+      return {
+        items: [],
+        answer: {
+          type: "count",
+          count: 0,
+          filters: { district: HAI_CHAU_DISTRICT },
+          text: scopeWarning
+        },
+        meta: {
+          limit,
+          searchMode: "llm-intent-out-of-scope",
+          parsedQuery: parsed,
+          warnings: [scopeWarning],
+          total: 0
+        }
+      };
+    }
+
+    const scoped = this.withHaiChauScope(parsed);
+
+    if (scoped.intent === "relational_spatial" || scoped.intent === "risk") {
+      const spatial: ParsedSpatialQuery = {
+        isRelational: scoped.intent === "relational_spatial",
+        targetCategory: scoped.targetCategory || undefined,
+        referenceName: scoped.referenceName || undefined,
+        distanceMeters: scoped.distanceMeters || 500,
+        district: scoped.district || HAI_CHAU_DISTRICT,
+        ward: scoped.ward || undefined,
+        riskType: scoped.riskType || undefined
+      };
+
+      if (spatial.riskType || (spatial.isRelational && spatial.referenceName)) {
+        return this.searchRelationalSpatialPostgis(spatial, limit);
+      }
+    }
+
+    if (scoped.intent === "density" || scoped.intent === "count" || scoped.intent === "list") {
+      const intent: SearchIntent = {
+        type: scoped.intent === "density" ? "density" : scoped.intent === "count" ? "count" : "list",
+        direction: scoped.direction || undefined,
+        filters: {
+          ward: scoped.ward || undefined,
+          district: scoped.district || HAI_CHAU_DISTRICT,
+          propertyType: scoped.targetCategory === "building" ? "building" : undefined
+        }
+      };
+      const terms = scoped.searchTerms?.length
+        ? scoped.searchTerms.join(" ")
+        : scoped.targetCategory || input.query || "";
+      const tokens = searchTokens(terms);
+      const source = searchSource(input.source);
+
+      return this.searchPropertiesPostgres(input, limit, intent, tokens, source);
+    }
+
+    return undefined;
+  }
+
+  private withHaiChauScope(parsed: ParsedPropertyQuery): ParsedPropertyQuery {
+    return {
+      ...parsed,
+      district: parsed.district || HAI_CHAU_DISTRICT
+    };
+  }
+
+  private haiChauScopeWarning(parsed: ParsedPropertyQuery) {
+    const district = normalizeSearchText(parsed.district || "");
+    const ward = normalizeSearchText(parsed.ward || "");
+    const isOtherDistrict = Boolean(district) && district !== "hai chau";
+    const isOtherWard = Boolean(ward) && !HAI_CHAU_WARDS.has(ward);
+
+    if (!isOtherDistrict && !isOtherWard) {
+      return undefined;
+    }
+
+    return "Hệ thống hiện chỉ hỗ trợ truy vấn tài sản trong quận Hải Châu và các phường thuộc Hải Châu.";
+  }
+
   private async searchRelationalSpatialPostgis(parsed: ParsedSpatialQuery, limit: number): Promise<any> {
     const { referenceName, targetCategory, distanceMeters = 500, district, ward, riskType } = parsed;
     
@@ -170,20 +270,21 @@ export class PropertiesSearchService {
       
       const targetRows = await this.prisma.$queryRawUnsafe<any[]>(
         replacePlaceholders(`
-          SELECT id, name, ${catCol} as category, ${isBuilding ? "''" : "address"} as address, 
-                 ${isBuilding ? '"centroidLng"' : "ST_X(location::geometry)"} as "centroidLng", 
-                 ${isBuilding ? '"centroidLat"' : "ST_Y(location::geometry)"} as "centroidLat"
-          FROM "${tableName}"
-          WHERE ${targetCategory && !isBuilding ? `${catCol} ILIKE '%' || ? || '%'` : "1=1"}
-            ${district ? "AND district ILIKE '%' || ? || '%'" : ""}
-            ${ward ? "AND ward ILIKE '%' || ? || '%'" : ""}
-            AND "riskFlags" @> ?
+          SELECT p.id, p.name, p.${catCol} as category, ${isBuilding ? "''" : "p.address"} as address, 
+                 ${isBuilding ? 'p."centroidLng"' : "ST_X(p.location::geometry)"} as "centroidLng", 
+                 ${isBuilding ? 'p."centroidLat"' : "ST_Y(p.location::geometry)"} as "centroidLat"
+          FROM "${tableName}" p
+          JOIN "RiskZone" r ON ST_Intersects(p.${isBuilding ? 'geom' : 'location'}, r.geom)
+          WHERE r."zoneType" = ?
+            ${targetCategory && !isBuilding ? `AND p.${catCol} ILIKE '%' || ? || '%'` : ""}
+            ${district ? "AND p.district ILIKE '%' || ? || '%'" : ""}
+            ${ward ? "AND p.ward ILIKE '%' || ? || '%'" : ""}
           LIMIT ?
         `),
+        riskType,
         ...(targetCategory && !isBuilding ? [targetCategory] : []),
         ...(district ? [district] : []),
         ...(ward ? [ward] : []),
-        `["${riskType}"]`,
         limit
       );
 
@@ -257,7 +358,7 @@ export class PropertiesSearchService {
       }
     }
 
-    // Now find targets using ST_DWithin
+    // Now find targets using ST_DWithin on both Place and BuildingProperty
     const targetRows = await this.prisma.$queryRawUnsafe<any[]>(
       replacePlaceholders(`
         SELECT id, name, category, address, ST_X(location::geometry) as "centroidLng", ST_Y(location::geometry) as "centroidLat",
@@ -265,9 +366,18 @@ export class PropertiesSearchService {
         FROM "Place"
         WHERE category ILIKE '%' || ? || '%'
           AND ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)
+        UNION ALL
+        SELECT id, name, "propertyType" as category, '' as address, "centroidLng", "centroidLat",
+          ST_Distance(geom::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) as distance
+        FROM "BuildingProperty"
+        WHERE "propertyType" ILIKE '%' || ? || '%'
+          AND ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)
         ORDER BY distance ASC
         LIMIT ?
       `),
+      refLng, refLat,
+      targetCategory || "",
+      refLng, refLat, distanceMeters,
       refLng, refLat,
       targetCategory || "",
       refLng, refLat, distanceMeters,
@@ -759,10 +869,10 @@ export class PropertiesSearchService {
     };
 
     return {
-      type: isDensityQuestion(normalizedQuery)
-        ? "density"
-        : isCountQuestion(normalizedQuery)
+      type: isCountQuestion(normalizedQuery)
           ? "count"
+          : isDensityQuestion(normalizedQuery)
+            ? "density"
           : "list",
       direction: densityDirection(normalizedQuery),
       filters
@@ -824,4 +934,3 @@ export class PropertiesSearchService {
     };
   }
 }
-

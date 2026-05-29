@@ -1,67 +1,45 @@
 % --- BẮT ĐẦU BẢNG ---
 
-    
-
-% Sử dụng cột c (canh giữa) cho STT và cột p (đoạn văn có kích thước cố định) cho nội dung để chữ tự xuống dòng
 \begin{longtable}{|c|p{0.85\textwidth}|}
-        \caption{Danh sách yêu cầu chức năng của hệ thống GeoAI} \label{tab:yeu_cau_chuc_nang} \\ % Thêm dòng này
+        \caption{Danh sách yêu cầu chức năng của hệ thống GeoAI} \label{tab:yeu_cau_chuc_nang} \\
 
 \hline
-\rowcolor{gray!25} % Tô màu xám nhạt cho hàng tiêu đề
+\rowcolor{gray!25}
 \textbf{STT} & \centering\arraybackslash\textbf{Yêu cầu chức năng} \\ \hline
 \endfirsthead
 
-% Định nghĩa phần đầu của các trang tiếp theo (chỉ có đường kẻ ngang, KHÔNG lặp lại tiêu đề)
 \hline
 \endhead
-
-% Định nghĩa phần cuối của các trang (khi bị ngắt trang)
 \hline
 \endfoot
-
-% Định nghĩa phần cuối cùng của toàn bộ bảng
 \hline
 \endlastfoot
 
-% --- NỘI DUNG BẢNG ---
+\textbf{I} & \textbf{Chức năng Quản trị Hệ thống} \\ \hline
+1 & Quản lý người dùng, phân quyền RBAC đa cấp độ \\ \hline
+2 & Quản lý danh mục loại tài sản, lớp bản đồ \\ \hline
+3 & Log hệ thống (Audit logs) và lịch sử truy cập \\ \hline
 
-\textbf{I} & \textbf{Chức năng hệ thống} \\ \hline
-1 & Quản lý danh mục Cấu hình hệ thống \\ \hline
-2 & Quản lý danh mục \gls{api} Key \\ \hline
-3 & Quản lý danh mục Nhóm quyền \\ \hline
-4 & Quản lý danh mục Chức năng \\ \hline
-5 & Log \gls{api} (các phần mềm khác sử dụng \gls{api} của hệ thống) \\ \hline
-6 & Nhật ký sử dụng hệ thống \\ \hline
-7 & Sao lưu dữ liệu \\ \hline
-8 & Phân quyền cho người dùng \\ \hline
+\textbf{II} & \textbf{Chức năng WebGIS (Bản đồ cốt lõi)} \\ \hline
+4 & Hiển thị bản đồ nền (OpenStreetMap) tích hợp công cụ điều hướng \\ \hline
+5 & Bật/Tắt, tùy chỉnh hiển thị các lớp bản đồ (Tài sản, Tiện ích, Rủi ro, Giao thông) \\ \hline
+6 & Tìm kiếm nhanh địa chỉ, tọa độ, mã tài sản và Zoom trực tiếp tới vị trí \\ \hline
+7 & Lọc dữ liệu không gian theo bounding box, bán kính, và thuộc tính hành chính \\ \hline
 
-\textbf{II} & \textbf{Chức năng \gls{webgis} -- Hiển thị bản đồ} \\ \hline
-9 & Hiển thị bản đồ đô thị nền (OSM / Google Maps / VN Map), zoom 1--22 \\ \hline
-10 & Quản lý lớp dữ liệu: bật/tắt lớp, kéo thả thứ tự, điều chỉnh độ trong suốt \\ \hline
-11 & Hiển thị tài sản trên bản đồ với icon phân loại và popup thông tin khi click \\ \hline
-12 & Tìm kiếm địa chỉ, vị trí và tài sản theo mã/tên; tự động zoom đến kết quả \\ \hline
-13 & Lọc hiển thị tài sản theo loại, trạng thái, quận/phường, ngày cập nhật \\ \hline
-14 & Vẽ và chỉnh sửa đối tượng không gian (điểm, đường, vùng) trực tiếp trên bản đồ \\ \hline
-15 & Đo khoảng cách và diện tích trực tiếp trên bản đồ \\ \hline
-16 & Xuất bản đồ sang PNG/PDF kèm legend, tỷ lệ; chia sẻ bản đồ qua link URL \\ \hline
+\textbf{III} & \textbf{Chức năng Quản lý Tài sản Đô thị (Building Property)} \\ \hline
+8 & Thêm mới, cập nhật, xóa tài sản với thông tin chi tiết (tọa độ, số tầng, diện tích) \\ \hline
+9 & Tự động đồng bộ dữ liệu tòa nhà, địa điểm tiện ích (POI) từ Overture Maps \\ \hline
+10 & Phân loại tài sản (cơ quan, trường học, bệnh viện, khu dân cư...) \\ \hline
+11 & Dashboard thống kê số lượng tài sản theo quận/huyện, phân bố mức độ rủi ro \\ \hline
 
-\textbf{III} & \textbf{Chức năng Quản lý Tài sản} \\ \hline
-17 & Thêm, sửa, xóa tài sản với đầy đủ thông tin thuộc tính, tọa độ và hình ảnh \\ \hline
-18 & Quản lý hồ sơ tài sản: lịch sử bảo trì, tài liệu kỹ thuật, trạng thái và giá trị \\ \hline
-19 & Quản lý lịch bảo trì định kỳ, cảnh báo đến hạn và ghi nhận kết quả thực hiện \\ \hline
-20 & Import tài sản từ Excel/CSV/Shapefile; export sang Excel/GeoJSON/Shapefile \\ \hline
-21 & Dashboard tổng quan tình trạng tài sản theo loại, trạng thái, đơn vị hành chính \\ \hline
+\textbf{IV} & \textbf{Chức năng AI và Phân tích Không gian} \\ \hline
+12 & Spatial NLP Chat: Giao tiếp bằng ngôn ngữ tự nhiên tiếng Việt để truy vấn không gian (VD: "Tìm trường học gần đây") \\ \hline
+13 & Dịch ngôn ngữ tự nhiên thành câu lệnh SQL PostGIS tự động thông qua Groq API \\ \hline
+14 & Đánh giá rủi ro không gian (Risk Assessment): Overlay tự động vùng ngập lụt, sạt lở lên tài sản \\ \hline
+15 & Chấm điểm tài sản (Asset Scoring) theo mức độ tiếp cận đường giao thông và tiện ích POI \\ \hline
 
-\textbf{IV} & \textbf{Chức năng \gls{ai} -- Truy vấn thông minh} \\ \hline
-22 & Truy vấn tài sản bằng ngôn ngữ tự nhiên tiếng Việt, trả kết quả trên bản đồ và bảng dữ liệu \\ \hline
-23 & Hiển thị và cho phép chỉnh sửa câu SQL được sinh ra từ câu hỏi tự nhiên \\ \hline
-24 & \gls{ai} đề xuất kế hoạch bảo trì dự đoán dựa trên lịch sử và tuổi thọ tài sản \\ \hline
-25 & Nhận dạng tình trạng tài sản từ ảnh chụp hiện trường (hỏng hóc, vết nứt, gỉ sét) \\ \hline
-26 & Tự động sinh báo cáo tình trạng tài sản bằng ngôn ngữ tự nhiên tiếng Việt, xuất PDF \\ \hline
-
-\textbf{V} & \textbf{Chức năng Phân tích Không gian} \\ \hline
-27 & Phân tích mật độ và phân bố tài sản theo không gian (heatmap) \\ \hline
-28 & Phân tích vùng đệm (buffer) xung quanh tài sản, thống kê tài sản trong vùng \\ \hline
-29 & Tối ưu tuyến đường bảo trì, tính lộ trình ngắn nhất cho danh sách tài sản cần xử lý \\ \hline
-30 & Thống kê tài sản theo đơn vị hành chính: phường, quận, thành phố; bản đồ choropleth \\ 
+\textbf{V} & \textbf{Chức năng Phản ánh kiến nghị (Citizen Reports)} \\ \hline
+16 & Tiếp nhận thông tin sự cố hạ tầng từ người dân kèm tọa độ GPS \\ \hline
+17 & Xử lý, điều phối và cập nhật trạng thái sự cố (PENDING, RESOLVED) \\ \hline
+18 & Gửi thông báo (Notification) kết quả xử lý cho người dùng \\ 
 \end{longtable}

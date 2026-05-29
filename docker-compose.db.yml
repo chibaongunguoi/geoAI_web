@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: geoai-postgres
+    environment:
+      POSTGRES_USER: geoai
+      POSTGRES_PASSWORD: geoai123
+      POSTGRES_DB: geoai
+    ports:
+      - "5432:5432"
+    volumes:
+      - geoai_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  geoai_postgres_data:

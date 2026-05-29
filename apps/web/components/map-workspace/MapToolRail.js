@@ -14,7 +14,8 @@ import {
   Move3D,
   PencilRuler,
   Ruler,
-  ScanLine
+  ScanLine,
+  Waves
 } from "lucide-react";
 
 const ICONS = {
@@ -30,7 +31,8 @@ const ICONS = {
   draw: PencilRuler,
   export: Download,
   fullscreen: Maximize2,
-  cursor: Move3D
+  cursor: Move3D,
+  riskZones: Waves
 };
 
 function ToolButton({ tool, activeTool, styles, onSelect }) {

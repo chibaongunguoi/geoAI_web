@@ -25,4 +25,12 @@ Hiện trạng quản lý tài sản đô thị tại TP. Đà Nẵng đang đ�
     \item Không có công cụ phân tích dự báo nhu cầu bảo trì, thay thế tài sản dựa trên dữ liệu lịch sử.
 \end{itemize}
 
+\subsection{Mối liên hệ của dự án với hệ thống ứng dụng CNTT khác}
+Dự án \gls{geoai} được xây dựng với định hướng mở, đảm bảo khả năng liên thông và tích hợp chặt chẽ với các hệ thống hiện hữu của thành phố:
+\begin{itemize}
+    \item \textbf{Cổng Dữ liệu mở Thành phố / Overture Maps:} Kết nối \gls{api} để tự động đồng bộ hóa và làm giàu dữ liệu tài sản, địa điểm tiện ích (POI), giao thông từ cơ sở dữ liệu mở toàn cầu Overture Maps và OpenStreetMap.
+    \item \textbf{Hệ thống Phản ánh kiến nghị công dân (Tổng đài 1022):} Chia sẻ dữ liệu báo cáo sự cố hạ tầng thông qua \gls{api}, tự động phân loại mức độ rủi ro và xác định tọa độ GPS của sự cố trên bản đồ \gls{gis} tập trung.
+    \item \textbf{Cơ sở dữ liệu Không gian dùng chung (PostGIS):} Hệ thống chia sẻ trực tiếp các lớp bản đồ không gian (Spatial Layers) cho các sở ngành khác (Sở Xây dựng, Sở GTVT) thông qua kiến trúc dữ liệu tập trung, giúp xóa bỏ tình trạng phân mảnh dữ liệu.
+\end{itemize}
+
 \cleardoublepage

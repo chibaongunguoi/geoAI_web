@@ -257,7 +257,6 @@ export const STOP_WORDS_FOR_TOKENS = new Set([
   "nhung",
   "theo",
   "ve",
-  "san",
   "du",
   "lieu",
   "biet",
@@ -274,9 +273,6 @@ export const STOP_WORDS_FOR_TOKENS = new Set([
   "tong",
   "may",
   "mat",
-  "do",
-  "day",
-  "dac",
   "nhat",
   "tim",
   "dang",
@@ -288,7 +284,10 @@ export const STOP_WORDS_FOR_TOKENS = new Set([
   "xet",
   "luu",
   "tru",
-  "building"
+  "building",
+  "khu",
+  "vuc",
+  "do"
 ]);
 
 export const LOWEST_DENSITY_PHRASES = ["thua thot", "it nha", "it nhat", "vang nha", "vang", "thap nhat"];

@@ -55,6 +55,7 @@ const TOOL_TEXT = {
   assets: "Hiển thị tài sản",
   poi: "Điểm quan tâm",
   heatmap: "Heatmap mật độ nhà",
+  riskZones: "Heatmap cảnh báo ngập lụt/sạt lở",
   filters: "Bộ lọc nâng cao",
   measurement: "Đo khoảng cách/diện tích",
   draw: "Vẽ không gian (Spatial draw)",
@@ -116,10 +117,11 @@ export default function MapWorkspace({ permissions = [], workspaceRef, mapCanvas
     { id: "scan", label: TOOL_TEXT.scan, icon: "scan", badge: drawTool.rectangleCoords ? "1" : null },
     !isOfficerOrAdmin ? { id: "report", label: TOOL_TEXT.report, icon: "alert" } : null,
     { id: "basemap", label: TOOL_TEXT.basemap, icon: "basemap" },
-    mapState.canViewLayers ? { id: "layers", label: TOOL_TEXT.layers, icon: "layers", badge: mapState.visibleLayers.length || null } : null,
-    mapState.canViewLayers ? { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: mapSearch.poiEnabled ? "ON" : null, onClick: () => mapSearch.setPoiEnabled(!mapSearch.poiEnabled) } : null,
-    { id: "heatmap", label: TOOL_TEXT.heatmap, icon: "heatmap", badge: mapState.buildingHeatmap ? "ON" : mapState.isHeatmapLoading ? "..." : null, onClick: mapState.toggleBuildingHeatmap }
-  ].filter(Boolean), [mapState.buildingHeatmap, mapState.canViewLayers, mapState.isHeatmapLoading, mapSearch.poiResults.length, drawTool.rectangleCoords, mapState.toggleBuildingHeatmap, mapState.visibleAssets.length, mapState.visibleLayers.length, mapSearch.poiEnabled, isOfficerOrAdmin]);
+    { id: "layers", label: TOOL_TEXT.layers, icon: "layers", badge: mapState.visibleLayers.length || null },
+    { id: "assets", label: TOOL_TEXT.assets, icon: "assets", badge: mapSearch.poiEnabled ? "ON" : null, onClick: () => mapSearch.setPoiEnabled(!mapSearch.poiEnabled) },
+    { id: "heatmap", label: TOOL_TEXT.heatmap, icon: "heatmap", badge: mapState.buildingHeatmap ? "ON" : mapState.isHeatmapLoading ? "..." : null, onClick: mapState.toggleBuildingHeatmap },
+    { id: "riskZones", label: TOOL_TEXT.riskZones, icon: "riskZones", badge: mapState.riskZones ? "ON" : mapState.isRiskZonesLoading ? "..." : null, onClick: mapState.toggleRiskZones }
+  ].filter(Boolean), [mapState.buildingHeatmap, mapState.isHeatmapLoading, mapState.riskZones, mapState.isRiskZonesLoading, mapState.canViewLayers, mapSearch.poiResults.length, drawTool.rectangleCoords, mapState.toggleBuildingHeatmap, mapState.toggleRiskZones, mapState.visibleAssets.length, mapState.visibleLayers.length, mapSearch.poiEnabled, isOfficerOrAdmin]);
 
   const rightTools = useMemo(() => [
     mapSearch.canUseFilters ? { id: "filters", label: TOOL_TEXT.filters, icon: "filters" } : null,
@@ -392,6 +394,7 @@ export default function MapWorkspace({ permissions = [], workspaceRef, mapCanvas
           onViewportChange={mapSearch.setMapViewport}
           poiResults={mapSearch.poiEnabled ? mapSearch.poiResults : []}
           buildingHeatmap={mapState.buildingHeatmap}
+          riskZones={mapState.riskZones}
         />
       </div>
     </div>

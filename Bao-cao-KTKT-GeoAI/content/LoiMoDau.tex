@@ -1,14 +1,6 @@
-% content/section01_gioithieu.tex
+% content/LoiMoDau.tex
 
 \section*{\centering TÓM TẮT}
 \addcontentsline{toc}{section}{TÓM TẮT}
-Đồ án "Gậy thông minh cho người khiếm thị" được thực hiện nhằm giải quyết những khó khăn và rủi ro về an toàn mà người khiếm thị thường xuyên gặp phải khi tự di chuyển, định hướng không gian và né tránh vật cản trong môi trường sống hàng ngày. Để giải quyết vấn đề này, đề tài đã áp dụng phương pháp thiết kế hệ thống nhúng kết hợp lập trình phần mềm, sử dụng vi điều khiển trung tâm làm bộ não xử lý, tích hợp cùng hệ thống cảm biến siêu âm, động cơ rung, còi chip và module định vị GPS/GSM. Hệ thống hoạt động theo cơ chế liên tục quét không gian phía trước; khi phát hiện vật cản ở khoảng cách nguy hiểm, mạch điều khiển sẽ ngay lập tức xử lý tín hiệu và phát ra các cảnh báo bằng âm thanh hoặc xúc giác (rung), đồng thời hỗ trợ gửi tin nhắn báo tọa độ khẩn cấp đến người thân. Kết quả đạt được của đồ án là chế tạo thành công một mô hình gậy thông minh hoàn thiện, hoạt động ổn định, phát hiện vật cản chính xác với độ trễ thấp và thiết kế tiện dụng. Sản phẩm này giúp người khiếm thị nâng cao sự tự tin, tự chủ trong di chuyển, đảm bảo an toàn cá nhân và góp phần mang lại một cuộc sống tốt đẹp hơn.
+Dự án ``\gls{geoai} -- Ứng dụng \gls{gis} và Trí tuệ Nhân tạo trong Quản lý Tài sản Đô thị trên Bản đồ'' được thực hiện nhằm giải quyết các thách thức trong công tác quản lý hạ tầng đô thị tại Thành phố Đà Nẵng, nơi dữ liệu tài sản còn phân tán, thiếu công cụ trực quan hóa trên bản đồ và không có cơ chế cảnh báo rủi ro sớm. Để giải quyết vấn đề này, đề tài đã xây dựng một hệ thống \gls{webgis} tích hợp trí tuệ nhân tạo, sử dụng kiến trúc monorepo gồm backend NestJS (TypeScript) và frontend Next.js (React), kết hợp cơ sở dữ liệu PostgreSQL mở rộng PostGIS cho truy vấn không gian địa lý. Điểm nổi bật của hệ thống là tích hợp mô hình ngôn ngữ lớn (\gls{llm}) thông qua Groq \gls{api} (Llama 3.3-70B), cho phép người dùng truy vấn dữ liệu tài sản bằng ngôn ngữ tự nhiên tiếng Việt --- hệ thống tự động phân tích ngữ nghĩa câu hỏi, trích xuất ý định không gian và sinh truy vấn PostGIS tương ứng. Ngoài ra, hệ thống còn cung cấp các chức năng đánh giá rủi ro không gian (overlay vùng ngập lụt, sạt lở), chấm điểm tài sản tổng hợp dựa trên tiện ích xung quanh và tiếp cận đường giao thông, cùng cổng phản ánh sự cố cho công dân. Kết quả đạt được là một hệ thống web hoàn chỉnh quản lý hơn 140.000 tòa nhà tại Đà Nẵng với dữ liệu từ Overture Maps, hỗ trợ tìm kiếm thông minh, hiển thị bản đồ tương tác và phân tích không gian, góp phần nâng cao hiệu quả quản lý đô thị và hỗ trợ ra quyết định cho các cơ quan chức năng.
 \cleardoublepage
-% Đặt lại bộ đếm Section nếu cần thiết theo file gốc
-% Tuy nhiên, logic chuẩn thường Lời mở đầu không đánh số, Section 1 bắt đầu từ 1.
-% Ở file gốc bạn dùng \setcounter{section}{0} trước Quá trình triển khai.
-% Vì tôi tách file, bạn nên đặt \section{GIỚI THIỆU} ở đây hoặc ở file riêng nếu muốn nó là Section III.
-% Dựa trên file gốc: "QUÁ TRÌNH" là section đầu tiên được đánh số I.
-% "GIỚI THIỆU ĐỀ TÀI" trong file gốc không có số thứ tự rõ ràng ở phần đầu code nhưng thường là Section III.
-
-% Nội dung bên dưới được lấy từ phần GIỚI THIỆU ĐỀ TÀI trong source

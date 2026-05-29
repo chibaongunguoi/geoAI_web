@@ -36,42 +36,27 @@ Phần mềm điều hành có những chức năng chính sau:
 \input{tables/db_main_tables.tex}
 \cleardoublepage
 % ==========================================
-\subsubsection{Mô tả chi tiết bảng assets (Bảng tài sản)}
+\subsubsection{Mô tả chi tiết bảng BuildingProperty (Tài sản)}
 % ==========================================
 \input{tables/db_assets.tex}
 
 % ==========================================
-\subsubsection{Mô tả chi tiết bảng asset\_types (Danh mục loại tài sản)}
+\subsubsection{Mô tả chi tiết bảng Place (Tiện ích Overture)}
 % ==========================================
-\input{tables/db_asset_types.tex}
+\input{tables/db_places.tex}
 
 % ==========================================
-\subsubsection{Mô tả chi tiết bảng asset\_status\_history (Lịch sử tình trạng tài sản)}
+\subsubsection{Mô tả chi tiết bảng RiskZone và RoadSegment}
 % ==========================================
-\input{tables/db_asset_status_history.tex}
+\input{tables/db_risks.tex}
 
 % ==========================================
-\subsubsection{Mô tả chi tiết bảng maintenance\_orders (Phiếu công việc bảo trì)}
+\subsubsection{Mô tả chi tiết bảng Report (Phản ánh)}
 % ==========================================
-\input{tables/db_maintenance_orders.tex}
+\input{tables/db_reports.tex}
 
 % ==========================================
-\subsubsection{Mô tả chi tiết bảng citizen\_reports (Phản ánh công dân)}
-% ==========================================
-\input{tables/db_citizen_reports.tex}
-
-% ==========================================
-\subsubsection{Mô tả chi tiết bảng districts (Đơn vị hành chính)}
-% ==========================================
-\input{tables/db_districts.tex}
-
-% ==========================================
-\subsubsection{Mô tả chi tiết bảng users (Người dùng hệ thống)}
-% ==========================================
-\input{tables/db_users.tex}
-\cleardoublepage
-% ==========================================
-\subsubsection{Mô tả chi tiết bảng roles\_permissions (Vai trò và phân quyền)}
+\subsubsection{Mô tả chi tiết bảng User và Phân quyền}
 % ==========================================
 \input{tables/db_roles_permissions.tex}
 \cleardoublepage
@@ -84,4 +69,53 @@ Phần mềm điều hành có những chức năng chính sau:
 \caption{Sơ đồ Thực thể Kết hợp (ERD) mô tả cấu trúc cơ sở dữ liệu hệ thống.}
     \label{fig:database_erd}
 \end{figure}
+\cleardoublepage
+
+% ==========================================
+\subsection{Thiết kế giao diện}
+% ==========================================
+Giao diện phần mềm \gls{geoai} được thiết kế theo hướng hiện đại (Modern UI/UX), đáp ứng nhu cầu tương tác bản đồ phức tạp nhưng vẫn thân thiện với người dùng. Dưới đây là các giao diện chức năng chính yếu của hệ thống:
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{firgures/images/ui_login.png}
+    \caption{Giao diện Đăng nhập hệ thống}
+    \label{fig:ui_login}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{firgures/images/ui_map.png}
+    \caption{Giao diện Bản đồ trung tâm (WebGIS) với các lớp dữ liệu}
+    \label{fig:ui_map}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{firgures/images/ui_asset_list.png}
+    \caption{Giao diện Danh sách và Quản lý Tài sản}
+    \label{fig:ui_asset_list}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{firgures/images/ui_asset_detail.png}
+    \caption{Giao diện Chi tiết Tài sản và Đánh giá Rủi ro (Scoring)}
+    \label{fig:ui_asset_detail}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{firgures/images/ui_ai_chat.png}
+    \caption{Giao diện Truy vấn Không gian bằng Ngôn ngữ Tự nhiên (AI Chat)}
+    \label{fig:ui_ai_chat}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=1\textwidth]{firgures/images/ui_dashboard.png}
+    \caption{Giao diện Dashboard Thống kê và Báo cáo}
+    \label{fig:ui_dashboard}
+\end{figure}
+
 \cleardoublepage

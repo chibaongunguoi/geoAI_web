@@ -1,0 +1,45 @@
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    1 & id & String & PK & Mã báo cáo/phản ánh (cuid) \\
+    \hline
+    2 & userId & String & FK & Mã công dân hoặc cán bộ gửi phản ánh \\
+    \hline
+    3 & reason, message & String & Not Null & Lý do báo cáo và nội dung chi tiết sự cố \\
+    \hline
+    4 & latitude, longitude & Float & Not Null & Tọa độ định vị nơi xảy ra sự cố \\
+    \hline
+    5 & status, responseMessage & String & Default 'PENDING' & Trạng thái xử lý và nội dung phản hồi từ cơ quan chức năng \\
+    \hline
+    6 & imageUrl & String & Nullable & Đường dẫn hình ảnh đính kèm minh chứng \\
+    \hline
+    7 & createdAt, updatedAt & DateTime & Not Null & Thời gian gửi phản ánh và thời gian cập nhật xử lý \\
+    \hline
+    \end{tabular}
+    \caption{Chi tiết bảng Report (Phản ánh sự cố)}
+    \label{tab:db_report}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    1 & id & String & PK & Mã định danh thông báo (cuid) \\
+    \hline
+    2 & userId & String & FK & Mã người dùng nhận thông báo \\
+    \hline
+    3 & title, message, type & String & Not Null & Tiêu đề, nội dung và loại thông báo \\
+    \hline
+    4 & isRead & Boolean & Default false & Đánh dấu trạng thái đã đọc \\
+    \hline
+    5 & createdAt & DateTime & Not Null & Thời điểm phát thông báo \\
+    \hline
+    \end{tabular}
+    \caption{Chi tiết bảng Notification (Thông báo hệ thống)}
+    \label{tab:db_notification}
+\end{table}

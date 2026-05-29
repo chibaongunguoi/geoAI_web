@@ -109,11 +109,11 @@ if (!normalizedQuery) {
   return false;
 }
 
-const asksForDensity = DENSITY_INTENT_KEYWORDS.some((phrase) =>
+const asksForDensity = /\b(nhieu|day dac|mat do|dong|thua thot|it)\b/.test(normalizedQuery) || DENSITY_INTENT_KEYWORDS.some((phrase) =>
   normalizedQuery.includes(phrase)
 );
-const asksForArea = /\b(vung|khu|noi|cho)\b/.test(normalizedQuery);
-const asksForBuildings = /\b(toa nha|can nha|nha|building|bat dong san)\b/.test(
+const asksForArea = /\b(vung|khu|noi|cho|khu vuc)\b/.test(normalizedQuery);
+const asksForBuildings = /\b(toa nha|can nha|nha|building|bat dong san|truong hoc|truong|benh vien|khach san|nha hang|quan cafe|tram|co so|dia diem)\b/.test(
   normalizedQuery
 );
 
@@ -134,7 +134,7 @@ if (!normalizedQuery) {
 const asksForCount =
   /\b(so|dem|tong|bao nhieu|may)\b/.test(normalizedQuery) ||
   normalizedQuery.includes("bao nhieu");
-const asksForBuildings = /\b(toa nha|can nha|nha|building|bat dong san)\b/.test(
+const asksForBuildings = /\b(toa nha|can nha|nha|building|bat dong san|truong hoc|truong|benh vien|khach san|nha hang|quan cafe|tram|co so|dia diem)\b/.test(
   normalizedQuery
 );
 
@@ -185,22 +185,40 @@ return DANANG_DISTRICTS.find((district) => normalizedQuery.includes(district));
 }
 
 export function matchKnownWard(normalizedQuery: string, wards: Map<string, string>) {
-// 1. Khớp chính xác (Tìm cụm từ đầy đủ trong câu hỏi)
+// Helper: check if wardKey appears as a whole-word match in the query
+// Prevents 'hai chau' from matching 'Hải Châu I' (key='hai chau i')
+const containsAsWords = (query: string, phrase: string): boolean => {
+  const regex = new RegExp(`(^|\\s)${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`);
+  return regex.test(query);
+};
+
+// 1. Exact phrase match with word boundaries (longest first)
 const knownWard = [...wards.keys()]
-  .filter((ward) => normalizedQuery.includes(ward))
+  .filter((ward) => containsAsWords(normalizedQuery, ward))
   .sort((a, b) => b.length - a.length)[0];
 
 if (knownWard) {
   return wards.get(knownWard);
 }
 
-// 2. Khớp theo tiền tố 2 từ đầu (ví dụ: "hoa khanh" khớp với "hoa khanh bac")
+// 2. Prefix 2-word match (e.g. "hoa khanh" matches "Hòa Khánh Bắc")
+// Only if the query does NOT contain a district name that could be parent
 for (const [key, value] of wards.entries()) {
   const words = key.split(" ");
-  if (words.length >= 2) {
+  if (words.length >= 3) {
+    const suffix = words[words.length - 1];
+    if (suffix === "i" || suffix === "ii") {
+      continue;
+    }
+
+    // Only do prefix match for 3+ word wards (e.g. "hoa khanh bac" → prefix "hoa khanh")
     const prefix2Words = words.slice(0, 2).join(" ");
-    if (normalizedQuery.includes(prefix2Words)) {
-      return value; // Trả về phường khớp tiền tố đầu tiên
+    if (DANANG_DISTRICTS.includes(prefix2Words)) {
+      continue;
+    }
+
+    if (containsAsWords(normalizedQuery, prefix2Words)) {
+      return value;
     }
   }
 }
@@ -247,8 +265,19 @@ return /\b(cho toi|tim|danh sach|co bao nhieu|bao nhieu|vung nao|noi nao|hay cho
 }
 
 export function densitySearchTerms(intent: SearchIntent, tokens: string[]) {
+  // Build a set of normalized location-name tokens to exclude
+  const locationWords = new Set<string>();
+  for (const [wardName, districtName] of STATIC_LOCATIONS) {
+    for (const part of normalizeSearchText(wardName).split(" ")) locationWords.add(part);
+    for (const part of normalizeSearchText(districtName).split(" ")) locationWords.add(part);
+  }
+  for (const dist of DANANG_DISTRICTS) {
+    for (const part of dist.split(" ")) locationWords.add(part);
+  }
+
   const terms = tokens.filter(
-    (term): term is string => Boolean(term && term.length >= 2)
+    (term): term is string =>
+      Boolean(term && term.length >= 2) && !locationWords.has(normalizeSearchText(term))
   );
 
   return [...new Set(terms.map((term) => normalizeSearchText(term)))];

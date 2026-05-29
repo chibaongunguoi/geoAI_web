@@ -34,7 +34,7 @@ const MapComponent = memo(function MapComponent(props) {
 
   const {
     assetMarkers, boundaryLayer, maskLayer, propertySearchLayer,
-    buildingHeatmapLayer, poiLayer, focusedPropertyLayer, externalLayersRef
+    buildingHeatmapLayer, riskZonesLayer, poiLayer, focusedPropertyLayer, externalLayersRef
   } = useMapLayers({
     map,
     currentZoom,
@@ -63,11 +63,12 @@ const MapComponent = memo(function MapComponent(props) {
     });
 
     buildingHeatmapLayer.bringToFront();
+    if (riskZonesLayer) riskZonesLayer.bringToFront();
     propertySearchLayer.bringToFront();
     drawnItems.bringToFront();
     measurementLayer.bringToFront();
     spatialDrawLayer.bringToFront();
-  }, [assetMarkers, boundaryLayer, buildingHeatmapLayer, drawnItems, objectBoxes, propertySearchLayer, measurementLayer, spatialDrawLayer, props.layerOrder, externalLayersRef]);
+  }, [assetMarkers, boundaryLayer, buildingHeatmapLayer, riskZonesLayer, drawnItems, objectBoxes, propertySearchLayer, measurementLayer, spatialDrawLayer, props.layerOrder, externalLayersRef]);
 
   return null;
 });

@@ -152,8 +152,17 @@ Khối lượng công việc toàn dự án bao gồm:
 \textbf{d) Yêu cầu về tốc độ xử lý}
 \begin{itemize}
     \item Tải bản đồ với 100.000+ điểm tài sản trong vòng 5 giây.
-    \item \gls{ai} phân tích và trả kết quả phân loại tài sản trong vòng 3 giây/ảnh.
-    \item \gls{api} phản hồi trong vòng 2 giây cho 95\% các request.
+    \item \gls{ai} phân tích ngữ nghĩa và trả kết quả truy vấn không gian trong vòng 3 giây/lệnh.
+    \item \gls{api} phản hồi trong vòng 2 giây cho 95\% các request thông thường.
+\end{itemize}
+
+\subsection{Danh mục các chuẩn, tiêu chuẩn áp dụng}
+Hệ thống \gls{geoai} được thiết kế và triển khai tuân thủ nghiêm ngặt các tiêu chuẩn quốc gia và quốc tế:
+\begin{itemize}
+    \item \textbf{Tiêu chuẩn Kiến trúc:} Khung kiến trúc Chính phủ điện tử Việt Nam phiên bản 3.0.
+    \item \textbf{Tiêu chuẩn Dữ liệu Không gian:} Tuân thủ các chuẩn của OGC (Open Geospatial Consortium) như WMS, WFS và GeoJSON cho việc trao đổi dữ liệu \gls{gis}.
+    \item \textbf{Tiêu chuẩn An toàn thông tin:} Tuân thủ ISO/IEC 27001 và các tiêu chuẩn bảo mật ứng dụng web của OWASP (Open Web Application Security Project).
+    \item \textbf{Tiêu chuẩn Mã hóa:} Sử dụng thuật toán AES-256 cho dữ liệu lưu trữ và chuẩn mã hóa TLS 1.3 cho dữ liệu truyền tải.
 \end{itemize}
 
 % --- CHUYỂN SANG PHẦN MỚI ---
@@ -161,35 +170,39 @@ Khối lượng công việc toàn dự án bao gồm:
 \subsection{Đề xuất giải pháp kỹ thuật công nghệ}
 
 \subsubsection{Kiến trúc hệ thống tổng thể}
-\gls{geoai} áp dụng kiến trúc microservices trên nền tảng cloud, tách biệt các thành phần: Frontend \gls{webgis}, Backend \gls{api} Gateway, \gls{gis} Service, \gls{ai}/\gls{ml} Service, Notification Service và Database Cluster.
+\gls{geoai} áp dụng kiến trúc Monorepo (Turborepo) kết hợp Micro-services, phân chia rõ ràng các lớp: Frontend \gls{webgis} (Next.js), Backend \gls{api} (NestJS), Data Layer (PostgreSQL/PostGIS + Redis) và External \gls{ai} Services (Groq \gls{api}).
 
-\subsubsection{Giải pháp \gls{gis} (Geographic Information System)}
+\subsubsection{Giải pháp \gls{gis} và Tìm kiếm dữ liệu}
 \begin{itemize}
-    \item Nền tảng \gls{gis}: GeoServer (mã nguồn mở) làm \gls{gis} server.
-    \item Bản đồ nền: OpenStreetMap và Google Maps \gls{api} (satellite view cho kiểm tra thực địa).
-    \item \gls{csdl} không gian: PostgreSQL 16 + PostGIS 3.4 cho lưu trữ và truy vấn dữ liệu địa lý.
+    \item Xử lý không gian: Sử dụng trực tiếp sức mạnh của PostgreSQL kết hợp PostGIS để thực hiện các truy vấn không gian phức tạp (ST\_DWithin, ST\_Distance) thông qua Prisma ORM, giúp tối ưu hiệu năng.
+    \item Full-text Search \& Analytics: Tích hợp \textbf{Elasticsearch} làm công cụ tìm kiếm văn bản toàn văn (tên đường, tên tài sản) và phân tích log với tốc độ cao, giảm tải cho PostgreSQL trong các tác vụ tìm kiếm tự do.
+    \item Bản đồ nền: Tích hợp OpenStreetMap thông qua thư viện Leaflet (React-Leaflet) trên frontend.
+\end{itemize}
+
+\subsubsection{Tích hợp Dữ liệu Bên thứ 3 (3rd Party Data)}
+Hệ thống kết nối và tiêu thụ dữ liệu từ các nền tảng bên thứ ba để làm giàu hệ sinh thái thông tin:
+\begin{itemize}
+    \item \textbf{Overture Maps:} Tự động đồng bộ khối lượng lớn dữ liệu địa điểm, tiện ích công cộng (POI) và hình học (footprint) của các tòa nhà.
+    \item \textbf{OpenStreetMap (OSM):} Khai thác mạng lưới đường giao thông (RoadSegment) để phục vụ cho các thuật toán đánh giá khả năng tiếp cận và chấm điểm tài sản.
 \end{itemize}
 
 \subsubsection{Giải pháp \gls{ai}/Machine Learning}
 \begin{itemize}
-    \item Computer Vision: TensorFlow / PyTorch với các model YOLOv8 để phát hiện và phân loại tài sản từ ảnh.
-    \item Phân tích ảnh vệ tinh: Sentinel-2 data qua \gls{api} cho giám sát thay đổi hạ tầng theo thời gian.
-    \item Dự báo bảo trì: Random Forest / XGBoost dự đoán xác suất hỏng hóc dựa trên tuổi thọ, lịch sử và điều kiện môi trường.
-    \item Model training: MLflow cho quản lý thí nghiệm, Docker cho đóng gói và triển khai model.
+    \item Spatial NLP Agent: Tích hợp mô hình ngôn ngữ lớn (\gls{llm}) Llama 3.3 thông qua Groq \gls{api} để dịch ngôn ngữ tự nhiên thành các truy vấn không gian phức tạp.
+    \item Đánh giá Rủi ro Không gian (Risk Assessment): Tự động overlay dữ liệu tài sản với các lớp bản đồ rủi ro (ngập lụt, sạt lở) để cảnh báo.
+    \item Asset Scoring: Thuật toán chấm điểm tài sản tự động dựa trên mức độ tiếp cận đường giao thông, tiện ích xung quanh (trường học, bệnh viện) và trừ điểm rủi ro.
 \end{itemize}
 
 \subsubsection{Giải pháp Backend \gls{api}}
 \begin{itemize}
-    \item Framework: FastAPI (Python) - hiệu năng cao, tích hợp tốt với thư viện \gls{ai}/\gls{gis}.
-    \item \gls{api} Gateway: Nginx + Kong cho rate limiting, authentication, load balancing.
-    \item Message Queue: Apache Kafka cho xử lý sự kiện real-time và tích hợp \gls{iot} data.
-    \item Cache: Redis cho cache dữ liệu bản đồ và kết quả \gls{ai} thường xuyên truy vấn.
+    \item Framework: NestJS (TypeScript/Node.js) - cung cấp kiến trúc module hóa chặt chẽ, dễ bảo trì và mở rộng.
+    \item Database ORM: Prisma ORM cho an toàn kiểu dữ liệu (Type-safe) và quản lý schema.
+    \item Cache: Redis qua nestjs/cache-manager để lưu trữ đệm các truy vấn không gian lặp lại và kết quả phân tích \gls{ai}.
 \end{itemize}
 
 \subsubsection{Giải pháp lưu trữ và bảo mật}
 \begin{itemize}
-    \item Object Storage: MinIO cho lưu trữ ảnh tài sản quy mô lớn.
-    \item Backup: Automated daily backup với retention 90 ngày, off-site backup sang cloud thứ 2.
-    \item Bảo mật: OAuth 2.0 / JWT cho xác thực, RBAC + ABAC cho phân quyền chi tiết theo không gian địa lý.
+    \item Object Storage: Sử dụng AWS S3 Protocol cho lưu trữ ảnh tài sản và báo cáo đính kèm.
+    \item Bảo mật: Xác thực dựa trên JWT (JSON Web Token), mã hóa mật khẩu bằng bcrypt. Hệ thống phân quyền (RBAC) chi tiết đến từng module chức năng và lớp bản đồ.
 \end{itemize}
 \cleardoublepage

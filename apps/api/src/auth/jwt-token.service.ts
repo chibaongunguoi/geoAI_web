@@ -14,7 +14,7 @@ export class JwtTokenService implements TokenIssuer {
   signAccessToken(user: AuthenticatedUser): Promise<string> {
     return this.jwt.signAsync(this.payloadFor(user), {
       secret: this.accessSecret,
-      expiresIn: "15m"
+      expiresIn: "1d"
     });
   }
 

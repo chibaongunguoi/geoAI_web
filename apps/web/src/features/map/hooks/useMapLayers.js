@@ -28,6 +28,7 @@ export function useMapLayers({
   focusedProperty,
   poiResults,
   buildingHeatmap,
+  riskZones,
   selectedAdminArea,
   drawnItems,
   setCurrentCoords,
@@ -42,6 +43,7 @@ export function useMapLayers({
   const [maskLayer] = useState(() => new L.FeatureGroup());
   const [propertySearchLayer] = useState(() => new L.FeatureGroup());
   const [buildingHeatmapLayer] = useState(() => new L.FeatureGroup());
+  const [riskZonesLayer] = useState(() => new L.FeatureGroup());
   const [poiLayer] = useState(() => new L.FeatureGroup());
   const [reportLayer] = useState(() => new L.FeatureGroup());
   const [focusedPropertyLayer] = useState(() => new L.FeatureGroup());
@@ -61,6 +63,7 @@ export function useMapLayers({
     map.addLayer(maskLayer);
     map.addLayer(boundaryLayer);
     map.addLayer(buildingHeatmapLayer);
+    map.addLayer(riskZonesLayer);
     map.addLayer(propertySearchLayer);
     map.addLayer(poiLayer);
     map.addLayer(reportLayer);
@@ -71,6 +74,7 @@ export function useMapLayers({
       map.removeLayer(maskLayer);
       map.removeLayer(boundaryLayer);
       map.removeLayer(buildingHeatmapLayer);
+      map.removeLayer(riskZonesLayer);
       map.removeLayer(propertySearchLayer);
       map.removeLayer(poiLayer);
       map.removeLayer(reportLayer);
@@ -78,7 +82,7 @@ export function useMapLayers({
       externalLayersRef.current.forEach((layer) => map.removeLayer(layer));
       externalLayersRef.current.clear();
     };
-  }, [map, assetMarkers, maskLayer, boundaryLayer, buildingHeatmapLayer, propertySearchLayer, poiLayer, reportLayer, focusedPropertyLayer]);
+  }, [map, assetMarkers, maskLayer, boundaryLayer, buildingHeatmapLayer, riskZonesLayer, propertySearchLayer, poiLayer, reportLayer, focusedPropertyLayer]);
 
   const clusteredPoiItems = useMemo(() => {
     const items = Array.isArray(poiResults) ? poiResults : [];
@@ -95,8 +99,15 @@ export function useMapLayers({
     if (!shouldShowPoiLayer(currentZoom)) {
       return EMPTY_POI_ARRAY;
     }
+    
+    // Hide background POIs if there is an active search result
+    const hasSearchItems = propertySearchResult?.items?.length > 0 || propertySearchResult?.map?.regions?.length > 0;
+    if (hasSearchItems) {
+      return EMPTY_POI_ARRAY;
+    }
+
     return clusteredPoiItems;
-  }, [clusteredPoiItems, currentZoom, EMPTY_POI_ARRAY]);
+  }, [clusteredPoiItems, currentZoom, EMPTY_POI_ARRAY, propertySearchResult]);
 
 
   const isLayerActive = passedIsLayerActive || useCallback(
@@ -278,7 +289,7 @@ export function useMapLayers({
         : [];
 
     const spatialItems =
-      propertySearchResult?.meta?.searchMode === "spatial-relational"
+      propertySearchResult?.meta?.searchMode === "spatial-relational" || propertySearchResult?.meta?.searchMode === "spatial-risk"
         ? propertySearchResult.items || []
         : [];
 
@@ -380,6 +391,18 @@ export function useMapLayers({
                 fillColor: objectColor(object.type),
                 fillOpacity: 0,
               },
+              pointToLayer: (feature, latlng) => {
+                return L.marker(latlng, {
+                  zIndexOffset: 700,
+                  icon: L.divIcon({
+                    className: "poi-marker-icon",
+                    html: createPoiMarkerHtml(object.type || "place"),
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30],
+                    popupAnchor: [0, -26],
+                  }),
+                });
+              }
             },
           ).bindPopup(propertyDensityObjectPopup(object));
 
@@ -537,6 +560,45 @@ export function useMapLayers({
       }
     };
   }, [buildingHeatmap, buildingHeatmapLayer, map, poiLayer, propertySearchLayer]);
+
+
+  useEffect(() => {
+    riskZonesLayer.clearLayers();
+    if (!riskZones || !riskZones.features || riskZones.features.length === 0) {
+      return;
+    }
+
+    L.geoJSON(riskZones, {
+      style: (feature) => {
+        let color = "#facc15"; // Low
+        if (feature.properties?.riskLevel === "High") color = "#ef4444";
+        if (feature.properties?.riskLevel === "Medium") color = "#f97316";
+
+        return {
+          color: color,
+          weight: 2,
+          opacity: 0.8,
+          fillColor: color,
+          fillOpacity: 0.35,
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        const typeLabel = feature.properties?.zoneType === "flood" ? "Ngập lụt" : feature.properties?.zoneType === "landslide" ? "Sạt lở" : feature.properties?.zoneType;
+        const levelLabel = feature.properties?.riskLevel === "High" ? "Cao" : feature.properties?.riskLevel === "Medium" ? "Trung bình" : "Thấp";
+        const content = `
+          <div style="min-width: 150px;">
+            <h4 style="margin:0 0 5px; color:#1e293b; font-size:14px;">Cảnh báo rủi ro</h4>
+            <p style="margin:0; font-size:12px;"><strong>Loại:</strong> ${escapeHtml(typeLabel || "")}</p>
+            <p style="margin:0; font-size:12px;"><strong>Mức độ:</strong> ${escapeHtml(levelLabel || "")}</p>
+            <p style="margin:4px 0 0; font-size:11px; color:#475569;">${escapeHtml(feature.properties?.description || "")}</p>
+          </div>
+        `;
+        layer.bindPopup(content);
+      },
+    }).addTo(riskZonesLayer);
+    
+    riskZonesLayer.bringToFront();
+  }, [riskZones, riskZonesLayer]);
 
 
   useEffect(() => {
@@ -997,6 +1059,7 @@ export function useMapLayers({
     maskLayer,
     propertySearchLayer,
     buildingHeatmapLayer,
+    riskZonesLayer,
     poiLayer,
     reportLayer,
     focusedPropertyLayer,

@@ -185,7 +185,14 @@ export function MapSearchProvider({ children, permissions }) {
         const poiIds = new Set(poiItems.map((p) => p.id));
         const filteredProps = combinedItems.filter((p) => !poiIds.has(p.id));
         
-        combinedItems = [...poiItems, ...filteredProps];
+        // Only merge POI semantic search results for generic list searches
+        const searchMode = result?.meta?.searchMode;
+        if (!searchMode || searchMode === "list" || searchMode === "semantic") {
+          combinedItems = [...poiItems, ...filteredProps];
+        } else {
+          // For spatial/relational queries, rely strictly on the primary API response
+          combinedItems = filteredProps;
+        }
       }
 
       if (!result) result = { items: [], meta: {} };

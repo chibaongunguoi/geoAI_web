@@ -32,7 +32,7 @@ llama-3.3-70b-versatile         ← Dùng mặc định (demo)
 ### T4.1 — Tạo bảng `risk_zones`
 Schema:
 - `id` — primary key
-- `zone_type` — `flood | landslide | planning_corridor`
+- `zone_type` — `flood | landslide `
 - `risk_level` — `high | medium | low`
 - `source` — `JRC | MONRE | USGS | So_XD`
 - `description` — mô tả thêm

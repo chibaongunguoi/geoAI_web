@@ -1,0 +1,28 @@
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    1 & id & String & PK & Mã định danh hệ thống (cuid) \\
+    \hline
+    2 & overtureId & String & Unique & Mã ID đồng bộ từ hệ thống Overture Maps \\
+    \hline
+    3 & name, category, subcategories & String, Json & Not Null & Tên và danh mục, danh mục con của địa điểm tiện ích \\
+    \hline
+    4 & address, street, ward, district, city & String & Nullable & Thông tin địa chỉ hành chính chi tiết \\
+    \hline
+    5 & latitude, longitude & Float & Not Null & Tọa độ địa lý cơ bản của tiện ích \\
+    \hline
+    6 & geometry, \textbf{location} & Json, \textbf{Geometry} & Nullable & \textbf{Dữ liệu không gian định dạng GeoJSON và Point (PostGIS 4326)} \\
+    \hline
+    7 & confidence, source, sourceVersion & Float, String & Default & Mức độ tin cậy và thông tin nguồn dữ liệu \\
+    \hline
+    8 & riskFlags & Json & Nullable & Cờ cảnh báo các rủi ro liên quan đến địa điểm \\
+    \hline
+    9 & createdAt, updatedAt & DateTime & Not Null & Dấu thời gian tạo và cập nhật \\
+    \hline
+    \end{tabular}
+    \caption{Chi tiết bảng Place}
+    \label{tab:db_place}
+\end{table}

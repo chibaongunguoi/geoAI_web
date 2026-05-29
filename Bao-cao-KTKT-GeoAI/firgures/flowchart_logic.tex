@@ -5,24 +5,14 @@
         draw,
         rectangle split,
         rectangle split parts=2,
-        rectangle split part fill={white, white},
+        rectangle split part fill={gray!10, white},
         every text node part/.style={align=center, font=\bfseries},
         every two node part/.style={align=left},
         minimum width=4.5cm,
-        text width=4cm
+        text width=4.5cm,
+        rounded corners=2pt
     },
-    % Style riêng cho các bảng bên phải (rộng hơn)
-    tableright/.style={
-        draw,
-        rectangle split,
-        rectangle split parts=2,
-        rectangle split part fill={white, white},
-        every text node part/.style={align=center, font=\bfseries},
-        every two node part/.style={align=left},
-        minimum width=6cm,
-        text width=5.5cm
-    },
-    % Cấu hình chung cho mũi tên (đặt 1 lần duy nhất)
+    % Cấu hình chung cho mũi tên
     >=Stealth,
     ->,
     thick,
@@ -31,125 +21,121 @@
 
 % ================= Các Nút (Bảng) =================
 
-% --- Cột Giữa ---
-\node[table] (assets) at (0, 2) {
-    Assets
+% --- Cột 1: Người dùng, Phân quyền & Bảo mật (x = -7) ---
+\node[table] (session) at (-7, 7) {
+    Session
     \nodepart{two}
-    Asset\_id \\
-    District\_id \\
-    Type\_id \\
-    Name \\
-    Geom \\
-    Address \\
-    Status \\
-    Created\_at \\
-    Updated\_at
+    \underline{\textbf{id}} \\
+    userId (FK) \\
+    refreshToken \\
+    expiresAt
 };
 
-\node[table] (users) at (0, -6.5) {
-    Users
+\node[table] (user) at (-7, 2.5) {
+    User
     \nodepart{two}
-    \underline{\textbf{User\_id}} \\
-    Role\_id \\
-    Username \\
-    Password \\
-    Name \\
-    Email \\
-    Phone \\
-    Status \\
-    Created\_at
+    \underline{\textbf{id}} \\
+    username, email \\
+    passwordHash \\
+    status
 };
 
-% --- Cột Trái ---
-\node[tableright] (history) at (-6.5, 7.5) {
-    Asset\_status\_history
+\node[table] (role) at (-7, -2) {
+    Role \& Permission
     \nodepart{two}
-    \underline{\textbf{History\_id}} \\
-    Asset\_id \\
-    Changed\_by \\
-    Status\_old \\
-    Status\_new \\
-    Change\_reason \\
-    Changed\_at \\
-    Note
+    \underline{\textbf{id}} \\
+    code / key \\
+    UserRole (Pivot) \\
+    RolePermission
 };
 
-\node[tableright] (orders) at (-6.5, 1) {
-    Maintenance\_orders
+\node[table] (audit) at (-7, -6.5) {
+    AuditLog
     \nodepart{two}
-    \underline{\textbf{Order\_id}} \\
-    Asset\_id \\
-    Type \\
-    Priority \\
-    Title \\
-    Description \\
-    Due\_date \\
-    Status \\
-    Created\_at
+    \underline{\textbf{id}} \\
+    actorUserId (FK) \\
+    action, entityType \\
+    metadata
 };
 
-\node[table] (reports) at (-6.5, -5.5) {
-    Citizen\_reports
+% --- Cột 2: Tương tác & Tài sản cốt lõi (x = 0) ---
+\node[table] (report) at (0, 7.5) {
+    Report (Phản ánh)
     \nodepart{two}
-    \underline{\textbf{Report\_id}} \\
-    Asset\_id \\
-    User\_id \\
-    Description \\
-    Photo\_keys \\
-    Status \\
-    Created\_at
+    \underline{\textbf{id}} \\
+    userId (FK) \\
+    reason, message \\
+    latitude, longitude \\
+    status
 };
 
-% --- Cột Phải (Đã thu hẹp về bên trái 1 đoạn tại x = 5.5) ---
-\node[table] (districts) at (5.5, 6.5) {
-    Districts
+\node[table] (building) at (0, 2.5) {
+    BuildingProperty
     \nodepart{two}
-    \underline{\textbf{District\_id}} \\
-    Code \\
-    Name \\
-    Geom \\
-    Acreage \\
-    Population
+    \underline{\textbf{id}} \\
+    code, overtureId \\
+    geom (PostGIS) \\
+    searchText (Elastic) \\
+    embedding (Vector) \\
+    riskFlags
 };
 
-\node[table] (assettypes) at (5.5, 0.5) {
-    Asset\_types
+\node[table] (place) at (0, -2) {
+    Place (POI)
     \nodepart{two}
-    \underline{\textbf{Type\_id}} \\
-    Parent\_type\_id \\
-    Name \\
-    Description \\
-    Created\_at \\
-    Updated\_at
+    \underline{\textbf{id}} \\
+    overtureId \\
+    category, name \\
+    location (Point) \\
+    confidence
 };
 
-\node[table] (roles) at (5.5, -6.5) {
-    Roles\_permissions
+\node[table] (notification) at (0, -6.5) {
+    Notification
     \nodepart{two}
-    \underline{\textbf{Role\_id}} \\
-    Name \\
-    Description \\
-    Permissions \\
-    Created\_at
+    \underline{\textbf{id}} \\
+    userId (FK) \\
+    title, type \\
+    isRead
+};
+
+% --- Cột 3: Không gian & Rủi ro (x = 7) ---
+\node[table] (riskzone) at (7, 5) {
+    RiskZone
+    \nodepart{two}
+    \underline{\textbf{id}} \\
+    zoneType (flood...) \\
+    riskLevel \\
+    geom (Polygon)
+};
+
+\node[table] (road) at (7, 0) {
+    RoadSegment
+    \nodepart{two}
+    \underline{\textbf{id}} \\
+    osmId, highway \\
+    geom (LineString)
 };
 
 % ================= Các Mối Quan Hệ (Mũi tên) =================
 
-% Trái nối vào Giữa (Assets)
-% Đặt đường gấp khúc chung ở tọa độ x = -3.5 để các đường chạy song song gọn gàng
-\draw (history.east) -- (-3.0, 7.5) |- ([yshift=1cm]assets.west);
-\draw (orders.east) -- (-3.0, 1) |- (assets.west);
-\draw ([yshift=0.5cm]reports.east) -- (-3.0, -5) |- ([yshift=-1cm]assets.west);
+% Quan hệ với User
+\draw (user.north) -- (session.south);
+\draw (user.south) -- (role.north);
 
-% Trái nối vào Giữa (Users)
-\draw ([yshift=-1cm]reports.east) -- (-3.0, -6.5) |- ([yshift=1cm]users.west);
+% Route User to AuditLog bằng cách đi vòng ra ngoài (bên trái)
+\draw (user.west) -- ++(-0.8,0) |- (audit.west);
 
-% Giữa nối ra Phải
-% Đặt đường gấp khúc chung ở tọa độ x = 2.8
-\draw ([yshift=1cm]assets.east) -- (2.8, 3) |- (districts.west);
-\draw ([yshift=-1cm]assets.east) -- (2.8, 1) |- (assettypes.west);
+% Route User to Report
+\draw (user.north east) |- (report.west);
 
-% Giữa (Users) nối ra Phải (Roles)
-\draw ([yshift=1cm]users.east) -- (2.8, -5.5) |- ([yshift=1cm]roles.west);
+% Route User to Notification
+\draw (user.south east) |- (notification.west);
+
+% Không gian tương đối: BuildingProperty - RiskZone - RoadSegment - Place
+% Những bảng này kết nối nhau về mặt logic không gian (Spatial Join) chứ không phải khóa ngoại cứng
+\draw[dashed, <->] (building.east) -- ++(1,0) |- (riskzone.west) node[near end, above, font=\scriptsize] {ST\_Intersects};
+\draw[dashed, <->] (building.east) -- ++(1,0) |- (road.west) node[near end, above, font=\scriptsize] {ST\_Distance};
+\draw[dashed, <->] (building.south) -- (place.north) node[midway, right, font=\scriptsize] {ST\_DWithin};
 
 \end{tikzpicture}

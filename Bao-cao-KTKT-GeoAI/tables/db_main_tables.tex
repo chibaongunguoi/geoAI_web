@@ -1,33 +1,26 @@
-\renewcommand{\arraystretch}{1.3}
-\begin{longtable}{|c|p{4.5cm}|p{9cm}|}
-    \caption{Danh sách các bảng cơ sở dữ liệu chính}
-    \label{tab:db_main_tables} \\
-
-    % --- Tiêu đề trang đầu tiên ---
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|p{4cm}|p{5cm}|p{4.5cm}|}
     \hline
-    \textbf{STT} & \multicolumn{1}{c|}{\textbf{Tên bảng}} & \multicolumn{1}{c|}{\textbf{Mô tả}} \\
+    \textbf{STT} & \textbf{Tên bảng} & \textbf{Mô tả} & \textbf{Ghi chú} \\
     \hline
-    \endfirsthead
-
-    % --- Tiêu đề các trang sau (bỏ trống chữ để không lặp lại) ---
+    1 & BuildingProperty & Lưu thông tin tài sản đô thị, tòa nhà & Chứa \texttt{geom} (PostGIS), \texttt{embedding} (Vector AI) \\
     \hline
-    \endhead
-
-    % --- Chân trang các trang giữa ---
+    2 & Place & Lưu địa điểm tiện ích (POI) từ Overture Maps & Chứa cột \texttt{location} (PostGIS Point) \\
     \hline
-    \endfoot
-
-    % --- Chân trang trang cuối ---
+    3 & RiskZone & Lưu vùng ngập lụt, sạt lở & Chứa cột \texttt{geom} (PostGIS Polygon) \\
     \hline
-    \endlastfoot
-
-    % --- Nội dung ---
-    1 & assets & Bảng tài sản đô thị - thông tin chính và tọa độ GPS (geometry) \\ \hline
-    2 & asset\_types & Danh mục loại tài sản (cây xanh, đèn đường, biển báo, v.v.) \\ \hline
-    3 & asset\_status\_history & Lịch sử thay đổi tình trạng tài sản theo thời gian \\ \hline
-    4 & maintenance\_orders & Phiếu công việc bảo trì sửa chữa \\ \hline
-    5 & citizen\_reports & Phản ánh sự cố từ công dân \\ \hline
-    6 & districts & Danh mục quận/huyện (geometry ranh giới hành chính) \\ \hline
-    7 & users & Người dùng hệ thống \\ \hline
-    8 & roles\_permissions & Vai trò và phân quyền chi tiết \\
-\end{longtable}
+    4 & RoadSegment & Lưu các đoạn đường giao thông & Chứa cột \texttt{geom} (PostGIS LineString) \\
+    \hline
+    5 & Report, Notification & Quản lý phản ánh kiến nghị công dân và thông báo & Tích hợp \gls{api} ứng dụng \\
+    \hline
+    6 & User, Role, Permission & Quản lý người dùng và phân quyền RBAC & Gồm các bảng trung gian UserRole, RolePermission \\
+    \hline
+    7 & Session, AuditLog & Quản lý phiên đăng nhập và lịch sử truy cập & Theo dõi bảo mật hệ thống \\
+    \hline
+    8 & LayerUserConfig, AssetDisplayUserConfig & Lưu cấu hình hiển thị bản đồ của từng user & Lưu trữ dạng dữ liệu \texttt{Json} linh hoạt \\
+    \hline
+    \end{tabular}
+    \caption{Định nghĩa các bảng dữ liệu chính}
+    \label{tab:db_tables}
+\end{table}

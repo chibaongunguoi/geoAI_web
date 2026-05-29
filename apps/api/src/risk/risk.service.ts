@@ -25,8 +25,10 @@ export class RiskService {
     let whereClause = "";
 
     if (type) {
-      whereClause = `WHERE "zoneType" = $1`;
+      whereClause = `WHERE "zoneType" = $1 AND ST_Intersects(geom, ST_MakeEnvelope(107.82, 15.88, 108.35, 16.25, 4326)) AND ST_Area(geom) < 0.01`;
       params.push(type);
+    } else {
+      whereClause = `WHERE ST_Intersects(geom, ST_MakeEnvelope(107.82, 15.88, 108.35, 16.25, 4326)) AND ST_Area(geom) < 0.01`;
     }
 
     const sql = `
@@ -39,6 +41,7 @@ export class RiskService {
         ST_AsGeoJSON(geom)::json AS geometry
       FROM "RiskZone"
       ${whereClause}
+      ORDER BY ST_Area(geom) DESC
       LIMIT 1000
     `;
 

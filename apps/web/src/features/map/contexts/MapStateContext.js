@@ -40,6 +40,8 @@ export function MapStateProvider({ children, permissions }) {
   const [hasLoadedAssetConfig, setHasLoadedAssetConfig] = useState(false);
   const [buildingHeatmap, setBuildingHeatmap] = useState(null);
   const [isHeatmapLoading, setIsHeatmapLoading] = useState(false);
+  const [riskZones, setRiskZones] = useState(null);
+  const [isRiskZonesLoading, setIsRiskZonesLoading] = useState(false);
 
   const skipNextLayerPersistRef = useRef(false);
   const skipNextAssetPersistRef = useRef(false);
@@ -223,6 +225,27 @@ export function MapStateProvider({ children, permissions }) {
       });
   }, [buildingHeatmap]);
 
+  const toggleRiskZones = useCallback(() => {
+    if (riskZones) {
+      setRiskZones(null);
+      return;
+    }
+    setIsRiskZonesLoading(true);
+    fetch("/api/risk-zones")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP error ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        setRiskZones(data);
+        setIsRiskZonesLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load risk zones", err);
+        setIsRiskZonesLoading(false);
+      });
+  }, [riskZones]);
+
   const selectedBasemap = getBasemap(selectedBasemapId);
   const visibleLayers = useMemo(() => visibleLayerIds(layerState), [layerState]);
 
@@ -232,6 +255,7 @@ export function MapStateProvider({ children, permissions }) {
     layerHistory, layerConfigStatus, hasLoadedLayerConfig, assetDisplayConfig, setAssetDisplayConfig,
     assetDisplayStatus, assetDisplayError, setAssetDisplayError, assetHistory, visibleAssets,
     setVisibleAssets: setVisibleAssetsSafe, hasLoadedAssetConfig, buildingHeatmap, setBuildingHeatmap, isHeatmapLoading,
+    riskZones, setRiskZones, isRiskZonesLoading, toggleRiskZones,
     canViewLayers, canManageLayers, canExportAssets,
     toggleBuildingHeatmap, updateLayerVisibility, updateLayerGroupVisibility, updateLayerOpacity,
     updateLayerOrder, updateLayerReorder, handleLayerStatusChange,
@@ -240,6 +264,7 @@ export function MapStateProvider({ children, permissions }) {
     layers, adminArea, scanMode, selectedBasemapId, layerState, layerStatuses, layerRefreshRequests,
     layerHistory, layerConfigStatus, hasLoadedLayerConfig, assetDisplayConfig, assetDisplayStatus,
     assetDisplayError, assetHistory, visibleAssets, setVisibleAssetsSafe, hasLoadedAssetConfig, buildingHeatmap, isHeatmapLoading,
+    riskZones, isRiskZonesLoading, toggleRiskZones,
     canViewLayers, canManageLayers, canExportAssets, toggleBuildingHeatmap, updateLayerVisibility,
     updateLayerGroupVisibility, updateLayerOpacity, updateLayerOrder, updateLayerReorder,
     handleLayerStatusChange, selectedBasemap, visibleLayers

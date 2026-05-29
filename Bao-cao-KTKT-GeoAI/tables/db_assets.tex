@@ -1,26 +1,36 @@
-\renewcommand{\arraystretch}{1.3}
-\begin{longtable}{|c|p{3.5cm}|p{4cm}|p{6cm}|}
-    \caption{Cấu trúc bảng assets}
-    \label{tab:db_assets} \\
-
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
     \hline
-    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\ \hline
-    \endfirsthead
-
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    \endhead
+    1 & id & String & PK & Mã định danh tự động (cuid) \\
     \hline
-    \endfoot
+    2 & code, overtureId & String & Unique & Mã tài sản nội bộ và mã định danh từ Overture Maps \\
     \hline
-    \endlastfoot
-
-    1 & asset\_id & UUID & Khóa chính, định danh duy nhất tài sản \\ \hline
-    2 & asset\_name & VARCHAR(200) & Tên/mô tả tài sản \\ \hline
-    3 & asset\_type\_id & UUID FK & Loại tài sản (FK $\rightarrow$ asset\_types) \\ \hline
-    4 & geom & GEOMETRY (Point, 4326) & Tọa độ GPS (WGS84) - PostGIS geometry \\ \hline
-    5 & address & TEXT & Địa chỉ mô tả vị trí \\ \hline
-    6 & district\_id & UUID FK & Quận/huyện (FK $\rightarrow$ districts) \\ \hline
-    7 & status & ENUM & Tình trạng: good / fair / poor / damaged / unknown \\ \hline
-    8 & created\_at & TIMESTAMPTZ & Thời điểm tạo bản ghi \\ \hline
-    9 & updated\_at & TIMESTAMPTZ & Thời điểm cập nhật gần nhất \\
-\end{longtable}
+    3 & name, addressLine, street, ward, district, city & String & Nullable & Thông tin định danh và địa chỉ chi tiết của tài sản \\
+    \hline
+    4 & propertyType, status, source & String & Not Null & Loại tài sản (mặc định 'building'), trạng thái và nguồn dữ liệu \\
+    \hline
+    5 & level, height, floors, areaSqm & Float/Int & Nullable & Các thông số kỹ thuật công trình (độ cao, số tầng, diện tích) \\
+    \hline
+    6 & centroidLat, centroidLng & Float & Nullable & Tọa độ điểm tâm của tài sản trên bản đồ \\
+    \hline
+    7 & bbox, geometry & Json & Nullable & Hình hộp bao (bounding box) và dữ liệu không gian định dạng GeoJSON \\
+    \hline
+    8 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu không gian thực lưu trên PostGIS (Geometry, SRID 4326)} \\
+    \hline
+    9 & \textbf{searchText, searchTextNormalized} & \textbf{String} & Not Null & \textbf{Cột nội dung hỗ trợ đồng bộ Elasticsearch phục vụ Full-text search} \\
+    \hline
+    10 & \textbf{embedding} & \textbf{Json} & Nullable & \textbf{Vector nhúng hỗ trợ tìm kiếm không gian/ngữ nghĩa bằng mô hình AI} \\
+    \hline
+    11 & riskFlags, compositeScore & Json, Float & Nullable & Mảng cờ cảnh báo rủi ro (ngập lụt, sạt lở) và điểm tổng hợp rủi ro \\
+    \hline
+    12 & attributes & Json & Nullable & Dữ liệu thuộc tính mở rộng linh hoạt theo chuẩn GeoJSON \\
+    \hline
+    13 & createdAt, updatedAt, deletedAt & DateTime & - & Thời gian tạo, cập nhật và dấu thời gian phục vụ xóa mềm \\
+    \hline
+    \end{tabular}
+    \caption{Chi tiết bảng BuildingProperty (Tích hợp PostGIS \& Elasticsearch)}
+    \label{tab:db_building_property}
+\end{table}

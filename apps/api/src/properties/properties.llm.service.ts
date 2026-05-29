@@ -14,6 +14,10 @@ export class PropertiesLlmService {
   private readonly groqApiUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
   async parseSpatialIntent(query: string): Promise<SpatialIntent> {
+    if (!this.groqApiKey) {
+      return { isSpatial: false };
+    }
+
     const isSpatialQuery = /\b(gan|cach|xung quanh|ban kinh)\b/i.test(
       query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     );

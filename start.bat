@@ -44,7 +44,7 @@ if errorlevel 1 (
 )
 
 echo Checking required ports...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ports = 3000,4000,5000,5055,9200; $busy = @(); foreach ($p in $ports) { $c = Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue; if ($c) { $busy += $p } }; if ($busy.Count -gt 0) { Write-Host ('WARNING: Port(s) already listening: ' + ($busy -join ', ')); Write-Host 'If these are old GeoAI processes, close them before continuing.' } else { Write-Host 'OK: required ports are free.' }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ports = 3000,4000,5000,5055,6379,9200; $busy = @(); foreach ($p in $ports) { $c = Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue; if ($c) { $busy += $p } }; if ($busy.Count -gt 0) { Write-Host ('WARNING: Port(s) already listening: ' + ($busy -join ', ')); Write-Host 'If these are old GeoAI processes, close them before continuing.' } else { Write-Host 'OK: required ports are free.' }"
 
 echo.
 echo Step 1: Installing npm dependencies if needed...
@@ -60,13 +60,45 @@ if not exist "node_modules" (
 )
 
 echo.
-echo Step 2: Generating Prisma client...
+echo Step 2: Starting PostgreSQL container...
+docker compose -f docker-compose.db.yml up -d
+if errorlevel 1 (
+  echo ERROR: Could not start PostgreSQL with Docker Compose.
+  pause
+  exit /b 1
+)
+
+echo Waiting for PostgreSQL to be ready...
+powershell -Command "Start-Sleep -Seconds 10"
+
+echo.
+echo Step 2.1: Generating Prisma client...
+cd apps\api
+call npm run prisma:seed
+if errorlevel 1 (
+  echo WARNING: Prisma seed failed, but continuing...
+)
+cd ..\..
 call npm run prisma:generate
 if errorlevel 1 (
   echo ERROR: Prisma client generation failed.
   pause
   exit /b 1
 )
+
+set "ALL_READY=1"
+
+echo.
+echo Step 2.2: Starting Redis container...
+docker compose -f docker-compose.redis.yml up -d
+if errorlevel 1 (
+  echo ERROR: Could not start Redis with Docker Compose.
+  pause
+  exit /b 1
+)
+echo Waiting for Redis on localhost:6379 ...
+call :probe_redis "Redis" 60
+if errorlevel 1 set "ALL_READY=0"
 
 echo.
 echo Step 3: Starting Elasticsearch container...
@@ -76,8 +108,6 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-
-set "ALL_READY=1"
 
 echo Waiting for Elasticsearch on http://localhost:9200 ...
 call :probe "Elasticsearch" "http://localhost:9200/_cluster/health" 90
@@ -203,4 +233,16 @@ if errorlevel 1 (
   exit /b 1
 )
 echo OK: %PROBE_NAME% completed.
+exit /b 0
+
+REM probe_redis: pass when redis-cli inside the container returns PONG.
+:probe_redis
+set "PROBE_NAME=%~1"
+set "PROBE_DEADLINE=%~2"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$deadline=(Get-Date).AddSeconds(%PROBE_DEADLINE%); do { $out = docker exec geoai-redis redis-cli ping 2>$null; if ($out -match 'PONG') { exit 0 }; Start-Sleep -Seconds 2 } while ((Get-Date) -lt $deadline); exit 1"
+if errorlevel 1 (
+  echo WARNING: %PROBE_NAME% did not become ready within %PROBE_DEADLINE% seconds.
+  exit /b 1
+)
+echo OK: %PROBE_NAME% is ready.
 exit /b 0

@@ -114,18 +114,18 @@ export class PropertiesSpatialService {
           GROUP BY lat_cell, lng_cell
         )
         SELECT
-          (lat_cell || ':' || lng_cell) AS cellId,
+          (lat_cell || ':' || lng_cell) AS "cellId",
           count,
-          center_lat AS centerLat,
-          center_lng AS centerLng,
-          min_lat AS minLat,
-          min_lng AS minLng,
-          max_lat AS maxLat,
-          max_lng AS maxLng,
-          (lat_cell * ?) AS cellSouth,
-          (lng_cell * ?) AS cellWest,
-          ((lat_cell + 1) * ?) AS cellNorth,
-          ((lng_cell + 1) * ?) AS cellEast,
+          center_lat AS "centerLat",
+          center_lng AS "centerLng",
+          min_lat AS "minLat",
+          min_lng AS "minLng",
+          max_lat AS "maxLat",
+          max_lng AS "maxLng",
+          (lat_cell * ?) AS "cellSouth",
+          (lng_cell * ?) AS "cellWest",
+          ((lat_cell + 1) * ?) AS "cellNorth",
+          ((lng_cell + 1) * ?) AS "cellEast",
           ward,
           district
         FROM cells
@@ -183,10 +183,7 @@ export class PropertiesSpatialService {
     limit: number,
     source?: string,
     locationFilters = this.densityLocationFilters(intent),
-    terms =
-      locationFilters.ward || locationFilters.district
-        ? []
-        : densitySearchTerms(intent, tokens)
+    terms = densitySearchTerms(intent, tokens)
   ): Promise<PropertyDensityRegion[]> {
     const cacheKey = `spatial:density:${JSON.stringify({ intent, tokens, limit, source, locationFilters, terms })}`;
     if (this.cacheManager) {
@@ -195,6 +192,11 @@ export class PropertiesSpatialService {
     }
 
     // sqlite check removed
+
+    const poiCategories = this.poiCategoriesForTerms(terms);
+    if (poiCategories.length > 0) {
+      return this.placeDensityRegions(intent, limit, locationFilters, poiCategories, cacheKey);
+    }
 
     const exactFilters = [
       locationFilters.ward ? `AND "ward" = ?` : "",
@@ -234,18 +236,18 @@ export class PropertiesSpatialService {
         GROUP BY lat_cell, lng_cell
       )
       SELECT
-        (lat_cell || ':' || lng_cell) AS cellId,
+        (lat_cell || ':' || lng_cell) AS "cellId",
         count,
-        center_lat AS centerLat,
-        center_lng AS centerLng,
-        min_lat AS minLat,
-        min_lng AS minLng,
-        max_lat AS maxLat,
-        max_lng AS maxLng,
-        (lat_cell * ?) AS cellSouth,
-        (lng_cell * ?) AS cellWest,
-        ((lat_cell + 1) * ?) AS cellNorth,
-        ((lng_cell + 1) * ?) AS cellEast,
+        center_lat AS "centerLat",
+        center_lng AS "centerLng",
+        min_lat AS "minLat",
+        min_lng AS "minLng",
+        max_lat AS "maxLat",
+        max_lng AS "maxLng",
+        (lat_cell * ?) AS "cellSouth",
+        (lng_cell * ?) AS "cellWest",
+        ((lat_cell + 1) * ?) AS "cellNorth",
+        ((lng_cell + 1) * ?) AS "cellEast",
         ward,
         district
       FROM cells
@@ -254,6 +256,8 @@ export class PropertiesSpatialService {
     `;
     const params = [];
     if (source) params.push(source);
+    
+    // Params for BuildingProperty (and grid cells)
     params.push(
       ...[locationFilters.ward, locationFilters.district].filter((value): value is string => Boolean(value)),
       ...terms.map((term) => `%${term}%`),
@@ -272,6 +276,87 @@ export class PropertiesSpatialService {
 
     if (this.cacheManager) {
       await this.cacheManager.set(cacheKey, regions, 3600000); // 1 hour
+    }
+
+    return regions;
+  }
+
+  private async placeDensityRegions(
+    intent: SearchIntent,
+    limit: number,
+    locationFilters: { ward?: string; district?: string },
+    categories: string[],
+    cacheKey: string
+  ): Promise<PropertyDensityRegion[]> {
+    const exactFilters = [
+      locationFilters.ward ? `AND "ward" = ?` : "",
+      locationFilters.district ? `AND "district" = ?` : ""
+    ].join(" ");
+    const categoryFilter = categories.map(() => "?").join(", ");
+    const sql = `
+      WITH filtered AS (
+        SELECT
+          ST_Y("location"::geometry) AS "centroidLat",
+          ST_X("location"::geometry) AS "centroidLng",
+          "ward",
+          "district"
+        FROM "Place"
+        WHERE "location" IS NOT NULL
+          ${exactFilters}
+          AND "category" IN (${categoryFilter})
+      ),
+      cells AS (
+        SELECT
+          CAST("centroidLat" / ? AS INTEGER) AS lat_cell,
+          CAST("centroidLng" / ? AS INTEGER) AS lng_cell,
+          COUNT(*) AS count,
+          AVG("centroidLat") AS center_lat,
+          AVG("centroidLng") AS center_lng,
+          MIN("centroidLat") AS min_lat,
+          MIN("centroidLng") AS min_lng,
+          MAX("centroidLat") AS max_lat,
+          MAX("centroidLng") AS max_lng,
+          MIN("ward") AS ward,
+          MIN("district") AS district
+        FROM filtered
+        GROUP BY lat_cell, lng_cell
+      )
+      SELECT
+        (lat_cell || ':' || lng_cell) AS "cellId",
+        count,
+        center_lat AS "centerLat",
+        center_lng AS "centerLng",
+        min_lat AS "minLat",
+        min_lng AS "minLng",
+        max_lat AS "maxLat",
+        max_lng AS "maxLng",
+        (lat_cell * ?) AS "cellSouth",
+        (lng_cell * ?) AS "cellWest",
+        ((lat_cell + 1) * ?) AS "cellNorth",
+        ((lng_cell + 1) * ?) AS "cellEast",
+        ward,
+        district
+      FROM cells
+      ORDER BY count ${intent.direction === "lowest" ? "ASC" : "DESC"}, center_lat ASC, center_lng ASC
+      LIMIT ?
+    `;
+    const params = [
+      ...[locationFilters.ward, locationFilters.district].filter((value): value is string => Boolean(value)),
+      ...categories,
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
+      DEFAULT_DENSITY_GRID_SIZE,
+      limit
+    ];
+    const rows = await this.prisma.$queryRawUnsafe<DensityRegionRow[]>(replacePlaceholders(sql), ...params);
+    const regions = rows.map((row: any, index: number) => this.densityRegion(row, index));
+    await this.attachDensityObjects(regions, categories, undefined, locationFilters);
+
+    if (this.cacheManager) {
+      await this.cacheManager.set(cacheKey, regions, 3600000);
     }
 
     return regions;
@@ -311,12 +396,30 @@ export class PropertiesSpatialService {
     tokens: string[],
     source?: string,
     locationFilters = this.densityLocationFilters(intent),
-    terms =
-      locationFilters.ward || locationFilters.district
-        ? []
-        : densitySearchTerms(intent, tokens)
+    terms = densitySearchTerms(intent, tokens)
   ) {
     // sqlite check removed
+    const poiCategories = this.poiCategoriesForTerms(terms);
+    if (poiCategories.length > 0) {
+      const exactFilters = [
+        locationFilters.ward ? `AND "ward" = ?` : "",
+        locationFilters.district ? `AND "district" = ?` : ""
+      ].join(" ");
+      const categoryFilter = poiCategories.map(() => "?").join(", ");
+      const rows = await this.prisma.$queryRawUnsafe<{ count?: any }[]>(
+        replacePlaceholders(`
+          SELECT COUNT(*) AS count
+          FROM "Place"
+          WHERE "location" IS NOT NULL
+            ${exactFilters}
+            AND "category" IN (${categoryFilter})
+        `),
+        ...[locationFilters.ward, locationFilters.district].filter((value): value is string => Boolean(value)),
+        ...poiCategories
+      );
+
+      return Number(rows[0]?.count || 0);
+    }
 
     const exactFilters = [
       locationFilters.ward ? `AND "ward" = ?` : "",
@@ -397,20 +500,58 @@ export class PropertiesSpatialService {
       const where: Record<string, unknown> = { deletedAt: null, AND: andFilters };
       if (source) where.source = source;
 
-      const rows = (await this.prisma.buildingProperty.findMany({
+      const buildingRows = (await this.prisma.buildingProperty.findMany({
         where,
         select: selectLightPropertyFields(),
         orderBy: [{ updatedAt: "desc" }],
         take
       })) as BuildingPropertyRow[];
 
-      region.objects = rows
-        .map((row) => this.densityObject(row))
+      const buildingObjects = buildingRows
+        .map((row) => this.densityObjectFromBuilding(row))
         .filter((object): object is PropertyDensityObject => Boolean(object));
+
+      // Also search Place table within the same bbox
+      const exactPlaceFilters = [
+        locationFilters.ward ? `AND "ward" = ?` : "",
+        locationFilters.district ? `AND "district" = ?` : ""
+      ].join(" ");
+      const categories = this.poiCategoriesForTerms(terms);
+      const categoryPlaceFilter = categories.length > 0 ? `AND "category" IN (${categories.map(() => "?").join(", ")})` : "";
+      const termPlaceFilters = categories.length === 0
+        ? terms.map(() => `AND ("name" ILIKE ? OR "category" ILIKE ?)`).join(" ")
+        : "";
+      const placeParams: any[] = [
+        ...[locationFilters.ward, locationFilters.district].filter((v): v is string => Boolean(v)),
+        ...(categories.length > 0 ? categories : terms.flatMap(t => [`%${t}%`, `%${t}%`]))
+      ];
+      const placeSql = `
+        SELECT id, name, "category" as type, "ward", "district",
+          ST_Y("location"::geometry) as "centroidLat",
+          ST_X("location"::geometry) as "centroidLng"
+        FROM "Place"
+        WHERE "location" IS NOT NULL
+          AND ST_Y("location"::geometry) >= ${region.bbox.south}
+          AND ST_Y("location"::geometry) <= ${region.bbox.north}
+          AND ST_X("location"::geometry) >= ${region.bbox.west}
+          AND ST_X("location"::geometry) <= ${region.bbox.east}
+          ${exactPlaceFilters}
+          ${categoryPlaceFilter}
+          ${termPlaceFilters}
+        LIMIT ${take}
+      `;
+      const placeRows = await this.prisma.$queryRawUnsafe<any[]>(replacePlaceholders(placeSql), ...placeParams);
+      const placeObjects = placeRows
+        .map((row) => this.densityObjectFromPlace(row))
+        .filter((object): object is PropertyDensityObject => Boolean(object));
+
+      // Merge: place objects first (more relevant for POI queries), then buildings
+      const merged = [...placeObjects, ...buildingObjects].slice(0, take);
+      region.objects = merged;
     }
   }
 
-  private densityObject(row: BuildingPropertyRow): PropertyDensityObject | null {
+  private densityObjectFromBuilding(row: BuildingPropertyRow): PropertyDensityObject | null {
     const bbox = propertyObjectBbox(row);
     const geometry = validGeoJsonGeometry(row.geometry);
     const center = this.propertyObjectCenter(row);
@@ -436,7 +577,28 @@ export class PropertiesSpatialService {
     };
   }
 
-  private propertyObjectCenter(row: BuildingPropertyRow) {
+  private densityObjectFromPlace(row: any): PropertyDensityObject | null {
+    const center = this.propertyObjectCenter(row);
+    if (!center) return null;
+
+    return {
+      id: row.id,
+      type: row.type || "place",
+      center,
+      bbox: undefined,
+      geometry: { type: "Point", coordinates: [center.lng, center.lat] },
+      geometrySource: "overture_property_search",
+      properties: {
+        code: row.code,
+        name: row.name,
+        ward: row.ward,
+        district: row.district,
+        source: "overture-places"
+      }
+    };
+  }
+
+  private propertyObjectCenter(row: any) {
     const lat = Number(row.centroidLat);
     const lng = Number(row.centroidLng);
 
@@ -574,6 +736,57 @@ export class PropertiesSpatialService {
         ambiguityWarning: this.ambiguityWarning(input.query, intent, tokens)
       }
     };
+  }
+
+  private poiCategoriesForTerms(terms: string[]) {
+    const text = normalizeSearchText(terms.join(" "));
+    const knownCategories = new Set([
+      "school",
+      "elementary_school",
+      "preschool",
+      "kindergarten",
+      "university",
+      "language_school",
+      "high_school",
+      "middle_school",
+      "day_care_preschool",
+      "hotel",
+      "resort",
+      "lodge",
+      "accommodation",
+      "restaurant",
+      "vietnamese_restaurant",
+      "seafood_restaurant",
+      "fast_food_restaurant",
+      "vegetarian_restaurant",
+      "diner",
+      "cafe",
+      "coffee_shop",
+      "hospital",
+      "clinic"
+    ]);
+    const aliases: Record<string, string[]> = {
+      "truong hoc": ["school", "elementary_school", "preschool", "kindergarten", "university", "language_school", "high_school", "middle_school", "day_care_preschool"],
+      truong: ["school", "elementary_school", "preschool", "kindergarten", "university", "language_school", "high_school", "middle_school", "day_care_preschool"],
+      "khach san": ["hotel", "resort", "lodge", "accommodation"],
+      "nha hang": ["restaurant", "vietnamese_restaurant", "seafood_restaurant", "fast_food_restaurant", "vegetarian_restaurant", "diner"],
+      cafe: ["cafe", "coffee_shop"],
+      "quan cafe": ["cafe", "coffee_shop"],
+      "ca phe": ["cafe", "coffee_shop"],
+      "benh vien": ["hospital", "clinic"],
+      "dai hoc": ["university"]
+    };
+
+    const directCategories = terms.filter((term) => knownCategories.has(term));
+
+    return [...new Set(
+      [
+        ...directCategories,
+        ...Object.entries(aliases)
+        .filter(([alias]) => text.includes(alias))
+        .flatMap(([, categories]) => categories)
+      ]
+    )];
   }
 }
 
