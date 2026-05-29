@@ -1,0 +1,121 @@
+\begin{figure}[htbp]
+  \centering
+  \resizebox{\textwidth}{!}{%
+  % --- ĐỊNH NGHĨA MÃ MÀU HỆ THỐNG LOCAL ---
+  \definecolor{usrBg}{HTML}{7CB342}       % Xanh lá Người dùng
+  \definecolor{appBg}{HTML}{5B86C6}       % Xanh dương Ứng dụng
+  \definecolor{backBg}{HTML}{DEEAF6}      % Xanh nhạt nền Backend
+  \definecolor{backBr}{HTML}{2B6099}      % Xanh đậm viền Backend
+  \definecolor{locBg}{HTML}{FFE6CC}       % Cam nhạt nền Hạ tầng Local
+  \definecolor{locBr}{HTML}{D79B00}       % Cam đậm viền Hạ tầng Local
+  \definecolor{platBg}{HTML}{38761D}      % Xanh lá đậm chữ GeoAI Platform
+  %
+  \begin{tikzpicture}[
+    % --- KIỂU DÁNG CÁC KHỐI ---
+    appnode/.style={rectangle, draw=white, fill=appBg, thick, minimum height=0.8cm, minimum width=4.2cm, text=white, font=\small, align=center},
+    backnode/.style={rectangle, draw=backBr, fill=backBg, thick, minimum height=1.2cm, minimum width=4.2cm, text=black, font=\small, align=center},
+    % ÉP TEXT WIDTH ĐỂ KHỐI KHÔNG BỊ PHÌNH TO, ĐẢM BẢO KHOẢNG CÁCH
+    localnode/.style={rectangle, draw=locBr, fill=locBg, thick, minimum height=1.3cm, minimum width=3.2cm, text width=2.9cm, text=black, font=\small, align=center},
+    arrowG/.style={draw=platBg, thick, -Stealth},
+    arrowB/.style={draw=backBr, thick, Stealth-Stealth},
+    arrowL/.style={draw=locBr, thick, Stealth-Stealth}
+    ]
+    %
+    % ==========================================
+    % 1. VẼ KHUNG LÀN (SWIMLANES)
+    % ==========================================
+    \draw[thick] (-2.5, 0) rectangle (17.5, -14);
+    % Vạch chia cột tiêu đề trái
+    \draw[thick] (1.5, 0) -- (1.5, -14);
+    % Vạch chia ngang các tầng
+    \draw[thick] (-2.5, -1.5) -- (17.5, -1.5);
+    \draw[thick] (-2.5, -5.2) -- (17.5, -5.2);
+    %
+    % ==========================================
+    % 2. TIÊU ĐỀ CÁC TẦNG LÀN TRÁI
+    % ==========================================
+    \node[font=\bfseries\large, align=center] at (-0.4, -3.3) {Ứng dụng};
+    \node[font=\bfseries\large, align=center] at (-0.4, -9.5) {NỀN TẢNG\\GeoAI};
+    %
+    % Vẽ nhân vật người dùng
+    \draw[thick] (-0.4, -0.4) circle (0.2); 
+    \draw[thick] (-0.4, -0.6) -- (-0.4, -1.1); 
+    \draw[thick] (-0.85, -0.8) -- (0.05, -0.8); 
+    \draw[thick] (-0.4, -1.1) -- (-0.75, -1.4); 
+    \draw[thick] (-0.4, -1.1) -- (0.05, -1.4); 
+    %
+    % ==========================================
+    % 3. TẦNG NGƯỜI DÙNG
+    % ==========================================
+    \node[rectangle, fill=usrBg, text=white, font=\bfseries, minimum height=0.8cm, minimum width=3.5cm] at (5, -0.75) {Người dùng};
+    %
+    % ==========================================
+    % 4. TẦNG ỨNG DỤNG (Đồng bộ X = 5, 10, 15)
+    % ==========================================
+    \node[appnode] (app1) at (5, -2.4) {Quản lý dữ liệu\\hạ tầng đô thị};
+    \node[appnode] (app2) at (10, -2.4) {Nhận diện cơ sở\\hạ tầng (GeoAI)};
+    \node[appnode] (app3) at (15, -2.4) {Phản ánh sự cố\\hạ tầng};
+    
+    \node[appnode] (desk) at (5, -3.5) {Ứng dụng Desktop};
+    \node[appnode] (web) at (10, -3.5) {Ứng dụng Web};
+    \node[appnode] (mob) at (15, -3.5) {Ứng dụng Di động};
+    %
+    % ==========================================
+    % 5. TẦNG NỀN TẢNG GEOAI
+    % ==========================================
+    \node[fill=platBg, text=white, font=\bfseries\small, inner sep=4pt] at (7.5, -4.9) [anchor=south] {GeoAI Platform};
+    %
+    % --- KHỐI BACKEND (NÉT ĐỨT XANH) ---
+    \draw[draw=backBr, dashed, thick, fill=white] (2.5, -6.0) rectangle (17.2, -8.7);
+    \node[fill=white, inner sep=3pt, font=\bfseries\small] at (10, -6.0) {Hệ thống Backend (Quản lý CSHT)};
+    %
+    \node[backnode] (nextjs) at (5, -7.5) {NextJs\\(Frontend điều hành)};
+    \node[backnode] (gisserver) at (10, -7.5) {GIS Server\\(GeoServer Cục bộ)};
+    \node[backnode] (sqlserver) at (15, -7.5) {SQL Server\\(\gls{csdl} Quản lý)};
+    %
+    % --- KHỐI HẠ TẦNG LOCAL (NÉT ĐỨT CAM) ---
+    \draw[draw=locBr, dashed, thick, fill=white] (2.2, -9.5) rectangle (17.3, -13.0);
+    \node[fill=white, inner sep=3pt, font=\bfseries\small] at (10, -9.5) {Hạ tầng Local (Hệ thống Máy chủ và Local AI)};
+    %
+    % --- 4 KHỐI VÀNG (Căn chỉnh X: 4.0, 7.8, 11.6, 15.4 để hở khoảng trống) ---
+    \node[localnode] (modai) at (4.0, -11.2) {Nền tảng Local AI\\(Module AI Cục bộ)};
+    \node[localnode] (webgis) at (7.8, -11.2) {Dịch vụ Bản đồ\\(Local GIS)};
+    \node[localnode] (postgis) at (11.6, -11.2) {\gls{csdl} Không gian\\(PostGIS Cục bộ)};
+    %
+    % Mở rộng chiều cao khối 4 để chứa cả hình và chữ
+    \node[localnode, minimum height=2.4cm] (localinfra) at (15.4, -11.2) {};
+    %
+    % Vẽ biểu tượng Tủ máy chủ cục bộ (Nằm sát nửa trên của khối)
+    \draw[thick, fill=gray!25] (14.5, -10.2) rectangle (16.3, -10.5);
+    \draw[thick, fill=gray!25] (14.5, -10.6) rectangle (16.3, -10.9);
+    \draw[thick, fill=gray!25] (14.5, -11.0) rectangle (16.3, -11.3);
+    % Đèn LED
+    \fill[green!70!black] (14.8, -10.35) circle (1.5pt);
+    \fill[green!70!black] (14.8, -10.75) circle (1.5pt);
+    \fill[green!70!black] (14.8, -11.15) circle (1.5pt);
+    %
+    % Chữ nằm gọn ở nửa dưới của khối (Không đè lên hình)
+    \node[font=\footnotesize\bfseries, align=center] at (15.4, -11.9) {Server\\\& Workstation};
+    %
+    % ==========================================
+    % 6. VẼ ĐƯỜNG MŨI TÊN KẾT NỐI
+    % ==========================================
+    \draw[arrowG] (desk.south) -- (nextjs.north);
+    \draw[arrowG] (web.south) -- (gisserver.north);
+    \draw[arrowG] (mob.south) -- (sqlserver.north);
+    %
+    \draw[arrowB] (nextjs.east) -- (gisserver.west);
+    \draw[arrowB] (gisserver.east) -- (sqlserver.west);
+    %
+    % Các mũi tên liên kết tầng vàng
+    \draw[arrowL] (modai.east) -- (webgis.west);
+    \draw[arrowL] (webgis.east) -- (postgis.west);
+    \draw[arrowL] (postgis.east) -- (localinfra.west);
+    %
+    % Mũi tên kết nối 2 khung nét đứt
+    \draw[arrowL, dashed, ultra thick] (10, -8.7) -- (10, -9.5);
+  \end{tikzpicture}%
+  }
+  \caption{Mô hình kiến trúc tổng thể hệ thống GIS và Local AI}
+  \label{fig:kien_truc_local_geoai}
+\end{figure}

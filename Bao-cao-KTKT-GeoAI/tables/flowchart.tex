@@ -1,0 +1,46 @@
+
+\begin{tikzpicture}[
+    % --- ĐỊNH NGHĨA KIỂU DÁNG CÁC KHỐI ---
+    terminal/.style={ellipse, draw=black, thick, fill=white, minimum width=3cm, minimum height=1.2cm, align=center, font=\small\bfseries},
+    decision/.style={diamond, draw=black, thick, fill=white, minimum width=3.5cm, minimum height=1.8cm, align=center, font=\small\bfseries, inner sep=-2pt},
+    process/.style={rectangle, draw=black, thick, fill=white, minimum width=4cm, minimum height=1.8cm, align=center, font=\small},
+    listprocess/.style={rectangle, draw=black, thick, fill=white, minimum width=4.5cm, minimum height=2.8cm, align=center, font=\small, text width=4.3cm},
+    arrow/.style={-Stealth, thick, draw=black}
+    ]
+    %
+    % ==========================================
+    % 1. VẼ CÁC KHỐI THEO VỊ TRÍ TƯƠNG ĐỐI
+    % ==========================================
+    \node[terminal] (start) at (0, 3) {Bắt đầu};
+    
+    \node[decision] (logic) at (5, 3) {GIS + Local AI};
+    
+    \node[listprocess] (list) at (5, -1) {Dữ liệu bản đồ\\Hạ tầng\\Web\\AI};
+    
+    \node[process] (mgmt) at (5, -4.5) {Quản lý cơ sở hạ tầng};
+    
+    \node[terminal] (end) at (mgmt -| list.east) [xshift=5cm, yshift=0cm] {Kết thúc};
+    
+    % ==========================================
+    % 2. KẾT NỐI MŨI TÊN
+    % ==========================================
+    
+    % START -> Diamond top
+    \draw[arrow] (start.east) -- (logic.west);
+    
+    % Diamond bottom -> middle block
+    \draw[arrow] (logic.south) -- (list.north);
+    
+    % VÒNG LẶP ILLOGICAL (Dựa đúng theo pixel ảnh):
+    % Thoát bên phải khối list, có chữ Y, vòng xuống và vào góc dưới phải.
+    % Do TikZ bẻ góc nên sẽ vẽ 2 đường gấp khúc.
+    \draw[arrow] (list.east) -- ++(1cm, 0cm) node[midway, right, xshift=-0.2cm, font=\small\bfseries] {Y} -- ++(0cm, -1.8cm) -- (list.south east);
+
+    % Middle box bottom -> Bottom box top
+    \draw[arrow] (list.south) -- (mgmt.north);
+    
+    % Bottom box right -> End oval left
+    \draw[arrow] (mgmt.east) -- (end.west);
+    
+  \end{tikzpicture}
+

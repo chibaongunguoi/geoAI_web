@@ -1,0 +1,63 @@
+\begin{figure}[htpb]
+    \centering
+    % Resizebox giúp sơ đồ tự động co giãn vừa vặn với chiều ngang trang giấy
+    \resizebox{\textwidth}{!}{
+    \begin{tikzpicture}[
+        % Định nghĩa style cho các khối hình
+        box/.style={rectangle, draw, thick, minimum width=2.8cm, minimum height=1.2cm, text width=2.5cm, align=center, fill=white, font=\small},
+        dia/.style={diamond, draw, thick, minimum width=3cm, minimum height=2.5cm, text width=1.8cm, align=center, fill=white, font=\small},
+        line/.style={draw, thick, -Stealth},
+        labeltext/.style={font=\scriptsize, align=center}
+    ]
+
+        % 1. VẼ KHUNG SWIMLANE (LÀN ĐƯỜNG)
+        % Khung ngoài cùng
+        \draw[thick] (-9, 0.5) rectangle (9, 12);
+        % Đường kẻ ngang tiêu đề
+        \draw[thick] (-9, 11) -- (9, 11);
+        % Đường kẻ dọc chia 2 làn
+        \draw[thick] (0, 0.5) -- (0, 12);
+        
+        % Tiêu đề của 2 làn
+        \node[font=\bfseries] at (-4.5, 11.5) {Hệ thống};
+        \node[font=\bfseries] at (4.5, 11.5) {Cán bộ quản lý đô thị};
+
+        % 2. ĐẶT CÁC KHỐI NODE VÀO VỊ TRÍ
+        % Làn phải (Cán bộ)
+        \node[dia] (loai_tac_vu) at (2, 9) {Loại tác vụ};
+        \node[box] (nhap_moi) at (7, 9) {Nhập mới};
+        \node[box] (cap_nhat) at (2, 5) {Cập nhật};
+        \node[box] (nhap_thong_tin) at (7, 3.85) {Nhập thông tin mô tả};
+        \node[box] (gui_yeu_cau) at (7, 2) {Gửi yêu cầu phê duyệt};
+
+        % Làn trái (Hệ thống)
+        \node[dia] (du_lieu_hop_le) at (-3, 9) {Dữ liệu hợp lệ};
+        \node[box] (luu_tru) at (-7, 9) {Lưu trữ vào CSDL};
+        \node[box] (yeu_cau_chinh_sua) at (-3, 3.5) {Yêu cầu chỉnh sửa nội dung};
+
+        % 3. VẼ CÁC ĐƯỜNG MŨI TÊN LIÊN KẾT
+        % Các mũi tên trong làn phải
+        \draw[line] (loai_tac_vu.east) -- node[above, labeltext] {Nhập thông\\tin tài sản} (nhap_moi.west);
+        \draw[line] (loai_tac_vu.south) -- node[right, labeltext] {Đo đạc thực\\địa/Cập nhật} (cap_nhat.north);
+        \draw[line] (nhap_moi.south) -- (nhap_thong_tin.north);
+        \draw[line] (cap_nhat.east) -- (nhap_thong_tin.west);
+        \draw[line] (nhap_thong_tin.south) -- (gui_yeu_cau.north);
+
+        % Mũi tên từ làn phải sang làn trái (Gửi yêu cầu -> Dữ liệu hợp lệ)
+        % (Đi sang trái tới tọa độ X = -0.5, sau đó đi lên và rẽ trái vào khối)
+        \draw[line] (gui_yeu_cau.west) -- (-0.5, 2) |- (du_lieu_hop_le.east);
+
+        % Các mũi tên trong làn trái
+        \draw[line] (du_lieu_hop_le.west) -- node[above, labeltext] {Đúng} (luu_tru.east);
+        \draw[line] (du_lieu_hop_le.south) -- node[left, labeltext] {Từ chối} (yeu_cau_chinh_sua.north);
+
+        % Mũi tên từ làn trái trả về làn phải (Yêu cầu chỉnh sửa -> Nhập thông tin)
+        % (Đi sang phải tới tọa độ X = 1.2, sau đó đi lên và rẽ phải vào khối)
+        % [yshift=-10pt] giúp mũi tên đi vào dưới đường của khối Cập nhật để không bị đè nét
+        \draw[line] (yeu_cau_chinh_sua.east) -- (1.2, 3.5) |- ([yshift=-10pt]nhap_thong_tin.west);
+
+    \end{tikzpicture}
+    }
+    \caption{Sơ đồ quy trình cập nhật thông tin tài sản}
+    \label{fig:quy_trinh_cap_nhat}
+\end{figure}

@@ -1,0 +1,87 @@
+\section{THIẾT KẾ HỆ THỐNG}
+\subsection{Mô hình tổng thể hệ thống}
+\input{firgures/mohinhtongthe.tex}
+\subsection{Mô hình logic}
+\input{firgures/mohinhlogic.tex}
+Phần mềm điều hành có những chức năng chính sau:
+\begin{itemize}
+   
+ \item  Quản lý cơ sở hạ tầng
+ \item  Quản lý người dùng
+ \item  Nhận diện cơ sở hạ tầng bằng AI
+ \item  Phản ánh sự cố hạ tầng
+ \item  Tạo công việc bảo trì
+ \item  Dashboard
+ \item  Thống kê, báo cáo
+\end{itemize}
+\subsection{Thiết kế chi tiết}
+\subsubsection{Mô hình kiến trúc vật lý}
+\input{firgures/mohinhly.tex}
+\cleardoublepage
+\subsubsection{Danh sách các tác nhân}
+\input{tables/listactor.tex}
+\subsubsection{Chuyển đổi yêu cầu chức năng sang Use Case}
+\input{tables/usecase.tex}
+\cleardoublepage
+\subsubsection{Mô tả chi tiết các use-case}
+\input{firgures/use_case_admin.tex}
+\input{firgures/use_case_canbo.tex}
+\input{firgures/uses-case-ccongdan.tex}
+
+\subsection{Thiết kế cơ sở dữ liệu}
+
+% ==========================================
+\subsubsection{Định nghĩa các bảng chính}
+% ==========================================
+\input{tables/db_main_tables.tex}
+\cleardoublepage
+% ==========================================
+\subsubsection{Mô tả chi tiết bảng assets (Bảng tài sản)}
+% ==========================================
+\input{tables/db_assets.tex}
+
+% ==========================================
+\subsubsection{Mô tả chi tiết bảng asset\_types (Danh mục loại tài sản)}
+% ==========================================
+\input{tables/db_asset_types.tex}
+
+% ==========================================
+\subsubsection{Mô tả chi tiết bảng asset\_status\_history (Lịch sử tình trạng tài sản)}
+% ==========================================
+\input{tables/db_asset_status_history.tex}
+
+% ==========================================
+\subsubsection{Mô tả chi tiết bảng maintenance\_orders (Phiếu công việc bảo trì)}
+% ==========================================
+\input{tables/db_maintenance_orders.tex}
+
+% ==========================================
+\subsubsection{Mô tả chi tiết bảng citizen\_reports (Phản ánh công dân)}
+% ==========================================
+\input{tables/db_citizen_reports.tex}
+
+% ==========================================
+\subsubsection{Mô tả chi tiết bảng districts (Đơn vị hành chính)}
+% ==========================================
+\input{tables/db_districts.tex}
+
+% ==========================================
+\subsubsection{Mô tả chi tiết bảng users (Người dùng hệ thống)}
+% ==========================================
+\input{tables/db_users.tex}
+\cleardoublepage
+% ==========================================
+\subsubsection{Mô tả chi tiết bảng roles\_permissions (Vai trò và phân quyền)}
+% ==========================================
+\input{tables/db_roles_permissions.tex}
+\cleardoublepage
+% ==========================================
+\subsubsection{Sơ đồ mô tả mối quan hệ giữa các bảng}
+\begin{figure}[htbp]
+    \centering
+% ==========================================
+\input{firgures/flowchart_logic.tex}
+\caption{Sơ đồ Thực thể Kết hợp (ERD) mô tả cấu trúc cơ sở dữ liệu hệ thống.}
+    \label{fig:database_erd}
+\end{figure}
+\cleardoublepage

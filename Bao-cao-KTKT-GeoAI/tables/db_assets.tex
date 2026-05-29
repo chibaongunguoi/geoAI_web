@@ -1,0 +1,26 @@
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{|c|p{3.5cm}|p{4cm}|p{6cm}|}
+    \caption{Cấu trúc bảng assets}
+    \label{tab:db_assets} \\
+
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\ \hline
+    \endfirsthead
+
+    \hline
+    \endhead
+    \hline
+    \endfoot
+    \hline
+    \endlastfoot
+
+    1 & asset\_id & UUID & Khóa chính, định danh duy nhất tài sản \\ \hline
+    2 & asset\_name & VARCHAR(200) & Tên/mô tả tài sản \\ \hline
+    3 & asset\_type\_id & UUID FK & Loại tài sản (FK $\rightarrow$ asset\_types) \\ \hline
+    4 & geom & GEOMETRY (Point, 4326) & Tọa độ GPS (WGS84) - PostGIS geometry \\ \hline
+    5 & address & TEXT & Địa chỉ mô tả vị trí \\ \hline
+    6 & district\_id & UUID FK & Quận/huyện (FK $\rightarrow$ districts) \\ \hline
+    7 & status & ENUM & Tình trạng: good / fair / poor / damaged / unknown \\ \hline
+    8 & created\_at & TIMESTAMPTZ & Thời điểm tạo bản ghi \\ \hline
+    9 & updated\_at & TIMESTAMPTZ & Thời điểm cập nhật gần nhất \\
+\end{longtable}

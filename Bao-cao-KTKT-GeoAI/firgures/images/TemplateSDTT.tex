@@ -1,0 +1,42 @@
+% File: diagram.tex
+\begin{sequencediagram}
+    % Khai báo các luồng
+    \newthread[white]{u}{User}
+    \newinst[3]{b}{Browser}
+    \newinst[3]{t}{TPM}
+    \newinst[3]{p}{TTP}
+
+    % Bước 1: Init
+    \begin{call}{u}{Init()}{b}{}
+    \end{call}
+
+    % Bước 2: AIKAuthSecret
+    \begin{call}{u}{AIKAuthSecret}{b}{}
+        \mess{b}{verifyAIKAuthSecret}{t}
+
+        % --- LOOP ARROW: 1 mũi tên duy nhất (nét liền) trên lifeline Browser (b) ---
+        % Bạn có thể chỉnh các số để đặt vị trí đẹp hơn:
+        % - (-0.8) và (-1.6): vị trí bắt đầu/kết thúc theo trục dọc
+        % - (2.0): độ "phồng" sang phải của vòng
+        \begin{tikzpicture}[overlay,remember picture]
+            \coordinate (start) at ($(b)+(0,-0.8)$);
+            \coordinate (end)   at ($(b)+(0,-1.6)$);
+            \draw[->,thick]
+                (start) .. controls ($(start)+(2.0,0)$) and ($(end)+(2.0,0)$) .. (end);
+            % Nếu muốn gắn nhãn trên mũi tên, dùng dòng này thay cho \draw ở trên:
+            % \draw[->,thick]
+            %   (start) .. controls ($(start)+(2.0,0)$) and ($(end)+(2.0,0)$) ..
+            %   node[right]{verifyAIKAuthSecret} (end);
+        \end{tikzpicture}
+        % --- END LOOP ARROW ---
+
+        \begin{call}{b}{get AIK$_{pub}$}{t}{AIK$_{pub}$}
+        \end{call}
+    \end{call}
+
+    % Khối Loop
+    \begin{sdblock}{Loop}{}
+        \begin{call}{u}{Do Something}{p}{AIK$_{pub}$}
+        \end{call}
+    \end{sdblock}
+\end{sequencediagram}

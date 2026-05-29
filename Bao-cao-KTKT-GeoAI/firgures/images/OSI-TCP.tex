@@ -1,0 +1,64 @@
+% --- osi_tcp_diagram.tex ---
+\begin{tikzpicture}[
+    font=\sffamily\bfseries\small,
+    node distance=0cm,
+    % Style định nghĩa cục bộ hoặc có thể chuyển sang config nếu dùng nhiều
+    layer/.style={
+        rectangle, 
+        draw=black!40, 
+        minimum width=5cm, 
+        minimum height=1cm, 
+        outer sep=0pt,
+        text=textBlack,
+        align=center
+    },
+    title/.style={
+        font=\sffamily\bfseries\Large,
+        text=black,
+        align=center,
+        yshift=0.5cm
+    }
+    ,scale = 0.8
+]
+
+    % --- CỘT OSI ---
+    \node[layer, fill=layerGreen] (osi7) {Application Layer};
+    \node[layer, fill=layerGreen, below=of osi7] (osi6) {Presentation Layer};
+    \node[layer, fill=layerGreen, below=of osi6] (osi5) {Session Layer};
+    \node[layer, fill=layerLight, below=of osi5] (osi4) {Transport Layer};
+    \node[layer, fill=green!48!black, text=black, below=of osi4] (osi3) {Network Layer};
+    \node[layer, fill=layerGreen, below=of osi3] (osi2) {Data Link Layer};
+    \node[layer, fill=layerGreen, below=of osi2] (osi1) {Physical Layer};
+
+    % Khung OSI
+    \node[draw=borderGreen, thick, rounded corners=5pt, fit=(osi7)(osi1), inner sep=5pt] (osiFrame) {};
+    \node[title, above=of osiFrame] {OSI};
+
+    % --- CỘT TCP/IP ---
+    \node[layer, fill=layerGreen, right=4cm of osi7.north east, anchor=north west, minimum height=3cm] (tcpApp) {Application\\Layer};
+    \node[layer, fill=layerLight, below=of tcpApp] (tcpTrans) {Transport Layer};
+    \node[layer, fill=green!48!black, below=of tcpTrans] (tcpNet) {Network Layer};
+    \node[layer, fill=layerGreen, below=of tcpNet, minimum height=2cm] (tcpAccess) {Network\\Access Layer};
+
+    % Khung TCP/IP
+    \node[draw=borderGreen, thick, rounded corners=5pt, fit=(tcpApp)(tcpAccess), inner sep=5pt] (tcpFrame) {};
+    \node[title, above=of tcpFrame] {TCP/IP};
+
+    % --- MŨI TÊN KẾT NỐI ---
+    \tikzset{arrowStyle/.style={->, >=latex, thick, black!80}}
+
+    % 1. Nhóm 3 layer trên -> TCP Application
+    \draw[thick] (osi7.east) -- ++(0.3,0) |- (osi5.east);
+    \draw[arrowStyle] ($(osi7.east)!0.5!(osi5.east) + (0.3,0)$) -- (tcpApp.west);
+
+    % 2. Transport
+    \draw[arrowStyle] (osi4.east) -- (tcpTrans.west);
+
+    % 3. Network
+    \draw[arrowStyle] (osi3.east) -- (tcpNet.west);
+
+    % 4. Nhóm 2 layer dưới -> TCP Network Access
+    \draw[thick] (osi2.east) -- ++(0.3,0) |- (osi1.east);
+    \draw[arrowStyle] ($(osi2.east)!0.5!(osi1.east) + (0.3,0)$) -- (tcpAccess.west);
+
+\end{tikzpicture}

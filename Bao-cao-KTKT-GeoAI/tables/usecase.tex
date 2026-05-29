@@ -1,0 +1,47 @@
+% Lưu ý: longtable không đặt trong môi trường \begin{table}
+\begin{longtable}{|c|p{4.5cm}|p{2.8cm}|c|c|p{2.8cm}|}
+    \caption{Danh sách Use Case và phân loại độ phức tạp}
+    \label{tab:use_cases} \\
+    
+    % --- Tiêu đề cho trang ĐẦU TIÊN ---
+    \hline
+    \textbf{TT} & \textbf{Tên Use Case} & \textbf{Tên tác nhân} & \textbf{\parbox{1.2cm}{\centering Số\\giao\\dịch}} & \textbf{\parbox{1.2cm}{\centering Phân\\loại\\BMT}} & \textbf{Phân loại độ phức tạp} \\
+    \hline
+    \endfirsthead
+    
+    % --- Tiêu đề cho các trang SAU (Bỏ trống chữ để không lặp lại) ---
+    \hline
+    \endhead
+    
+    % --- Chân bảng cho các trang ---
+    \hline
+    \endfoot
+    
+    % --- Chân bảng cho trang CUỐI CÙNG ---
+    \hline
+    \endlastfoot
+    
+    % --- NỘI DUNG BẢNG ---
+    UC-01 & Quản lý người dùng và phân quyền & Admin & 6 & B & Trung bình \\ \hline
+    UC-02 & Quản lý danh mục loại tài sản & Admin & 5 & B & Trung bình \\ \hline
+    UC-03 & Quản lý danh mục khu vực địa lý & Admin & 5 & B & Trung bình \\ \hline
+    UC-04 & Cấu hình hệ thống và bản đồ & Admin & 3 & M & Đơn giản \\ \hline
+    UC-05 & Xem nhật ký và kiểm toán & Admin & 3 & B & Đơn giản \\ \hline
+    UC-06 & Thêm tài sản mới trên bản đồ & Cán bộ quản lý & 5 & B & Trung bình \\ \hline
+    UC-07 & Chỉnh sửa thông tin tài sản & Cán bộ quản lý & 4 & B & Trung bình \\ \hline
+    UC-08 & Xóa tài sản & Cán bộ quản lý & 2 & B & Đơn giản \\ \hline
+    UC-09 & Tìm kiếm và lọc tài sản trên bản đồ & Tất cả & 3 & B & Đơn giản \\ \hline
+    UC-10 & Import dữ liệu tài sản hàng loạt & Cán bộ quản lý & 2 & B & Đơn giản \\ \hline
+    UC-11 & Xuất dữ liệu tài sản & Cán bộ quản lý & 2 & B & Đơn giản \\ \hline
+    UC-12 & Phân tích ảnh và phân loại tài sản bằng AI & Cán bộ quản lý & 5 & T & Trung bình \\ \hline
+    UC-13 & Tạo công việc bảo trì & Cán bộ quản lý & 6 & B & Trung bình \\ \hline
+    UC-14 & Cập nhật tiến độ bảo trì & Cán bộ quản lý & 5 & B & Trung bình \\ \hline
+    UC-15 & Theo dõi tiến độ bảo trì & Công dân & 3 & B & Đơn giản \\ \hline
+    UC-16 & Tra cứu lịch sử bảo trì tài sản & Tất cả & 3 & B & Đơn giản \\ \hline
+    UC-17 & Xem bản đồ hạ tầng công khai & Tất cả & 3 & B & Đơn giản \\ \hline
+    UC-18 & Gửi phản ánh sự cố hạ tầng & Công dân & 6 & B & Trung bình \\ \hline
+    UC-19 & Tra cứu kết quả xử lý phản ánh & Tất cả & 4 & B & Trung bình \\ \hline
+    UC-20 & Xem Dashboard tổng quan & Cán bộ quản lý & 3 & B & Đơn giản \\ \hline
+    UC-21 & Xem báo cáo thống kê tài sản & Cán bộ quản lý & 3 & B & Đơn giản \\ \hline
+    UC-22 & Xuất báo cáo và dữ liệu & Cán bộ quản lý & 3 & B & Đơn giản \\
+\end{longtable}

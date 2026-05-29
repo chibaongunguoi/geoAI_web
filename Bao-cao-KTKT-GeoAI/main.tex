@@ -1,0 +1,48 @@
+\documentclass{article}
+
+% --- IMPORT PREAMBLE ---
+\input{preamble/packages}
+
+% XÓA DÒNG NÀY: \input{preamble/acronyms} (Vì đã dùng loadglsentries ở dưới)
+
+% THÊM DÒNG NÀY: Bắt buộc phải có để LaTeX thu thập dữ liệu viết tắt
+\makeglossaries 
+
+% load glossary entries must be in the preamble
+\loadglsentries{preamble/acronyms}
+
+\begin{document}
+
+% --- TITLEPAGE ---
+\input{preamble/titlepage}
+\tableofcontents
+
+\clearpage
+\listoffigures
+
+\clearpage
+\listoftables
+
+\clearpage
+% THÊM DÒNG NÀY: Ép hiển thị tất cả từ viết tắt có trong file acronyms.tex để test
+
+% LỜI KHUYÊN: Tạm thời xóa tham số "style=banghienthi" để test xem danh mục có hiện ra dạng mặc định không. 
+% Nếu nó hiện ra, nghĩa là bạn đang bị lỗi ở cái style tùy chỉnh kia.
+\printglossary[type=\acronymtype, title={\centering DANH MỤC TỪ VIẾT TẮT}, style=banghienthi]
+\clearpage
+
+\input{content/C1_GioiThieuDeTai.tex}
+\input{content/C2_GiaiPhap.tex}
+\input{content/C3_KetQua.tex}
+\input{content/C4_KetLuanHuongPT.tex}
+\input{content/C5.tex}
+\clearpage
+
+% phantomsection giúp hyperlink bấm vào đúng vị trí hơn
+% \phantomsection 
+% \addcontentsline{toc}{section}{TÀI LIỆU THAM KHẢO}
+% \nocite{*} 
+% \bibliographystyle{ieeetr}
+% \bibliography{references/TLTK}
+
+\end{document}

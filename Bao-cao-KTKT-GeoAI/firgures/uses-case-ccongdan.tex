@@ -1,0 +1,41 @@
+\begin{figure}[htbp]
+  \centering
+  \resizebox{0.9\textwidth}{!}{%
+  \begin{tikzpicture}[
+    usecase/.style={ellipse, draw=black, thick, align=center, text width=3cm, minimum height=1.6cm, font=\small},
+    actor/.style={font=\small\bfseries, align=center}
+    ]
+    
+    % --- VẼ TÁC NHÂN (ACTOR) ---
+    \coordinate (A) at (0,0); 
+    \draw[thick] (0, 0.8) circle (0.25); 
+    \draw[thick] (0, 0.55) -- (0, -0.5); 
+    \draw[thick] (-0.6, 0.2) -- (0.6, 0.2); 
+    \draw[thick] (0, -0.5) -- (-0.4, -1.2); 
+    \draw[thick] (0, -0.5) -- (0.4, -1.2); 
+    \node[actor] at (0, -1.6) {Công dân};
+
+    % --- ĐẶT CÁC USE CASE ---
+    % Nhánh trái
+    \node[usecase] (uc1) at (-4.5, 3) {Quản lý tài khoản};
+    \node[usecase] (uc2) at (-5, 0) {Xem kết quả phản\\ánh sự cố};
+    \node[usecase] (uc3) at (-4.5, -3) {Tìm kiếm cơ sở hạ\\tầng};
+    
+    % Nhánh phải
+    \node[usecase] (uc4) at (4.5, 3) {Xem lịch sử bảo trì\\cơ sở hạ tầng};
+    \node[usecase] (uc5) at (5, 0) {Gửi phản ánh sự cố};
+    \node[usecase] (uc6) at (4.5, -3) {Xem bản đồ cơ sở\\hạ tầng};
+
+    % --- VẼ MŨI TÊN ---
+    \draw[-Stealth, thick] (A) -- (uc1);
+    \draw[-Stealth, thick] (A) -- (uc2);
+    \draw[-Stealth, thick] (A) -- (uc3);
+    \draw[-Stealth, thick] (A) -- (uc4);
+    \draw[-Stealth, thick] (A) -- (uc5);
+    \draw[-Stealth, thick] (A) -- (uc6);
+
+  \end{tikzpicture}%
+  }
+  \caption{Biểu đồ Use Case cho tác nhân Công dân}
+  \label{fig:uc_congdan}
+\end{figure}

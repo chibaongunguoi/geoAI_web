@@ -1,0 +1,155 @@
+\section{DỰ TOÁN VÀ TRIỂN KHAI}
+
+\subsection{Dự toán dự án}
+
+\subsubsection{Căn cứ lập dự toán}
+Dự án \gls{geoai} được xây dựng dựa trên các căn cứ pháp lý sau:
+\begin{itemize}
+    \item \gls{qd-btttt} số 671/QĐ-BTTTT ngày 26/04/2024 về hướng dẫn xác định chi phí phần mềm nội bộ.
+    \item Thông tư số 36/2018/TT-BTC ngày 30/3/2018 của Bộ Tài chính về Hướng dẫn việc lập dự toán, quản lý, sử dụng và quyết toán kinh phí dành cho công tác đào tạo, bồi dưỡng cán bộ, công chức, viên chức.
+    \item Thông tư số 06/2011/TT-BTTTT ngày 28/2/2011 của Bộ Thông tin và Truyền thông về việc Quy định lập và quản lý chi phí đầu tư ứng dụng \gls{cntt}.
+    \item Thông tư 121/2018/TT-BTC ngày 12/12/2018 của Bộ Tài chính về Quy định về lập dự toán, quản lý, sử dụng và quyết toán kinh phí để thực hiện công tác ứng cứu sự cố, bảo đảm an toàn thông tin mạng.
+    \item Công văn số 3787/BTTTT-THH ngày 26/12/2014 của Bộ Thông tin và Truyền thông về việc hướng dẫn phương pháp xác định chi phí kiểm thử chất lượng phần mềm.
+    \item Công văn số 2519/BTTTT-KHTC ngày 04/9/2014 của Bộ Thông tin và Truyền thông về việc Đơn giá lắp đặt phần cứng và cài đặt phần mềm trong ứng dụng công nghệ thông tin.
+    \item \gls{qd-btttt} số 1688/QĐ-BTTTT ngày 11/10/2019 về việc Sửa đổi, bổ sung Quyết định 2378/QĐ-BTTTT về định mức chi phí quản lý dự án, chi phí tư vấn đầu tư ứng dụng \gls{cntt} sử dụng ngân sách nhà nước.
+    \item Quyết định số 320/QĐ-BKHCN ngày 30/3/2025 về hướng dẫn xác định đơn giá nhân công.
+\end{itemize}
+
+\subsubsection{Dự toán chi tiết}
+
+\textbf{a. Tổng dự toán}
+
+Bảng tổng hợp chi phí phần mềm nội bộ:
+\input{tables/bang_tong_hop_chi_phi.tex}
+
+Bảng tổng hợp dự toán:
+\input{tables/bang_tong_hop_du_toan.tex}
+
+\vspace{0.5cm} % Thêm khoảng trắng cho thoáng
+\vspace{0.5cm}
+\textbf{b. Dự toán chi tiết}
+
+\vspace{0.3cm}
+\textbf{- Danh sách các tác nhân (actors):}
+\input{tables/bang_danh_sach_tac_nhan.tex}
+
+\textbf{- Danh sách yêu cầu chức năng:} Bảng ở chương III phần III mục 1. Yêu cầu chức năng của phần mềm.
+
+\vspace{0.3cm}
+\textbf{- Bảng chuyển đổi yêu cầu chức năng sang use case:} Bảng ở chương III phần II mục 2. Chuyển đổi yêu cầu chức năng sang Use Case.
+
+\vspace{0.3cm}
+\textbf{- Bảng tính điểm tác nhân không hiệu chỉnh (TAW):}
+\input{tables/bang_taw.tex}
+
+\textbf{- Bảng tính điểm các trường hợp sử dụng (use case):}
+\input{tables/bang_tbf.tex}
+\cleardoublepage
+\textbf{- Bảng hệ số phức tạp kỹ thuật – công nghệ (TCF):}
+\input{tables/bang_tcf.tex}
+\cleardoublepage
+
+\textbf{- Bảng tính toán hệ số tác động môi trường, nhóm làm việc (ECF):}
+\input{tables/bang_ecf.tex}
+\cleardoublepage
+
+\textbf{- Bảng tính lương nhân công:}
+\input{tables/bang_luong_nhan_cong.tex}
+\cleardoublepage
+
+\textbf{- Bảng tính toán chi phí trực tiếp xây dựng phần mềm nội bộ:}
+\input{tables/bang_chi_phi_truc_tiep.tex}
+\cleardoublepage
+
+
+\textbf{Tổng dự toán}
+Bảng tổng hợp chi phí phần mềm nội bộ:
+\input{tables/bang_tong_hop_chi_phi.tex}
+
+Bảng tổng hợp dự toán:
+\input{tables/bang_tong_hop_du_toan.tex}
+
+
+\subsection{Tiến độ triển khai}
+\input{tables/bang_tien_do.tex}
+
+\subsection{Phương án tổ chức thực hiện}
+
+\subsubsection{Phương án cài đặt, triển khai}
+\begin{itemize}
+    \item Triển khai trên hạ tầng đám mây lai (hybrid cloud): máy chủ on-premise của TTDL \gls{tptp} cho dữ liệu nhạy cảm, kết hợp cloud công cộng cho khả năng mở rộng.
+    \item CI/CD pipeline tự động hóa quá trình build, test và deploy.
+    \item Blue-Green Deployment để đảm bảo zero-downtime khi cập nhật phiên bản.
+\end{itemize}
+
+\subsubsection{Phương án đào tạo}
+Đào tạo cho 3 nhóm đối tượng:
+\begin{itemize}
+    \item Nhóm 1 - Quản trị viên hệ thống (10 người): Khóa đào tạo 3 ngày tập trung về quản trị hệ thống, cấu hình \gls{gis} server, quản lý dữ liệu không gian, xử lý sự cố. Tài liệu: Hướng dẫn quản trị hệ thống (150 trang).
+    \item Nhóm 2 - Cán bộ quản lý đô thị (50 người): Khóa đào tạo 2 ngày về sử dụng \gls{webgis}, tra cứu và quản lý tài sản, xem báo cáo và dashboard. Tài liệu: Hướng dẫn sử dụng (100 trang).
+    \item Nhóm 3 - Cán bộ khảo sát thực địa (100 người): Đào tạo 1 ngày về sử dụng mobile app, quy trình thu thập dữ liệu tại thực địa. Tài liệu: Hướng dẫn nhanh (30 trang) + video tutorial.
+\end{itemize}
+
+\subsubsection{Phương án vận hành, quản lý, khai thác}
+\begin{itemize}
+    \item Bố trí 2 cán bộ chuyên trách vận hành hệ thống \gls{geoai} tại Trung tâm \gls{cntt}-TT \gls{tptp}.
+    \item Hệ thống giám sát tự động (Prometheus + Grafana) cảnh báo 24/7 về hiệu năng, lỗi và bảo mật.
+    \item Họp đánh giá hàng tháng giữa đơn vị vận hành và các sở ngành sử dụng để cải tiến liên tục.
+    \item Cập nhật model \gls{ai} định kỳ 6 tháng/lần dựa trên dữ liệu mới thu thập.
+\end{itemize}
+
+\subsubsection{Phương án kiểm thử các yêu cầu chức năng và phi chức năng}
+\begin{itemize}
+    \item Kiểm thử chức năng: Sử dụng công cụ Selenium/Playwright cho automation test \gls{webgis}; Postman cho \gls{api} test; QGIS cho kiểm tra dữ liệu không gian.
+    \item Kiểm thử hiệu năng: Apache JMeter mô phỏng 500 người dùng đồng thời, đặc biệt kiểm thử render bản đồ với 100.000+ điểm dữ liệu.
+    \item Kiểm thử bảo mật: OWASP ZAP cho quét tự động; chuyên gia bảo mật độc lập thực hiện penetration testing.
+    \item Kiểm thử \gls{ai}: Đánh giá độ chính xác model (accuracy, precision, recall, F1-score) trên tập dữ liệu kiểm thử 1.000 ảnh được gán nhãn.
+\end{itemize}
+
+\subsubsection{Cam kết bảo hành và hỗ trợ kỹ thuật}
+\begin{itemize}
+    \item Bảo hành 24 tháng kể từ ngày nghiệm thu, bao gồm sửa lỗi phần mềm, hỗ trợ kỹ thuật và cập nhật bản vá bảo mật.
+    \item SLA hỗ trợ: phản hồi trong 2 giờ cho lỗi nghiêm trọng, 8 giờ cho lỗi trung bình, 24 giờ cho yêu cầu thông thường.
+    \item Cập nhật model \gls{ai} miễn phí trong 24 tháng bảo hành khi dữ liệu training mới đạt đủ ngưỡng.
+    \item Hotline kỹ thuật 24/7 trong suốt thời gian bảo hành.
+    \item Sau thời gian bảo hành, đơn vị phát triển cam kết cung cấp dịch vụ bảo trì, nâng cấp theo hợp đồng hỗ trợ riêng.
+\end{itemize}
+\cleardoublepage
+\section*{PHỤ LỤC I - SƠ ĐỒ USE CASE HỆ THỐNG GEOAI}
+\addcontentsline{toc}{section}{PHỤ LỤC I - SƠ ĐỒ USE CASE HỆ THỐNG GEOAI}
+
+\subsubsection*{1. Use Case Quản lý tài sản đô thị trên bản đồ}
+\begin{itemize}
+    \item Tác nhân: Cán bộ quản lý đô thị, Cán bộ khảo sát thực địa, Quản trị viên.
+    \item Use case chính: Xem bản đồ, Thêm tài sản mới, Cập nhật tài sản, Tra cứu tài sản, Xuất dữ liệu.
+    \item Extend: Upload ảnh tài sản, Phân tích \gls{ai} tự động, Gắn thẻ QR code.
+\end{itemize}
+
+\subsubsection*{2. Use Case Module AI và Cảnh báo tự động}
+\begin{itemize}
+    \item Tác nhân: Hệ thống \gls{ai} tự động, Camera/\gls{iot}, Cán bộ quản lý.
+    \item Use case chính: Phân tích ảnh tài sản, Phát hiện sự cố, Gửi cảnh báo, Dự báo bảo trì.
+    \item Include: Lưu kết quả phân tích \gls{ai}, Cập nhật tình trạng tài sản, Tạo phiếu công việc.
+\end{itemize}
+
+\subsubsection*{3. Use Case Cổng Công dân}
+\begin{itemize}
+    \item Tác nhân: Công dân/người dân, Cán bộ tiếp nhận phản ánh.
+    \item Use case chính: Xem bản đồ công khai, Gửi phản ánh sự cố, Tra cứu tiến độ xử lý.
+    \item Extend: Xác thực địa chỉ GPS, Đính kèm ảnh sự cố, Nhận thông báo cập nhật.
+\end{itemize}
+\cleardoublepage
+\section*{PHỤ LỤC II - BẢNG THỐNG KÊ DỮ LIỆU TÀI SẢN ĐÔ THỊ}
+\addcontentsline{toc}{section}{PHỤ LỤC II - BẢNG THỐNG KÊ DỮ LIỆU TÀI SẢN ĐÔ THỊ}
+Ước tính quy mô dữ liệu tài sản đô thị cần quản lý tại \gls{tptp} (giai đoạn đầu):
+\input{tables/bang_phu_luc_2.tex}
+\cleardoublepage
+\section*{PHỤ LỤC III - YÊU CẦU HẠ TẦNG TRIỂN KHAI}
+\addcontentsline{toc}{section}{PHỤ LỤC III - YÊU CẦU HẠ TẦNG TRIỂN KHAI}
+\input{tables/bang_phu_luc_3.tex}
+
+\vspace{1cm}
+\begin{flushright}
+- \centering Hết - \\
+\centering Đà Nẵng, tháng 6 năm 2025
+\end{flushright}

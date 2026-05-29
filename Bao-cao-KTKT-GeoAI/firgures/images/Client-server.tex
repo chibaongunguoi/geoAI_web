@@ -1,0 +1,31 @@
+\begin{tikzpicture}[
+    node distance = 2.0cm,
+    thick,
+    font=\sffamily,
+    % --- ĐỊNH NGHĨA NODE ---
+    process/.style={
+        ellipse, draw, minimum width=2.5cm, minimum height=1.5cm, align=center
+    },
+    database/.style={
+        cylinder, shape border rotate=90, aspect=0.25, draw,
+        minimum width=2cm, minimum height=2.2cm, align=center
+    },
+    % --- SỬA LẠI STYLE MŨI TÊN (ĐƠN GIẢN HÓA) ---
+    % '->' : Vẽ mũi tên ở cuối
+    % '>=stealth' : Chọn kiểu mũi tên nhọn (giống hình mẫu)
+    myarrow/.style={->, >=stealth, thick} 
+]
+
+    % 1. Vẽ các Nodes
+    \node[process] (client) {Client\\process};
+    \node[process, right=of client] (server) {Server\\process};
+    \node[database, right=of server] (db) {Database};
+
+    % 2. Vẽ các đường nối
+    % Đã tự động có mũi tên nhờ style 'myarrow' chứa '->'
+    \draw[myarrow] (client) -- node[above] {IPC} (server);
+
+    \draw[myarrow] ([yshift=5pt]server.east) -- ([yshift=5pt]db.west);
+    \draw[myarrow] ([yshift=-5pt]db.west) -- ([yshift=-5pt]server.east);
+
+\end{tikzpicture}

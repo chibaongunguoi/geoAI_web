@@ -1,0 +1,220 @@
+% File: libraries.tex
+% --- KHAI BÁO CÁC GÓI (PACKAGES) ---
+\usepackage[unicode]{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage{chngcntr}
+\usepackage{longtable}
+\usepackage{xltabular}
+\usepackage{makecell}
+\usepackage[fontsize=13pt]{scrextend}
+\usepackage[paperwidth=21cm,paperheight=29.7cm, right=2cm, left=3cm, top=2cm, bottom=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usepackage{multirow}
+\usepackage{pgf-umlsd}
+\usepackage{tikz-uml}% Dùng cho Class Diagram% Dùng cho Sequence Diagram
+\usepackage{indentfirst}
+\usepackage{tocloft}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{pdflscape}
+\usepackage{caption}
+\usepackage[table]{xcolor}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{fontawesome5}
+\usepackage[acronym, nonumberlist]{glossaries}
+\usepackage{amssymb}
+\usetikzlibrary{positioning, arrows.meta}
+\usetikzlibrary{calc,positioning,shapes.multipart}
+\usetikzlibrary{arrows.meta, shapes.geometric, shadows}
+\usepackage{adjustbox}
+% --- CẤU HÌNH TIKZ LIBRARIES ---
+\usetikzlibrary{arrows,shadows,positioning, shapes.geometric, calc, shapes.multipart, arrows.meta}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc}
+% --- ĐỊNH NGHĨA MÀU SẮC ---
+\definecolor{layerGreen}{HTML}{98FB98}    % Xanh lá nhạt
+\definecolor{layerLight}{HTML}{E0FFE0}    % Xanh rất nhạt
+\definecolor{light-blue}{RGB}{220, 230, 241}
+\definecolor{layerDark}{HTML}{5F9EA0}     % Xanh đậm
+\definecolor{borderGreen}{HTML}{2E8B57}   % Viền xanh
+\definecolor{textBlack}{HTML}{333333}
+\definecolor{headergray}{gray}{0.9}
+
+% --- MÀU SẮC TETRIS ---
+\definecolor{tetris-yellow}{RGB}{255, 255, 0}    % Khối O
+\definecolor{tetris-cyan}{RGB}{0, 255, 255}      % Khối I
+\definecolor{tetris-red}{RGB}{255, 0, 0}         % Khối S
+\definecolor{tetris-green}{RGB}{100, 200, 50}    % Khối Z
+\definecolor{tetris-orange}{RGB}{255, 165, 0}    % Khối L
+\definecolor{tetris-magenta}{RGB}{255, 105, 180} % Khối J
+\definecolor{tetris-purple}{RGB}{128, 0, 128}    % Khối T
+
+% --- CẤU HÌNH GLOSSARIES (DANH MỤC TỪ VIẾT TẮT) ---
+\makeglossaries
+\newglossarystyle{banghienthi}{%
+    \renewenvironment{theglossary}%
+     {\begin{longtable}{|c|p{3.5cm}|p{10cm}|}}%
+     {\end{longtable}}%
+    \renewcommand*{\glossaryheader}{%
+        \hline
+        \textbf{STT} & \textbf{Ký hiệu chữ viết tắt} & \textbf{Chữ viết đầy đủ} \\
+        \hline
+        \endhead
+    }%
+    \newcounter{sttcount}
+    \renewcommand*{\glossentry}[2]{%
+        \stepcounter{sttcount}%
+        \centering\thesttcount & 
+        \textbf{\glstarget{##1}{\glossentryname{##1}}} & 
+        \glossentrydesc{##1} \\ 
+        \hline
+    }%
+    \renewcommand*{\glsgroupskip}{}% 
+}
+
+% --- CẤU HÌNH ĐƯỜNG DẪN ẢNH & COUNTER ---
+\graphicspath{{images/}} 
+\counterwithin{table}{section}
+\counterwithin{figure}{section}
+\renewcommand{\arraystretch}{1.1}
+
+% --- CÁC ĐỊNH NGHĨA VẼ HÌNH (TIKZ CUSTOM ARROWS & STYLES) ---
+\makeatletter
+% -- Mũi tên Crow's foot (MANY)
+\pgfarrowsdeclare{crow's foot}{crow's foot}
+{
+    \pgfarrowsleftextend{+-.5\pgflinewidth}%
+    \pgfarrowsrightextend{+.5\pgflinewidth}%
+}
+{
+    \pgfutil@tempdima=0.6pt%
+    \pgfsetdash{}{+0pt}%
+    \pgfsetmiterjoin%
+    \pgfpathmoveto{\pgfqpoint{0pt}{-9\pgfutil@tempdima}}%
+    \pgfpathlineto{\pgfqpoint{-13\pgfutil@tempdima}{0pt}}%
+    \pgfpathlineto{\pgfqpoint{0pt}{9\pgfutil@tempdima}}%
+    \pgfusepathqstroke%
+}
+% -- Mũi tên ONE
+\pgfarrowsdeclare{one}{one}
+{
+    \pgfarrowsleftextend{+-.5\pgflinewidth}%
+    \pgfarrowsrightextend{+.5\pgflinewidth}%
+}
+{
+    \pgfutil@tempdima=0.6pt%
+    \pgfsetdash{}{+0pt}%
+    \pgfsetmiterjoin%
+    \pgfpathmoveto{\pgfqpoint{-6pt}{-6pt}}% 
+    \pgfpathlineto{\pgfqpoint{-6pt}{-6pt}}%  
+    \pgfpathlineto{\pgfqpoint{-6pt}{6pt}}% 
+    \pgfpathmoveto{\pgfqpoint{0\pgfutil@tempdima}{0\pgfutil@tempdima}}%
+    \pgfpathmoveto{\pgfqpoint{-8pt}{-6pt}}% 
+    \pgfpathlineto{\pgfqpoint{-8pt}{-6pt}}%  
+    \pgfpathlineto{\pgfqpoint{-8pt}{6pt}}%    
+    \pgfusepathqstroke%
+}
+\makeatother
+
+% -- Style cho Entity (ERD)
+\tikzset{%
+    pics/entity/.style n args={3}{code={%
+        \node[draw,
+        rectangle split,
+        rectangle split parts=2,
+        rectangle split part fill={blue!70, white},
+        text=white,
+        rectangle split part align={center, left},
+        ] (#1)
+        {\textbf{#2} \nodepart{second}
+            \begin{tabular}{>{\color{black}}p{9em} >{\color{gray}}l}
+                #3
+            \end{tabular}
+        };%
+    }},
+    zig zag to/.style={
+        to path={(\tikztostart) -| ($(\tikztostart)!#1!(\tikztotarget)$) |- (\tikztotarget)}
+    },
+    zig zag to/.default=0.5,   
+    one to many/.style={
+        one-crow's foot, zig zag to
+    },
+}
+
+% -- Style cho Tetris Blocks
+\tikzset{
+    block/.style={draw=black, thin, minimum size=1cm, outer sep=0pt},
+    label-text/.style={font=\Large\bfseries, anchor=north}
+}
+
+% --- ĐỊNH DẠNG VĂN BẢN & TIÊU ĐỀ ---
+\renewcommand{\refname}{\centering TÀI LIỆU THAM KHẢO} 
+\renewcommand{\baselinestretch}{1.2}
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{1cm}
+\setlength{\cftsecnumwidth}{1.2cm}
+
+\titlespacing*{\section}{0pt}{0pt}{30pt} 
+\titleformat*{\section}{\fontsize{16pt}{0pt}\selectfont \bfseries }
+
+\titlespacing*{\subsection}{0pt}{10pt}{0pt} 
+\titleformat*{\subsection}{\fontsize{14pt}{0pt}\selectfont \bfseries}
+
+\titlespacing*{\subsubsection}{0pt}{10pt}{0pt} 
+\titleformat*{\subsubsection}{\fontsize{13pt}{0pt}\selectfont \bfseries \itshape}
+
+\titlespacing*{\paragraph}{0pt}{0pt}{30pt} 
+\titleformat*{\paragraph}{\fontsize{16pt}{0pt}\selectfont \itshape}
+
+% --- HEADER & FOOTER (PBL4) ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{BÁO CÁO KINH TẾ KĨ THUÂT}
+\fancyfoot[L]{Phạm Minh Khoa, Nguyễn Chí Bảo, Ngô Hồ Minh Hưng}
+\fancyfoot[C]{}
+\fancyfoot[R]{Trang \thepage}
+\renewcommand{\headrulewidth}{1.5pt}
+\renewcommand{\footrulewidth}{1.5pt}
+
+\fancypagestyle{plain}{
+\fancyhead[L]{BÁO CÁO KINH TẾ KĨ THUÂT}
+\fancyfoot[L]{Phạm Minh Khoa, Nguyễn Chí Bảo, Ngô Hồ Minh Hưng}
+\fancyfoot[C]{}
+\fancyfoot[R]{Trang \thepage}
+\renewcommand{\headrulewidth}{1.5pt}
+\renewcommand{\footrulewidth}{1.5pt}}
+
+% --- MỤC LỤC, DANH MỤC HÌNH/BẢNG & CAPTION ---
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cfttoctitlefont}{\hfill\bfseries\Large}
+\renewcommand{\cftaftertoctitle}{\hfill}
+\renewcommand{\contentsname}{MỤC LỤC}
+\renewcommand{\cftsubsecfont}{\bfseries}
+\renewcommand{\cftsubsecpagefont}{\bfseries}
+\renewcommand{\cftloftitlefont}{\hfill\bfseries\Large}
+\renewcommand{\cftafterloftitle}{\hfill}
+\renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH}
+\renewcommand{\cftlottitlefont}{\hfill\bfseries\Large}
+\renewcommand{\cftafterlottitle}{\hfill}
+\renewcommand{\listtablename}{DANH MỤC BẢNG }
+\renewcommand{\figurename}{\fontsize{12PT}{0PT}\selectfont \bfseries Hình}
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
+\renewcommand{\tablename}{\fontsize{12PT}{0PT}\selectfont \bfseries Bảng}
+\renewcommand{\thetable}{\arabic{section}.\arabic{table}}
+\renewcommand\cfttabpresnum{\tablename~}
+\setlength\cfttabnumwidth{2.3cm}
+\renewcommand\cftfigpresnum{\figurename~}
+\setlength\cftfignumwidth{2.3cm}
+\captionsetup[figure]{labelsep=space}
+\captionsetup[table]{labelsep=space}
+
+% --- ĐỊNH DẠNG SỐ THỨ TỰ SECTIONS ---
+\renewcommand{\thesection}{\Roman{section}.}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}.}
+\renewcommand{\thesubsubsection}{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
+\setlist{nosep}

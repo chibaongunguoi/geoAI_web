@@ -1,0 +1,30 @@
+\begin{table}[htbp]
+\centering
+\caption{Bảng hệ số phức tạp kỹ thuật – công nghệ (TCF) \label{tab:tcf}}
+\vspace{0.2cm}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|c|p{5.5cm}|c|c|c|p{3.5cm}|}
+\hline
+\textbf{TT} & \textbf{Các hệ số KT-CN} & \textbf{Trọng số (Wi)} & \textbf{Giá trị xếp hạng (Fi)} & \textbf{Kết quả ($Wi \times Fi$)} & \textbf{Ghi chú} \\ \hline
+\multicolumn{6}{|l|}{\textbf{I. Hệ số KT-CN (TFW)}} \\ \hline
+T1 & Xử lý phân tán & 2 & 0 & 0 & 0-5 \\ \hline
+T2 & Mức độ quan trọng của hiệu năng & 1 & 2 & 2 & 0-5 \\ \hline
+T3 & Hiệu quả sử dụng cho người dùng & 1 & 2 & 2 & 0-5 \\ \hline
+T4 & Độ phức tạp của xử lý bên trong & 1 & 2 & 2 & 0-5 \\ \hline
+T5 & Khả năng tái sử dụng mã nguồn & 1 & 0 & 0 & 0-5 \\ \hline
+T6 & Dễ cài đặt & 0.5 & 1 & 0.5 & 0-5 \\ \hline
+T7 & Dễ vận hành & 0.5 & 3 & 1.5 & 0-5 \\ \hline
+T8 & Khả năng chuyển đổi & 2 & 0 & 0 & 0-5 \\ \hline
+T9 & Dễ dàng bảo trì & 1 & 3 & 3 & 0-5 \\ \hline
+T10 & Xử lý đồng thời & 1 & 1 & 1 & 0-5 \\ \hline
+T11 & Mức độ hỗ trợ bảo mật & 1 & 2 & 2 & 0-5 \\ \hline
+T12 & Sự phụ thuộc vào mã lệnh bên thứ ba & 1 & 1 & 1 & 0-5 \\ \hline
+T13 & Mức độ hỗ trợ đào tạo người sử dụng & 1 & 2 & 2 & 0-5 \\ \hline
+\multicolumn{4}{|l|}{$TFW = \sum (Wi \times Fi)$} & \textbf{17} & \\ \hline
+\multicolumn{6}{|l|}{\textbf{II. Hệ số phức tạp KT-CN (TCF)}} \\ \hline
+\multicolumn{4}{|l|}{$TCF = 0.6 + (0.01 \times TFW)$} & \textbf{0.77} & \\ \hline
+\multicolumn{4}{|l|}{$UUCP = TAW + TBF$} & 175 & Điểm UC chưa hiệu chỉnh \\ \hline
+\multicolumn{4}{|l|}{$AUCP = UUCP \times TCF \times EF$} & \textbf{85.56625} & ĐIỂM USE CASE ĐÃ HIỆU CHỈNH \\ \hline
+\end{tabular}%
+}
+\end{table}

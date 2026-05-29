@@ -1,0 +1,77 @@
+\begin{figure}[htbp]
+  \centering
+  % Lệnh resizebox giúp thu phóng sơ đồ vừa đúng chiều ngang trang giấy A4
+  \resizebox{\textwidth}{!}{
+  
+  % --- ĐỊNH NGHĨA MÃ MÀU ---
+  \definecolor{titBg}{HTML}{EBE6DC}
+  \definecolor{titBorder}{HTML}{D1CCC1}
+  
+  \definecolor{blBg}{HTML}{D9EDF8}
+  \definecolor{blBorder}{HTML}{A5CDE9}
+  \definecolor{blText}{HTML}{224C72}
+  
+  \definecolor{orBg}{HTML}{FCE2D4}
+  \definecolor{orBorder}{HTML}{EDB8A0}
+  \definecolor{orText}{HTML}{8E3411}
+  
+  \definecolor{grBg}{HTML}{D9F0E3}
+  \definecolor{grBorder}{HTML}{A2D7BC}
+  \definecolor{grText}{HTML}{1A5E3B}
+
+  \begin{tikzpicture}[
+    % --- KIỂU DÁNG CÁC KHỐI CHUNG ---
+    titlebox/.style={rectangle, draw=titBorder, fill=titBg, thick, rounded corners=3pt, font=\bfseries\normalsize, text=black!80, align=center},
+    bluebox/.style={rectangle, draw=blBorder, fill=blBg, thick, rounded corners=3pt, font=\bfseries\small, text=blText, align=center},
+    orangebox/.style={rectangle, draw=orBorder, fill=orBg, thick, rounded corners=3pt, font=\bfseries\small, text=orText, align=center},
+    greenbox/.style={rectangle, draw=grBorder, fill=grBg, thick, rounded corners=3pt, font=\bfseries\small, text=grText, align=center}
+    ]
+
+    % ==========================================
+    % 1. TIÊU ĐỀ CHÍNH
+    % ==========================================
+    \node[titlebox, minimum width=18cm, text width=17.5cm, minimum height=1cm] at (9.0, 0) {MÔ HÌNH TỔNG THỂ PHẦN MỀM};
+
+    % ==========================================
+    % 2. TẦNG NGƯỜI DÙNG (Dòng 1)
+    % ==========================================
+    \node[bluebox, minimum width=3cm, text width=2.8cm, minimum height=1cm] at (1.5, -1.5) {Người dùng};
+    
+    \node[bluebox, minimum width=4.6cm, text width=4.4cm, minimum height=1cm] at (5.7, -1.5) {Cán bộ \gls{cntt}};
+    \node[bluebox, minimum width=4.6cm, text width=4.4cm, minimum height=1cm] at (10.7, -1.5) {Cán bộ quản lý đô thị};
+    \node[bluebox, minimum width=4.6cm, text width=4.4cm, minimum height=1cm] at (15.7, -1.5) {Người dân};
+
+    % ==========================================
+    % 3. TẦNG ỨNG DỤNG (Dòng 2 & 3)
+    % ==========================================
+    % Cột tiêu đề tầng
+    \node[orangebox, minimum width=3cm, text width=2.8cm, minimum height=2.3cm] at (1.5, -3.45) {Tầng ứng dụng};
+    
+    % Dòng 2
+    \node[orangebox, minimum width=4.6cm, text width=4.4cm, minimum height=1cm] at (5.7, -2.8) {Quản lý cơ sở hạ tầng};
+    \node[orangebox, minimum width=4.6cm, text width=4.4cm, minimum height=1cm] at (10.7, -2.8) {Nhận diện CSHT bằng \gls{ai}};
+    \node[orangebox, minimum width=4.6cm, text width=4.4cm, minimum height=1cm] at (15.7, -2.8) {Phản ánh sự cố hạ tầng};
+    
+    % Dòng 3 (2 khối gộp)
+    \node[orangebox, minimum width=7.1cm, text width=6.9cm, minimum height=1cm] at (6.95, -4.1) {Tạo công việc bảo trì};
+    \node[orangebox, minimum width=7.1cm, text width=6.9cm, minimum height=1cm] at (14.45, -4.1) {Thống kê, báo cáo};
+
+    % ==========================================
+    % 4. TẦNG CÔNG NGHỆ VÀ DỊCH VỤ (Dòng 4 & 5)
+    % ==========================================
+    % Cột tiêu đề tầng
+    \node[greenbox, minimum width=3cm, text width=2.8cm, minimum height=2.3cm] at (1.5, -6.05) {Tầng công nghệ\\và dịch vụ};
+    
+    % Dòng 4
+    \node[greenbox, minimum width=4.6cm, text width=4.4cm, minimum height=1cm] at (5.7, -5.4) {Quản lý người dùng};
+    \node[greenbox, minimum width=4.6cm, text width=4.4cm, minimum height=1cm] at (10.7, -5.4) {Quản lý vai trò người dùng};
+    \node[greenbox, minimum width=4.6cm, text width=4.4cm, minimum height=1cm] at (15.7, -5.4) {Cấu hình hệ thống};
+    
+    % Dòng 5 (1 khối ôm trọn)
+    \node[greenbox, minimum width=14.6cm, text width=14.4cm, minimum height=1cm] at (10.7, -6.7) {Quản lý danh mục chung};
+
+  \end{tikzpicture}
+  }
+  \caption{Mô hình tổng thể hệ thống}
+  \label{fig:mo_hinh_tong_the}
+\end{figure}

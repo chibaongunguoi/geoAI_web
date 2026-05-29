@@ -1,0 +1,5 @@
+PWD e:\BAO-CAO-KINH-TE-KI-THUAT\tables
+INPUT C:\Users\Khoa\AppData\Local\MiKTeX\miktex\data\le\pdftex\pdflatex.fmt
+INPUT e:\BAO-CAO-KINH-TE-KI-THUAT\tables\flowchart.tex
+OUTPUT flowchart.log
+INPUT C:\Users\Khoa\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmbx10.tfm
