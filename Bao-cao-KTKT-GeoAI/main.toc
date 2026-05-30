@@ -42,25 +42,25 @@
 \contentsline {subsubsection}{\numberline {4.3.1}Mô hình kiến trúc vật lý}{24}{subsubsection.4.3.1}%
 \contentsline {subsubsection}{\numberline {4.3.2}Danh sách các tác nhân}{25}{subsubsection.4.3.2}%
 \contentsline {subsubsection}{\numberline {4.3.3}Chuyển đổi yêu cầu chức năng sang Use Case}{25}{subsubsection.4.3.3}%
-\contentsline {subsubsection}{\numberline {4.3.4}Mô tả chi tiết các use-case}{28}{subsubsection.4.3.4}%
+\contentsline {subsubsection}{\numberline {4.3.4}Mô tả chi tiết các use-case}{27}{subsubsection.4.3.4}%
 \contentsline {subsection}{\numberline {4.4.}Thiết kế cơ sở dữ liệu}{29}{subsection.4.4}%
 \contentsline {subsubsection}{\numberline {4.4.1}Định nghĩa các bảng chính}{29}{subsubsection.4.4.1}%
 \contentsline {subsubsection}{\numberline {4.4.2}Mô tả chi tiết bảng BuildingProperty (Tài sản)}{30}{subsubsection.4.4.2}%
 \contentsline {subsubsection}{\numberline {4.4.3}Mô tả chi tiết bảng Place (Tiện ích Overture)}{31}{subsubsection.4.4.3}%
 \contentsline {subsubsection}{\numberline {4.4.4}Mô tả chi tiết bảng RiskZone và RoadSegment}{31}{subsubsection.4.4.4}%
-\contentsline {subsubsection}{\numberline {4.4.5}Mô tả chi tiết bảng Report (Phản ánh)}{32}{subsubsection.4.4.5}%
-\contentsline {subsubsection}{\numberline {4.4.6}Mô tả chi tiết bảng User và Phân quyền}{33}{subsubsection.4.4.6}%
+\contentsline {subsubsection}{\numberline {4.4.5}Mô tả chi tiết bảng Report (Phản ánh)}{33}{subsubsection.4.4.5}%
+\contentsline {subsubsection}{\numberline {4.4.6}Mô tả chi tiết bảng User và Phân quyền}{34}{subsubsection.4.4.6}%
 \contentsline {subsubsection}{\numberline {4.4.7}Sơ đồ mô tả mối quan hệ giữa các bảng}{36}{subsubsection.4.4.7}%
 \contentsline {subsection}{\numberline {4.5.}Thiết kế giao diện}{37}{subsection.4.5}%
 \contentsline {section}{\numberline {V.}DỰ TOÁN VÀ TRIỂN KHAI}{41}{section.5}%
 \contentsline {subsection}{\numberline {5.1.}Dự toán dự án}{41}{subsection.5.1}%
 \contentsline {subsubsection}{\numberline {5.1.1}Căn cứ lập dự toán}{41}{subsubsection.5.1.1}%
 \contentsline {subsubsection}{\numberline {5.1.2}Dự toán chi tiết}{41}{subsubsection.5.1.2}%
-\contentsline {subsection}{\numberline {5.2.}Tiến độ triển khai}{49}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.2.}Tiến độ triển khai}{50}{subsection.5.2}%
 \contentsline {subsection}{\numberline {5.3.}Phương án tổ chức thực hiện}{50}{subsection.5.3}%
 \contentsline {subsubsection}{\numberline {5.3.1}Phương án cài đặt, triển khai}{50}{subsubsection.5.3.1}%
 \contentsline {subsubsection}{\numberline {5.3.2}Phương án đào tạo}{50}{subsubsection.5.3.2}%
-\contentsline {subsubsection}{\numberline {5.3.3}Phương án vận hành, quản lý, khai thác}{50}{subsubsection.5.3.3}%
+\contentsline {subsubsection}{\numberline {5.3.3}Phương án vận hành, quản lý, khai thác}{51}{subsubsection.5.3.3}%
 \contentsline {subsubsection}{\numberline {5.3.4}Phương án kiểm thử các yêu cầu chức năng và phi chức năng}{51}{subsubsection.5.3.4}%
 \contentsline {subsubsection}{\numberline {5.3.5}Cam kết bảo hành và hỗ trợ kỹ thuật}{51}{subsubsection.5.3.5}%
 \contentsline {section}{PHỤ LỤC I - SƠ ĐỒ USE CASE HỆ THỐNG GEOAI}{52}{subsubsection.5.3.5}%
