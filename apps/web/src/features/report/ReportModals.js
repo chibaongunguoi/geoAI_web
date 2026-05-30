@@ -17,17 +17,25 @@ const icon = L.icon({
 export function CreateReportModal({ location, onClose, onSuccess }) {
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
+  const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+      let imageUrl = null;
+      if (file) {
+        const uploadRes = await ReportService.uploadImage(file);
+        imageUrl = uploadRes.imageUrl;
+      }
+
       await ReportService.createReport({
         reason,
         message,
         latitude: location.lat,
-        longitude: location.lng
+        longitude: location.lng,
+        imageUrl
       });
       alert("Phản ánh đã được gửi thành công!");
       onSuccess();
@@ -66,6 +74,14 @@ export function CreateReportModal({ location, onClose, onSuccess }) {
               placeholder="Mô tả chi tiết sự cố..." 
             />
           </div>
+          <div className="report-field">
+            <label>Hình ảnh đính kèm (Tùy chọn):</label>
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={e => setFile(e.target.files[0])} 
+            />
+          </div>
           <div className="report-actions">
             <button type="button" onClick={onClose} className="btn-cancel">Hủy</button>
             <button type="submit" disabled={loading} className="btn-submit">
@@ -84,6 +100,19 @@ export function ReportDetailsModal({ report, user, onClose, onUpdate }) {
 
   const isOfficerOrAdmin = user?.roles?.some(r => ['ADMIN', 'SYSTEM_ADMIN', 'OFFICER'].includes(r));
   const isCreator = report.userId === user?.id;
+
+  const handleReceive = async () => {
+    setLoading(true);
+    try {
+      await ReportService.receiveReport(report.id);
+      alert("Đã tiếp nhận sự cố!");
+      onUpdate();
+    } catch (err) {
+      alert("Lỗi: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRespond = async () => {
     setLoading(true);
@@ -122,7 +151,7 @@ export function ReportDetailsModal({ report, user, onClose, onUpdate }) {
         <div className="report-detail-group">
           <label>Trạng thái:</label>
           <span className={`report-status status-${report.status.toLowerCase()}`}>
-            {report.status === 'PENDING' ? 'Chờ xử lý' : report.status === 'RESPONDED' ? 'Đã phản hồi' : 'Đã giải quyết'}
+            {report.status === 'PENDING' ? 'Chờ xử lý' : report.status === 'RECEIVED' ? 'Đã tiếp nhận' : report.status === 'RESPONDED' ? 'Đã phản hồi' : 'Đã giải quyết'}
           </span>
         </div>
 
@@ -136,6 +165,15 @@ export function ReportDetailsModal({ report, user, onClose, onUpdate }) {
           <p><strong>{report.reason}</strong></p>
           <p>{report.message}</p>
         </div>
+
+        {report.imageUrl && (
+          <div className="report-detail-group">
+            <label>Hình ảnh đính kèm:</label>
+            <div style={{ marginTop: '8px' }}>
+              <img src={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}${report.imageUrl}`} alt="Sự cố" style={{ maxWidth: '100%', borderRadius: '8px', maxHeight: '300px', objectFit: 'contain' }} />
+            </div>
+          </div>
+        )}
 
         {hasLocation && (
           <div className="report-detail-group">
@@ -163,6 +201,14 @@ export function ReportDetailsModal({ report, user, onClose, onUpdate }) {
 
         {report.status === 'PENDING' && isOfficerOrAdmin && (
           <div className="report-field">
+            <button onClick={handleReceive} disabled={loading} className="btn-submit" style={{ marginTop: '12px', padding: "10px 16px", fontWeight: "bold" }}>
+              Đánh dấu Đã tiếp nhận
+            </button>
+          </div>
+        )}
+
+        {report.status === 'RECEIVED' && isOfficerOrAdmin && (
+          <div className="report-field">
             <label>Nhập lời phản hồi (Dành cho Cán bộ):</label>
             <textarea 
               rows={5} 
@@ -172,7 +218,7 @@ export function ReportDetailsModal({ report, user, onClose, onUpdate }) {
               placeholder="Trả lời công dân về sự cố này..."
             />
             <button onClick={handleRespond} disabled={loading || !responseMsg} className="btn-submit" style={{ marginTop: '12px', padding: "10px 16px", fontWeight: "bold" }}>
-              Đánh dấu Đã tiếp nhận & Gửi Phản Hồi
+              Gửi Phản Hồi
             </button>
           </div>
         )}

@@ -36,6 +36,7 @@ function prismaStub(overrides = {}) {
     buildingProperty: {
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn(),
       update: jest.fn(),
@@ -1325,6 +1326,7 @@ describe("PropertiesService", () => {
       buildingProperty: {
         findMany: jest.fn(),
         findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(null),
         count: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),

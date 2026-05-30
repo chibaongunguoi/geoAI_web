@@ -54,25 +54,25 @@ describe("LayerPanel", () => {
         onMove={onMove}
         onReorder={onReorder}
         onRefresh={onRefresh}
-        layerStatuses={{ "sample-assets": { state: "ready", message: "Ready" } }}
+        layerStatuses={{ "analysis-results": { state: "ready", message: "Ready" } }}
       />
     );
 
-    const assetVisibility = visibilityControl("sample-assets");
+    const assetVisibility = visibilityControl("analysis-results");
 
     expect(assetVisibility).toHaveAttribute("type", "checkbox");
 
     fireEvent.click(assetVisibility);
-    fireEvent.change(opacityControl("sample-assets"), {
+    fireEvent.change(opacityControl("analysis-results"), {
       target: { value: "45" }
     });
-    fireEvent.click(moveUpButton("sample-assets"));
-    fireEvent.click(refreshButton("sample-assets"));
+    fireEvent.click(moveUpButton("analysis-results"));
+    fireEvent.click(refreshButton("analysis-results"));
 
-    expect(onToggle).toHaveBeenCalledWith("sample-assets");
-    expect(onOpacityChange).toHaveBeenCalledWith("sample-assets", 0.45);
-    expect(onMove).toHaveBeenCalledWith("sample-assets", -1);
-    expect(onRefresh).toHaveBeenCalledWith("sample-assets");
+    expect(onToggle).toHaveBeenCalledWith("analysis-results");
+    expect(onOpacityChange).toHaveBeenCalledWith("analysis-results", 0.45);
+    expect(onMove).toHaveBeenCalledWith("analysis-results", -1);
+    expect(onRefresh).toHaveBeenCalledWith("analysis-results");
     expect(screen.getByText("Ready")).toBeInTheDocument();
   });
 
@@ -80,7 +80,7 @@ describe("LayerPanel", () => {
     render(
       <LayerPanel
         layers={DATA_LAYERS}
-        state={selectLayerVisibility(createDefaultLayerState(DATA_LAYERS), "sample-assets")}
+        state={selectLayerVisibility(createDefaultLayerState(DATA_LAYERS), "analysis-results")}
         onToggle={jest.fn()}
         onToggleGroup={jest.fn()}
         onOpacityChange={jest.fn()}
@@ -88,7 +88,7 @@ describe("LayerPanel", () => {
         onReorder={jest.fn()}
         onRefresh={jest.fn()}
         layerStatuses={{
-          "sample-assets": {
+          "analysis-results": {
             state: "error",
             message: "GeoJSON response must be a Feature or FeatureCollection."
           }
@@ -117,9 +117,9 @@ describe("LayerPanel", () => {
       />
     );
 
-    expect(visibilityControl("sample-assets")).toBeDisabled();
-    expect(opacityControl("sample-assets")).toBeDisabled();
-    expect(refreshButton("sample-assets")).toBeDisabled();
+    expect(visibilityControl("analysis-results")).toBeDisabled();
+    expect(opacityControl("analysis-results")).toBeDisabled();
+    expect(refreshButton("analysis-results")).toBeDisabled();
   });
 
   it("renders recent layer operation history and export action for managers", () => {
@@ -159,7 +159,7 @@ describe("LayerPanel", () => {
     render(
       <LayerPanel
         layers={DATA_LAYERS}
-        state={selectLayerVisibility(createDefaultLayerState(DATA_LAYERS), "sample-assets")}
+        state={selectLayerVisibility(createDefaultLayerState(DATA_LAYERS), "analysis-results")}
         onToggle={jest.fn()}
         onToggleGroup={jest.fn()}
         onOpacityChange={jest.fn()}
@@ -167,12 +167,12 @@ describe("LayerPanel", () => {
         onReorder={jest.fn()}
         onRefresh={jest.fn()}
         layerStatuses={{
-          "sample-assets": { state: "error", message: "KhÃ´ng táº£i Ä‘Æ°á»£c GeoJSON" }
+          "analysis-results": { state: "error", message: "Không tải được GeoJSON" }
         }}
       />
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent("KhÃ´ng táº£i Ä‘Æ°á»£c GeoJSON");
+    expect(screen.getByRole("alert")).toHaveTextContent("Không tải được GeoJSON");
   });
 
   it("selects groups and supports drag reorder", () => {

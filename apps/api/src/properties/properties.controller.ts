@@ -67,9 +67,9 @@ export class PropertiesController {
     return this.spatialService.getBuildingHeatmap({
       ward: query.ward,
       district: query.district,
-      source: query.source,
-      limit: Number(query.limit || 260),
-      gridSize: query.gridSize ? Number(query.gridSize) : undefined
+      source: query.source || "all",
+      limit: Number(query.limit || 1800),
+      gridSize: query.gridSize ? Number(query.gridSize) : 0.0012
     });
   }
 

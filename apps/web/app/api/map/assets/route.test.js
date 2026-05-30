@@ -7,6 +7,11 @@ jest.mock("next/server", () => ({
   }
 }));
 
+jest.mock("../../../../src/lib/redis", () => ({
+  getCache: jest.fn().mockResolvedValue(null),
+  setCache: jest.fn().mockResolvedValue()
+}));
+
 import { GET } from "./route";
 
 describe("GET /api/map/assets", () => {

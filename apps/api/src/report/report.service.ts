@@ -1,21 +1,48 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationService } from "../notification/notification.service";
 
 @Injectable()
 export class ReportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService
+  ) {}
 
-  async createReport(userId: string, data: { reason: string; message: string; latitude: number; longitude: number }) {
-    return this.prisma.report.create({
+  async createReport(userId: string, data: { reason: string; message: string; latitude: number; longitude: number; imageUrl?: string }) {
+    const report = await this.prisma.report.create({
       data: {
         userId,
         reason: data.reason,
         message: data.message,
         latitude: data.latitude,
         longitude: data.longitude,
+        imageUrl: data.imageUrl,
         status: "PENDING"
       }
     });
+
+    // Notify managers
+    const managers = await this.prisma.user.findMany({
+      where: {
+        roles: {
+          some: {
+            role: { code: { in: ['ADMIN', 'SYSTEM_ADMIN', 'OFFICER'] } }
+          }
+        }
+      }
+    });
+
+    for (const manager of managers) {
+      await this.notificationService.createNotification(
+        manager.id,
+        'Có báo cáo sự cố mới',
+        `Người dân vừa gửi báo cáo về: ${data.reason}`,
+        'REPORT_NEW'
+      );
+    }
+
+    return report;
   }
 
   async getReports(user: any, status?: string) {
@@ -45,17 +72,46 @@ export class ReportService {
     });
   }
 
+  async receiveReport(id: string, isOfficerOrAdmin: boolean) {
+    if (!isOfficerOrAdmin) throw new Error("Không có quyền tiếp nhận.");
+    const report = await this.prisma.report.findUnique({ where: { id } });
+    if (!report) throw new NotFoundException("Report not found");
+
+    const updatedReport = await this.prisma.report.update({
+      where: { id },
+      data: { status: "RECEIVED" }
+    });
+
+    await this.notificationService.createNotification(
+      report.userId,
+      'Sự cố đã được tiếp nhận',
+      `Cán bộ đã tiếp nhận sự cố: ${report.reason}`,
+      'REPORT_RECEIVED'
+    );
+
+    return updatedReport;
+  }
+
   async respondToReport(id: string, responseMessage: string) {
     const report = await this.prisma.report.findUnique({ where: { id } });
     if (!report) throw new NotFoundException("Report not found");
 
-    return this.prisma.report.update({
+    const updatedReport = await this.prisma.report.update({
       where: { id },
       data: {
         status: "RESPONDED",
         responseMessage
       }
     });
+
+    await this.notificationService.createNotification(
+      report.userId,
+      'Cán bộ đã phản hồi',
+      `Cán bộ vừa phản hồi sự cố của bạn: ${report.reason}`,
+      'REPORT_RESPONDED'
+    );
+
+    return updatedReport;
   }
 
   async resolveReport(id: string, userId: string, isOfficerOrAdmin: boolean) {
@@ -67,11 +123,32 @@ export class ReportService {
       throw new Error("Không có quyền đóng phản ánh này.");
     }
 
-    return this.prisma.report.update({
+    const updatedReport = await this.prisma.report.update({
       where: { id },
       data: {
         status: "RESOLVED"
       }
     });
+
+    // If user resolves it, notify managers
+    if (report.userId === userId) {
+      const managers = await this.prisma.user.findMany({
+        where: {
+          roles: {
+            some: { role: { code: { in: ['ADMIN', 'SYSTEM_ADMIN', 'OFFICER'] } } }
+          }
+        }
+      });
+      for (const manager of managers) {
+        await this.notificationService.createNotification(
+          manager.id,
+          'Sự cố đã đóng',
+          `Người dân đã đóng sự cố: ${report.reason}`,
+          'REPORT_RESOLVED'
+        );
+      }
+    }
+
+    return updatedReport;
   }
 }

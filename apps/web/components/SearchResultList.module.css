@@ -8,17 +8,17 @@
 .title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--color-gray-700);
+  color: var(--color-text);
   margin-bottom: 0.25rem;
 }
 
 .emptyState {
   font-size: 0.875rem;
-  color: var(--color-gray-500);
+  color: var(--color-text-muted);
   font-style: italic;
   text-align: center;
   padding: 1rem;
-  background-color: var(--color-gray-50);
+  background-color: var(--color-surface-soft);
   border-radius: 4px;
 }
 
@@ -38,16 +38,16 @@
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.75rem;
-  background-color: white;
-  border: 1px solid var(--color-gray-200);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .item:hover {
-  border-color: var(--color-blue-500);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .itemHeader {
@@ -59,18 +59,18 @@
 .name {
   font-weight: 600;
   font-size: 0.875rem;
-  color: var(--color-gray-900);
+  color: var(--color-text);
 }
 
 .code {
   font-size: 0.75rem;
-  color: var(--color-gray-500);
+  color: var(--color-text-muted);
   font-family: monospace;
 }
 
 .address {
   font-size: 0.75rem;
-  color: var(--color-gray-600);
+  color: var(--color-text-muted);
 }
 
 .badges {
@@ -83,14 +83,16 @@
   font-size: 0.65rem;
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
-  background-color: var(--color-gray-100);
-  color: var(--color-gray-700);
+  background-color: var(--color-surface-soft);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   text-transform: uppercase;
 }
 
 .badgeStatus {
-  background-color: var(--color-green-100);
-  color: var(--color-green-800);
+  background-color: var(--color-success-soft);
+  color: var(--color-success);
+  border-color: var(--color-success-soft);
 }
 
 .itemContent {

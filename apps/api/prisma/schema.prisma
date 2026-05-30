@@ -20,6 +20,7 @@ model User {
   layerConfig  LayerUserConfig?
   assetDisplayConfig AssetDisplayUserConfig?
   reports      Report[]
+  notifications Notification[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -172,12 +173,26 @@ model Report {
   message         String
   latitude        Float
   longitude       Float
-  status          String   @default("PENDING") // PENDING, RESPONDED, RESOLVED
+  status          String   @default("PENDING") // PENDING, RECEIVED, RESPONDED, RESOLVED
   responseMessage String?
+  imageUrl        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // e.g., "REPORT_NEW", "REPORT_RECEIVED", "REPORT_RESPONDED", "REPORT_RESOLVED"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
 }

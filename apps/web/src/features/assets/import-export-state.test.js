@@ -78,8 +78,13 @@ describe("asset import/export state", () => {
   it("builds template, CSV, and GeoJSON exports", () => {
     const rows = [{ code: "DN-001", name: "Asset", status: "ACTIVE", centroidLat: 16, centroidLng: 108 }];
 
-    expect(buildImportTemplateCsv()).toContain("code,name,addressLine");
-    expect(assetRowsToCsv(rows)).toContain("DN-001");
+    const templateCsv = buildImportTemplateCsv();
+    const exportCsv = assetRowsToCsv(rows);
+
+    expect(templateCsv.startsWith("\uFEFF")).toBe(true);
+    expect(templateCsv).toContain("code,name,addressLine");
+    expect(exportCsv.startsWith("\uFEFF")).toBe(true);
+    expect(exportCsv).toContain("DN-001");
     expect(assetRowsToGeoJson(rows).features[0]).toEqual(
       expect.objectContaining({
         type: "Feature",

@@ -36,14 +36,14 @@ describe("AssetForm", () => {
     fireEvent.change(screen.getByLabelText("Kinh độ"), { target: { value: "108.22" } });
     fireEvent.click(screen.getByRole("button", { name: "Lưu tài sản" }));
 
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/properties", expect.anything()));
 
     expect(fetch).toHaveBeenCalledWith("/api/properties", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: expect.any(String)
     });
-    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({
+    expect(JSON.parse(fetch.mock.calls.find(c => c[0].includes('/api/properties'))[1].body)).toMatchObject({
       code: "DN-BLD-100",
       name: "Trung tâm dữ liệu",
       ward: "Hải Châu I",
@@ -78,14 +78,14 @@ describe("AssetForm", () => {
     fireEvent.change(screen.getByLabelText("Trạng thái"), { target: { value: "REVIEW" } });
     fireEvent.click(screen.getByRole("button", { name: "Cập nhật tài sản" }));
 
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/properties/prop-2", expect.anything()));
 
     expect(fetch).toHaveBeenCalledWith("/api/properties/prop-2", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: expect.any(String)
     });
-    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({
+    expect(JSON.parse(fetch.mock.calls.find(c => c[0].includes('/api/properties'))[1].body)).toMatchObject({
       name: "Nhà làm việc A",
       status: "REVIEW"
     });

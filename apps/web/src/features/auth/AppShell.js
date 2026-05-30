@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getVisibleNavigationItems } from "./auth-client";
 import { useTranslation } from "../shared/localization/useTranslation";
 import LogoutButton from "./LogoutButton";
+import NotificationBell from "../notification/NotificationBell";
 
 export default function AppShell({ user, variant = "page", children }) {
   const { t } = useTranslation();
@@ -24,7 +25,8 @@ export default function AppShell({ user, variant = "page", children }) {
             </Link>
           ))}
         </nav>
-        <div className="app-user">
+        <div className="app-user" style={{ display: 'flex', alignItems: 'center' }}>
+          <NotificationBell />
           <span>{user.name}</span>
           <LogoutButton />
         </div>

@@ -14,6 +14,9 @@ import { normalizeSearchText, levenshteinDistance, validLimit, searchTokens, sea
 import { Delegate, PropertiesPrisma, PropertyStatus, BuildingPropertyRow, PropertyDensityRegion, PropertySearchMap, PropertyDensityObject, PropertySearchAnswer, SearchIntent, DensityRegionRow, PropertySearchInput, PropertyHeatmapInput, PropertyMutationInput, AssetImportResult, ImportOptions, OvertureFeature, DEFAULT_CITY, DEFAULT_PROPERTY_TYPE, DEFAULT_STATUS, DEFAULT_SOURCE, OVERTURE_SOURCE, MAX_LIMIT, DEFAULT_LIMIT, DEFAULT_DENSITY_GRID_SIZE, DEFAULT_DENSITY_REGION_LIMIT, DEFAULT_DENSITY_OBJECT_LIMIT, DENSITY_BACKEND_TIMEOUT_MS, SEMANTIC_PROVIDER_TIMEOUT_MS, LIST_SEARCH_TIMEOUT_MS, DEFAULT_EMBEDDING_MODEL, VALID_STATUSES, STOP_WORDS_FOR_TOKENS, LOWEST_DENSITY_PHRASES, HIGHEST_DENSITY_PHRASES, DENSITY_INTENT_KEYWORDS, INTENT_KEYWORDS, STATIC_LOCATIONS, DANANG_DISTRICTS, PropertiesServiceOptions, PROPERTIES_SERVICE_OPTIONS } from "./properties.types";
 import { PropertiesSpatialService } from "./properties.spatial.service";
 
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Cache } from "cache-manager";
+
 @Injectable()
 export class PropertiesSearchService {
   private readonly configuredElasticsearchProvider?: PropertySearchProvider;
@@ -28,7 +31,8 @@ export class PropertiesSearchService {
     @Inject(PrismaService) private readonly prisma: PropertiesPrisma,
     @Inject(PropertiesSpatialService) private readonly spatialService: PropertiesSpatialService,
     @Optional() @Inject(BetterSqliteService) private readonly sqlite?: BetterSqliteService,
-    @Optional() @Inject(PROPERTIES_SERVICE_OPTIONS) options: PropertiesServiceOptions = {}
+    @Optional() @Inject(PROPERTIES_SERVICE_OPTIONS) options: PropertiesServiceOptions = {},
+    @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager?: Cache
   ) {
     this.configuredElasticsearchProvider = options?.elasticsearchProvider;
     this.propertySearchProvider = options?.propertySearchProvider;
@@ -36,7 +40,21 @@ export class PropertiesSearchService {
 
   async searchProperties(input: PropertySearchInput = {}): Promise<any> {
     const limit = validLimit(input.limit);
+    const cacheKey = `search:${JSON.stringify(input)}:${limit}`;
+    
+    if (this.cacheManager) {
+      const cached = await this.cacheManager.get(cacheKey);
+      if (cached) return cached;
+    }
 
+    const result = await this.executeSearch(input, limit);
+    if (this.cacheManager && result) {
+      await this.cacheManager.set(cacheKey, result, 600000); // 10 mins cache for searches
+    }
+    return result;
+  }
+
+  private async executeSearch(input: PropertySearchInput, limit: number): Promise<any> {
     if (input.query) {
       const coordMatch = input.query.trim().match(/^([+-]?\d+\.\d+),\s*([+-]?\d+\.\d+)$/);
       if (coordMatch) {
@@ -608,7 +626,7 @@ export class PropertiesSearchService {
       : undefined;
     const filters = {
       ward: knownWard || wardFromMarker || (locationIsKnownDistrict ? undefined : locationAfterAt),
-      district: district || (locationIsKnownDistrict ? knownLocationDistrict : "Hải Châu"),
+      district: district || (locationIsKnownDistrict ? knownLocationDistrict : undefined),
       status: matchStatus(normalizedQuery),
       propertyType: matchPropertyType(normalizedQuery)
     };

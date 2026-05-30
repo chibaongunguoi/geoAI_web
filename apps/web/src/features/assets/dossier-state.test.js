@@ -13,16 +13,18 @@ import {
 describe("dossier-state", () => {
   it("normalizes local dossier records and config", () => {
     const state = normalizeDossierState({
-      documents: [{ id: "doc-1", name: "Manual", type: "technical", sizeLabel: "2 MB" }],
-      inspections: [{ id: "insp-1", date: "2026-05-01", result: "Pass", notes: "Stable" }],
-      maintenance: [{ id: "mnt-1", date: "2026-05-02", type: "Repair", status: "Done" }],
+      documents: [{ id: "doc-1", name: "Manual", type: "technical", sizeLabel: "2 MB", fileUrl: "/upload/object?key=doc" }],
+      inspections: [{ id: "insp-1", date: "2026-05-01", result: "Pass", notes: "Stable", fileUrl: "/upload/object?key=insp" }],
+      maintenance: [{ id: "mnt-1", date: "2026-05-02", type: "Repair", status: "Done", fileUrl: "/upload/object?key=mnt" }],
       valueHistory: [{ id: "val-1", date: "2026-05-03", value: "1200000", note: "Initial" }],
       links: [{ id: "link-1", label: "Supplier", type: "vendor", reference: "ACME" }],
       lastConfig: { activeTab: "documents", documentTypeFilter: "technical", searchQuery: "manual" },
       history: [{ action: "documents.add", createdAt: "2026-05-04T00:00:00.000Z" }],
     });
 
-    expect(state.documents[0]).toEqual(expect.objectContaining({ name: "Manual", type: "technical" }));
+    expect(state.documents[0]).toEqual(expect.objectContaining({ name: "Manual", type: "technical", fileUrl: "/upload/object?key=doc" }));
+    expect(state.inspections[0].fileUrl).toBe("/upload/object?key=insp");
+    expect(state.maintenance[0].fileUrl).toBe("/upload/object?key=mnt");
     expect(state.valueHistory[0]).toEqual(expect.objectContaining({ value: 1200000 }));
     expect(state.lastConfig).toEqual({
       activeTab: "documents",
@@ -75,20 +77,20 @@ describe("dossier-state", () => {
       history: addDossierHistory([], "status.update", { status: "REVIEW" }),
     };
 
-    expect(dossierWarnings(state)).toEqual(["Thiếu tài liệu kỹ thuật bắt buộc."]);
+    expect(dossierWarnings(state)).toEqual([]);
     expect(filterDossierSections(state, "acme")).toEqual(
       expect.objectContaining({ links: [expect.objectContaining({ label: "Supplier ACME" })] }),
     );
     expect(buildDossierTimeline(withHistory, auditLogs).map((item) => item.action)).toEqual([
       "Repair",
       "Needs repair",
-      "properties.update",
-      "status.update",
+      "Cập nhật tài sản",
+      "Cập nhật trạng thái",
     ]);
     expect(buildDossierExport({ property: { code: "DN-BLD-001" }, state: withHistory, auditLogs })).toEqual(
       expect.objectContaining({
         asset: expect.objectContaining({ code: "DN-BLD-001" }),
-        timeline: expect.arrayContaining([expect.objectContaining({ action: "properties.update" })]),
+        timeline: expect.arrayContaining([expect.objectContaining({ action: "Cập nhật tài sản" })]),
       }),
     );
   });

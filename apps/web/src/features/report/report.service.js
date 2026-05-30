@@ -1,4 +1,15 @@
 export class ReportService {
+  static async uploadImage(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData
+    });
+    if (!res.ok) throw new Error("Failed to upload image");
+    return res.json();
+  }
+
   static async createReport(data) {
     const res = await fetch("/api/reports", {
       method: "POST",
@@ -12,6 +23,14 @@ export class ReportService {
   static async getReports(status = "") {
     const res = await fetch(`/api/reports${status ? `?status=${status}` : ""}`);
     if (!res.ok) throw new Error("Failed to get reports");
+    return res.json();
+  }
+
+  static async receiveReport(id) {
+    const res = await fetch(`/api/reports/${id}/receive`, {
+      method: "PATCH"
+    });
+    if (!res.ok) throw new Error("Failed to receive report");
     return res.json();
   }
 

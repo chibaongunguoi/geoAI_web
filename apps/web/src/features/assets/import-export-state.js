@@ -3,6 +3,7 @@ import ExcelJS from "exceljs";
 import { assetFilterQueryString, normalizeAssetFilters } from "@/features/filters/filter-state";
 
 export const IMPORT_EXPORT_STORAGE_KEY = "geoai.assetImportExport.v1";
+const UTF8_BOM = "\uFEFF";
 
 export const ASSET_IMPORT_FIELDS = [
   "code",
@@ -233,13 +234,13 @@ function exportValue(row, field) {
 }
 
 export function buildImportTemplateCsv() {
-  return [ASSET_IMPORT_FIELDS.join(","), "DN-BLD-000001,Sample asset,,,,Da Nang,building,ACTIVE,,,,,,16.07,108.22,"].join("\n");
+  return UTF8_BOM + [ASSET_IMPORT_FIELDS.join(","), "DN-BLD-000001,Sample asset,,,,Da Nang,building,ACTIVE,,,,,,16.07,108.22,"].join("\n");
 }
 
 export function assetRowsToCsv(rows = []) {
   const output = [ASSET_IMPORT_FIELDS];
   rows.forEach((row) => output.push(ASSET_IMPORT_FIELDS.map((field) => exportValue(row, field))));
-  return Papa.unparse(output);
+  return UTF8_BOM + Papa.unparse(output);
 }
 
 export async function assetRowsToWorkbook(rows = []) {

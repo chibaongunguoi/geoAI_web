@@ -1,5 +1,19 @@
 jest.mock("../../src/features/auth/api-proxy", () => ({
-  proxyToApi: jest.fn(() => ({ ok: true }))
+  proxyToApi: jest.fn(() => ({ ok: true, status: 200, clone: () => ({ json: async () => ({}) }) }))
+}));
+
+jest.mock("../../src/lib/redis", () => ({
+  getCache: jest.fn().mockResolvedValue(null),
+  setCache: jest.fn().mockResolvedValue()
+}));
+
+jest.mock("next/server", () => ({
+  NextResponse: {
+    json: (data, init = {}) => ({
+      status: init.status || 200,
+      json: async () => data
+    })
+  }
 }));
 
 const { proxyToApi } = require("../../src/features/auth/api-proxy");
@@ -13,6 +27,7 @@ beforeAll(() => {
 function request(url = "http://localhost/api/test?x=1", body = "payload") {
   return {
     url,
+    headers: new Headers(),
     json: jest.fn(async () => (typeof body === "string" ? JSON.parse(body) : body)),
     text: jest.fn(async () => (typeof body === "string" ? body : JSON.stringify(body))),
   };

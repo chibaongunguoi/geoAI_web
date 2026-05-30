@@ -1,5 +1,6 @@
 import React from "react";
 import { STATUS_OPTIONS, PROPERTY_TYPE_OPTIONS } from "./filter-state";
+import { DISTRICTS, getWardsForDistrict } from "./district-ward-data";
 
 export function PropertyFilterControls({ filters, updateFilter, showSearch = false, showDateRange = false }) {
   return (
@@ -39,17 +40,37 @@ export function PropertyFilterControls({ filters, updateFilter, showSearch = fal
       </label>
       <label>
         Quận/huyện
-        <input 
+        <select 
           value={filters.district || ""} 
-          onChange={(event) => updateFilter("district", event.target.value)} 
-        />
+          onChange={(event) => {
+            updateFilter("district", event.target.value);
+            updateFilter("ward", "");
+          }} 
+        >
+          <option value="">Tất cả quận/huyện</option>
+          {DISTRICTS.map((district) => (
+            <option key={district} value={district}>
+              {district}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         Phường/xã
-        <input 
+        <select 
           value={filters.ward || ""} 
+          disabled={!filters.district}
           onChange={(event) => updateFilter("ward", event.target.value)} 
-        />
+        >
+          <option value="">
+            {filters.district ? "Tất cả phường/xã" : "Chọn quận/huyện trước"}
+          </option>
+          {getWardsForDistrict(filters.district).map((ward) => (
+            <option key={ward} value={ward}>
+              {ward}
+            </option>
+          ))}
+        </select>
       </label>
       {showDateRange && (
         <>
