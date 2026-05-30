@@ -1,25 +1,32 @@
-% Lưu ý: longtable không đặt trong môi trường \begin{table}
-\begin{landscape}
-\scriptsize
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.18}
-\begin{longtable}{|c|p{4.2cm}|p{2.6cm}|p{2.4cm}|p{6.8cm}|c|p{2.2cm}|}
+\scriptsize % Thu nhỏ cỡ chữ toàn bộ bảng
+\setlength{\tabcolsep}{2pt} % Ép khoảng cách giữa các cột nhỏ lại tối đa
+\renewcommand{\arraystretch}{1.15} % Giảm nhẹ độ giãn dòng để bảng gọn hơn
+
+% Đã thu nhỏ các thông số p{...} để tổng chiều ngang không bị tràn
+\begin{longtable}{|c|p{3.2cm}|p{2.0cm}|p{2.0cm}|p{4.8cm}|c|p{1.5cm}|}
     \caption{Bảng chuyển đổi yêu cầu chức năng sang Use Case}
     \label{tab:use_cases} \\
+    
+    % === TIÊU ĐỀ CHO TRANG ĐẦU TIÊN ===
     \hline
     \textbf{TT} & \textbf{Yêu cầu chức năng} & \textbf{Tác nhân chính} & \textbf{Tác nhân phụ} & \textbf{Giao dịch chính} & \textbf{B/M/T} & \textbf{Độ phức tạp} \\
     \hline
     \endfirsthead
-    \hline
-    \textbf{TT} & \textbf{Yêu cầu chức năng} & \textbf{Tác nhân chính} & \textbf{Tác nhân phụ} & \textbf{Giao dịch chính} & \textbf{B/M/T} & \textbf{Độ phức tạp} \\
+    
+    % === TIÊU ĐỀ CHO CÁC TRANG SAU ===
     \hline
     \endhead
+    
+    % === CHÂN BẢNG KHI SANG TRANG TRUNG GIAN ===
     \hline
-    \multicolumn{7}{r}{{Tiếp theo trang sau}} \\
+    \multicolumn{7}{r}{{\textit{Tiếp theo trang sau}}} \\
     \endfoot
+    
+    % === CHÂN BẢNG Ở TRANG CUỐI CÙNG ===
     \hline
     \endlastfoot
 
+    % === DỮ LIỆU BẢNG ===
     1 & Quản lý người dùng và phân quyền & Cán bộ CNTT (Admin) & Cán bộ quản lý & Xem danh sách người dùng; tìm kiếm; thêm/sửa trạng thái; gán vai trò; cập nhật quyền; ghi nhật ký thao tác & M & Trung bình \\ \hline
     2 & Quản lý danh mục loại tài sản & Cán bộ CNTT (Admin) & Cán bộ quản lý & Xem danh mục; thêm loại tài sản; sửa tên/mô tả; kích hoạt/ngừng sử dụng; kiểm tra ràng buộc dữ liệu & M & Trung bình \\ \hline
     3 & Quản lý danh mục khu vực địa lý & Cán bộ CNTT (Admin) & Cán bộ quản lý & Xem danh mục khu vực; thêm quận/phường; chỉnh sửa ranh giới; đồng bộ dữ liệu hành chính; kiểm tra trùng lặp & M & Trung bình \\ \hline
@@ -41,8 +48,5 @@
     19 & Tra cứu kết quả xử lý phản ánh & Công dân & Cán bộ quản lý đô thị & Xem danh sách phản ánh; lọc trạng thái; xem phản hồi; xác nhận hoàn tất hoặc tiếp tục theo dõi & M & Trung bình \\ \hline
     20 & Xem Dashboard tổng quan & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Xem chỉ số tổng quan; lọc theo khu vực; xem biểu đồ tài sản/rủi ro; mở danh sách chi tiết & B & Đơn giản \\ \hline
     21 & Xem báo cáo thống kê tài sản & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Chọn kỳ báo cáo; chọn nhóm tài sản; tổng hợp số liệu; xem biểu đồ; kiểm tra dữ liệu nguồn & B & Đơn giản \\ \hline
-    22 & Xuất báo cáo và dữ liệu & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Chọn mẫu báo cáo; cấu hình bộ lọc; sinh báo cáo; xuất PDF/Excel; lưu lịch sử xuất báo cáo & B & Đơn giản \\
+    22 & Xuất báo cáo và dữ liệu & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Chọn mẫu báo cáo; cấu hình bộ lọc; sinh báo cáo; xuất PDF/Excel; lưu lịch sử xuất báo cáo & B & Đơn giản \\ \hline
 \end{longtable}
-\setlength{\tabcolsep}{6pt}
-\normalsize
-\end{landscape}

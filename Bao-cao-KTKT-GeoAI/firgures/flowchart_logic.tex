@@ -13,6 +13,17 @@
         text width=3.8cm,
         rounded corners=2pt
     },
+    longtable/.style={
+        draw,
+        rectangle split,
+        rectangle split parts=2,
+        rectangle split part fill={gray!10, white},
+        every text node part/.style={align=center, font=\bfseries},
+        every two node part/.style={align=left, font=\scriptsize},
+        minimum width=5.3cm,
+        text width=5.4cm,
+        rounded corners=2pt
+    },
     rel/.style={-Stealth, thick},
     spatial/.style={Stealth-Stealth, thick, dashed},
     note/.style={font=\scriptsize, align=center, fill=white, inner sep=1pt}
@@ -39,7 +50,7 @@
     revokedAt
 };
 
-\node[table] (layerconfig) at (-13, 1.5) {
+\node[table] (layerconfig) at (-13, 4.5) {
     LayerUserConfig
     \nodepart{two}
     \underline{\textbf{userId}}\\
@@ -48,7 +59,7 @@
     updatedAt
 };
 
-\node[table] (displayconfig) at (-13, -3.5) {
+\node[longtable] (displayconfig) at (-13, 1.5) {
     AssetDisplayUserConfig
     \nodepart{two}
     \underline{\textbf{userId}}\\
@@ -57,14 +68,14 @@
     updatedAt
 };
 
-\node[table] (userrole) at (-4, 7.5) {
+\node[table] (userrole) at (-8, 7.5) {
     UserRole
     \nodepart{two}
     \underline{\textbf{userId}} (FK)\\
     \underline{\textbf{roleId}} (FK)
 };
 
-\node[table] (role) at (0, 7.5) {
+\node[table] (role) at (-3, 7.5) {
     Role
     \nodepart{two}
     \underline{\textbf{id}}\\
@@ -73,7 +84,7 @@
     description
 };
 
-\node[table] (rolepermission) at (4, 7.5) {
+\node[table] (rolepermission) at (2, 7.5) {
     RolePermission
     \nodepart{two}
     \underline{\textbf{roleId}} (FK)\\
@@ -89,7 +100,7 @@
     name
 };
 
-\node[table] (audit) at (-4, 2.8) {
+\node[table] (audit) at (-3, 4.5) {
     AuditLog
     \nodepart{two}
     \underline{\textbf{id}}\\
@@ -122,7 +133,8 @@
     riskFlags
 };
 
-\node[table] (report) at (-4, -3.8) {
+% Đã dời Report vào chính giữa bên dưới User để nối lên đẹp nhất
+\node[table] (report) at (-8, -0.5) {
     Report
     \nodepart{two}
     \underline{\textbf{id}}\\
@@ -133,7 +145,7 @@
     status
 };
 
-\node[table] (notification) at (2, -3.8) {
+\node[table] (notification) at (-3, -2.5) {
     Notification
     \nodepart{two}
     \underline{\textbf{id}}\\
@@ -145,7 +157,7 @@
 };
 
 % ================= Không gian và rủi ro =================
-\node[table] (riskzone) at (12, 3.8) {
+\node[table] (riskzone) at (12, 4.5) {
     RiskZone
     \nodepart{two}
     \underline{\textbf{id}}\\
@@ -155,7 +167,7 @@
     geom (Polygon)
 };
 
-\node[table] (road) at (12, -1.8) {
+\node[table] (road) at (12, -2.5) {
     RoadSegment
     \nodepart{two}
     \underline{\textbf{id}}\\
@@ -165,24 +177,42 @@
     geom (LineString)
 };
 
-% ================= Quan hệ khóa ngoại =================
-\draw[rel] (session.east) -- (user.north west);
+% ================= QUAN HỆ KHÓA NGOẠI (Căn điểm neo chính xác 100%) =================
+
+% Từ Cột trái dồn vào viền Tây (.west) của User
+% Đi từ cạnh phải Session, bẻ góc vuông vòng xuống điểm cách User 0.3cm, rồi đâm ngang vào User
+\draw[rel] (session.east) -| ([xshift=-0.3cm, yshift=1.2cm]user.west) -- ([yshift=1.2cm]user.west);
+
+% Bảng ở giữa đi thẳng trực tiếp không vướng
 \draw[rel] (layerconfig.east) -- (user.west);
-\draw[rel] (displayconfig.east) -- (user.south west);
-\draw[rel] (user.north east) -- (userrole.west);
+
+% Đi từ cạnh phải AssetDisplay, bẻ góc vuông vòng lên điểm cách User 0.3cm, rồi đâm ngang vào User
+\draw[rel] (displayconfig.east) -| (user.south) ;
+% Từ cột dọc và ngang (đi thẳng trực tiếp không vướng)
+\draw[rel] (user.north) -- (userrole.south);
 \draw[rel] (userrole.east) -- (role.west);
 \draw[rel] (role.east) -- (rolepermission.west);
 \draw[rel] (rolepermission.east) -- (permission.west);
-\draw[rel] (audit.west) -- ++(-1.2,0) |- (user.south east);
-\draw[rel] (report.west) -- ++(-1.2,0) |- (user.south);
-\draw[rel] (notification.west) -- ++(-1.0,0) |- (user.south east);
+\draw[rel] (audit.west) -- (user.east);
+\draw[rel] (report.north) -- (user.south);
 
-% ================= Quan hệ logic không gian =================
+% Notification đi từ đỉnh (north), vòng lên một đoạn an toàn, rồi đâm ngang vào nửa dưới viền Đông (.east) của User
+\draw[rel] (notification.north) -- ++(0, 0.0) -/ (user.south);
+
+% ================= QUAN HỆ LOGIC KHÔNG GIAN =================
+
+% 1. Nối BuildingProperty và Place (Đi thẳng)
 \draw[spatial] (building.east) -- (place.west) node[note, midway, above] {ST\_DWithin};
-\draw[spatial] (building.east) -- ++(2.0,0) |- (riskzone.west) node[note, near end, above] {ST\_Intersects};
-\draw[spatial] (building.east) -- ++(2.0,0) |- (road.west) node[note, near end, below] {ST\_Distance};
-\draw[spatial] (place.east) -- ++(1.0,0) |- (riskzone.west) node[note, near start, above] {risk overlay};
-\draw[spatial] (place.east) -- ++(1.0,0) |- (road.west) node[note, near start, below] {proximity};
+
+% 2. BuildingProperty -> RiskZone (Vọt cao lên ngút tầm mắt Y=7.0 để né rồi mới bẻ ngang xuống RiskZone)
+% (Ghi chú đặt ở pos=0.25 tức là nằm chễm chệ trên đoạn thẳng nằm ngang)
+\draw[spatial] (building.north) -- ++(0, 2.0) -/ (riskzone.west) ;
+% 3. BuildingProperty -> RoadSegment (Cắm thẳng xuống Y=-4.5 rồi mới bẻ ngang qua RoadSegment)
+\draw[spatial] (building.south) -- (building.south |- 0, -4.5) -| (road.south) node[note, pos=0.25, below] {ST\_Distance};
+
+% 4. Place -> RiskZone và Road (Léo ngang qua phải 1 đoạn rồi mới bẻ lên/xuống)
+\draw[spatial] (place.east) -- ++(1.2,0) |- (riskzone.west) node[note, near start, above] {risk overlay};
+\draw[spatial] (place.east) -- ++(1.2,0) |- (road.west) node[note, near start, below] {proximity};
 
 \end{tikzpicture}%
 }

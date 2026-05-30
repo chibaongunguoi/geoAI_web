@@ -2,12 +2,12 @@
   \centering
   \resizebox{0.98\textwidth}{!}{%
   \begin{tikzpicture}[
-    usecase/.style={ellipse, draw=black, thick, align=center, text width=3.5cm, minimum height=1.15cm, font=\small},
+    usecase/.style={ellipse, draw=black, thick, align=center, text width=3.5cm, minimum height=1.2cm, font=\small},
     actor/.style={font=\small\bfseries, align=center},
     >=Stealth
     ]
 
-    \coordinate (A) at (0,0);
+    % Vẽ hình nhân vật ở trung tâm
     \draw[thick] (0, 0.8) circle (0.25);
     \draw[thick] (0, 0.55) -- (0, -0.5);
     \draw[thick] (-0.6, 0.2) -- (0.6, 0.2);
@@ -15,22 +15,27 @@
     \draw[thick] (0, -0.5) -- (0.4, -1.2);
     \node[actor] at (0, -1.65) {Cán bộ quản lý\\đô thị};
 
-    \node[usecase] (uc1) at (-7, 4.4) {Thêm tài sản mới\\trên bản đồ};
-    \node[usecase] (uc2) at (-7, 2.6) {Chỉnh sửa thông tin\\tài sản};
-    \node[usecase] (uc3) at (-7, 0.8) {Xóa tài sản};
-    \node[usecase] (uc4) at (-7, -1.0) {Tìm kiếm và lọc\\tài sản trên bản đồ};
-    \node[usecase] (uc5) at (-7, -2.8) {\gls{ai} phân tích ảnh\\và phân loại tài sản};
+    % KHUNG BAO TÀNG HÌNH (Đã tăng chiều cao lên 6cm để giãn đều gốc mũi tên)
+    \node[minimum width=2.5cm, minimum height=6cm] (A) at (0, 0) {};
 
-    \node[usecase] (uc6) at (7, 4.4) {Tạo công việc\\bảo trì};
-    \node[usecase] (uc7) at (7, 2.6) {Cập nhật tiến độ\\bảo trì};
-    \node[usecase] (uc8) at (7, 0.8) {Theo dõi tiến độ\\bảo trì};
-    \node[usecase] (uc9) at (7, -1.0) {Tra cứu lịch sử\\bảo trì tài sản};
-    \node[usecase] (uc10) at (7, -2.8) {Tiếp nhận và xử lý\\phản ánh sự cố};
+    % === CỘT TRÁI (7 Use Cases) - Kéo xa ra x=-9, cách đều dọc 2.0 ===
+    \node[usecase] (uc1)  at (-9, 6.4) {Thêm tài sản mới\\trên bản đồ};
+    \node[usecase] (uc2)  at (-9, 4.0) {Chỉnh sửa thông tin\\tài sản};
+    \node[usecase] (uc3)  at (-9, 2.0) {Xóa tài sản};
+    \node[usecase] (uc4)  at (-9, 0.0) {Tìm kiếm và lọc\\tài sản trên bản đồ};
+    \node[usecase] (uc5)  at (-9, -2.5) {\gls{ai} phân tích ảnh\\và phân loại tài sản};
+    \node[usecase] (uc11) at (-9, -4.8) {Xem Dashboard\\tổng quan};
+    \node[usecase] (uc12) at (-9, -7.0) {Xem báo cáo\\thống kê tài sản};
 
-    \node[usecase] (uc11) at (0, 4.8) {Xem Dashboard\\tổng quan};
-    \node[usecase] (uc12) at (0, 3.0) {Xem báo cáo\\thống kê tài sản};
-    \node[usecase] (uc13) at (0, 1.2) {Xuất báo cáo\\và dữ liệu};
+    % === CỘT PHẢI (6 Use Cases) - Kéo xa ra x=9, cách đều dọc 2.0 ===
+    \node[usecase] (uc6)  at (9, 5.0) {Tạo công việc\\bảo trì};
+    \node[usecase] (uc7)  at (9, 3.0) {Cập nhật tiến độ\\bảo trì};
+    \node[usecase] (uc8)  at (9, 1.0) {Theo dõi tiến độ\\bảo trì};
+    \node[usecase] (uc9)  at (9, -1.0) {Tra cứu lịch sử\\bảo trì tài sản};
+    \node[usecase] (uc10) at (9, -3.0) {Tiếp nhận và xử lý\\phản ánh sự cố};
+    \node[usecase] (uc13) at (9, -5.0) {Xuất báo cáo\\và dữ liệu};
 
+    % Vẽ mũi tên từ khung bao (A) đến các Use Case
     \foreach \uc in {uc1,uc2,uc3,uc4,uc5,uc6,uc7,uc8,uc9,uc10,uc11,uc12,uc13} {
       \draw[-Stealth, thick] (A) -- (\uc);
     }
