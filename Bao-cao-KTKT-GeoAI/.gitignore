@@ -1,0 +1,14 @@
+# Bỏ qua tất cả các file
+*
+
+# Ngoại trừ các thư mục (để Git có thể duyệt vào bên trong tìm các file .tex)
+!*/
+
+# Ngoại trừ các file cần push
+!*.tex
+!*.png
+!*.py
+!*.jpg
+
+# Ngoại trừ chính file .gitignore này
+!.gitignore
