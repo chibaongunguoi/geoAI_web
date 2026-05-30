@@ -1,0 +1,52 @@
+{
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "pdflatex + makeindex + pdflatex x2",
+      "tools": [
+        "pdflatex",
+        "makeindex-acronyms",
+        "makeindex-glossary",
+        "pdflatex",
+        "pdflatex"
+      ]
+    }
+  ],
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex",
+      "command": "pdflatex",
+      "args": [
+        "-synctex=0",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "makeindex-acronyms",
+      "command": "makeindex",
+      "args": [
+        "-s",
+        "%DOCFILE%.ist",
+        "-t",
+        "%DOCFILE%.alg",
+        "-o",
+        "%DOCFILE%.acr",
+        "%DOCFILE%.acn"
+      ]
+    },
+    {
+      "name": "makeindex-glossary",
+      "command": "makeindex",
+      "args": [
+        "-s",
+        "%DOCFILE%.ist",
+        "-t",
+        "%DOCFILE%.glg",
+        "-o",
+        "%DOCFILE%.gls",
+        "%DOCFILE%.glo"
+      ]
+    }
+  ]
+}

@@ -1,43 +1,52 @@
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
-    \hline
-    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
-    \hline
-    1 & id & String & PK & Mã định danh vùng rủi ro (cuid) \\
-    \hline
-    2 & zoneType & String & Not Null & Loại rủi ro ('flood', 'landslide'...) \\
-    \hline
-    3 & riskLevel & String & Not Null & Mức độ rủi ro ('high', 'medium', 'low') \\
-    \hline
-    4 & source, description & String & Nullable & Nguồn cung cấp dữ liệu và mô tả chi tiết \\
-    \hline
-    5 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu vùng không gian dạng Polygon (PostGIS 4326)} \\
-    \hline
-    6 & createdAt, updatedAt & DateTime & Not Null & Thời gian tạo và cập nhật \\
-    \hline
-    \end{tabular}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
     \caption{Chi tiết bảng RiskZone}
-    \label{tab:db_riskzone}
-\end{table}
-
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+    \label{tab:db_riskzone} \\
     \hline
     \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    1 & id & String & PK & Mã định danh đoạn đường (cuid) \\
+    \endfirsthead
     \hline
-    2 & osmId & String & Unique & Mã ID liên kết OpenStreetMap \\
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    3 & name, highway & String & Not Null & Tên đường và cấp độ đường (primary, residential...) \\
+    \endhead
     \hline
-    4 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu không gian dạng LineString (PostGIS 4326)} \\
+    \endfoot
     \hline
-    5 & createdAt, updatedAt & DateTime & Not Null & Thời gian tạo và cập nhật \\
-    \hline
-    \end{tabular}
+    \endlastfoot
+    1 & id & String & PK & Mã định danh vùng rủi ro (cuid) \\ \hline
+    2 & zoneType & String & Not Null & Loại rủi ro, ví dụ flood hoặc landslide \\ \hline
+    3 & riskLevel & String & Not Null & Mức độ rủi ro high, medium hoặc low \\ \hline
+    4 & source & String & Not Null & Nguồn cung cấp dữ liệu vùng rủi ro \\ \hline
+    5 & description & String & Nullable & Mô tả chi tiết vùng rủi ro \\ \hline
+    6 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu vùng không gian dạng Polygon, SRID 4326} \\ \hline
+    7 & createdAt & DateTime & Not Null & Thời gian tạo bản ghi \\ \hline
+    8 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\
+\end{longtable}
+
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
     \caption{Chi tiết bảng RoadSegment}
-    \label{tab:db_roadsegment}
-\end{table}
+    \label{tab:db_roadsegment} \\
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    \endfirsthead
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    \endhead
+    \hline
+    \endfoot
+    \hline
+    \endlastfoot
+    1 & id & String & PK & Mã định danh đoạn đường (cuid) \\ \hline
+    2 & osmId & String & Unique, Nullable & Mã ID liên kết OpenStreetMap \\ \hline
+    3 & name & String & Nullable & Tên đường \\ \hline
+    4 & highway & String & Not Null & Cấp đường như primary, secondary hoặc residential \\ \hline
+    5 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu không gian dạng LineString, SRID 4326} \\ \hline
+    6 & createdAt & DateTime & Not Null & Thời gian tạo bản ghi \\ \hline
+    7 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\
+\end{longtable}
+\setlength{\tabcolsep}{6pt}
+\normalsize

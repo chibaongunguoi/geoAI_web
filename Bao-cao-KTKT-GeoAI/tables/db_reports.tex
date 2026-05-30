@@ -1,45 +1,55 @@
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
-    \hline
-    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
-    \hline
-    1 & id & String & PK & Mã báo cáo/phản ánh (cuid) \\
-    \hline
-    2 & userId & String & FK & Mã công dân hoặc cán bộ gửi phản ánh \\
-    \hline
-    3 & reason, message & String & Not Null & Lý do báo cáo và nội dung chi tiết sự cố \\
-    \hline
-    4 & latitude, longitude & Float & Not Null & Tọa độ định vị nơi xảy ra sự cố \\
-    \hline
-    5 & status, responseMessage & String & Default 'PENDING' & Trạng thái xử lý và nội dung phản hồi từ cơ quan chức năng \\
-    \hline
-    6 & imageUrl & String & Nullable & Đường dẫn hình ảnh đính kèm minh chứng \\
-    \hline
-    7 & createdAt, updatedAt & DateTime & Not Null & Thời gian gửi phản ánh và thời gian cập nhật xử lý \\
-    \hline
-    \end{tabular}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
     \caption{Chi tiết bảng Report (Phản ánh sự cố)}
-    \label{tab:db_report}
-\end{table}
-
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+    \label{tab:db_report} \\
     \hline
     \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    1 & id & String & PK & Mã định danh thông báo (cuid) \\
+    \endfirsthead
     \hline
-    2 & userId & String & FK & Mã người dùng nhận thông báo \\
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    3 & title, message, type & String & Not Null & Tiêu đề, nội dung và loại thông báo \\
+    \endhead
     \hline
-    4 & isRead & Boolean & Default false & Đánh dấu trạng thái đã đọc \\
+    \endfoot
     \hline
-    5 & createdAt & DateTime & Not Null & Thời điểm phát thông báo \\
-    \hline
-    \end{tabular}
+    \endlastfoot
+    1 & id & String & PK & Mã báo cáo/phản ánh (cuid) \\ \hline
+    2 & userId & String & FK & Mã công dân hoặc cán bộ gửi phản ánh \\ \hline
+    3 & reason & String & Not Null & Lý do phản ánh sự cố \\ \hline
+    4 & message & String & Not Null & Nội dung chi tiết sự cố \\ \hline
+    5 & latitude & Float & Not Null & Vĩ độ nơi xảy ra sự cố \\ \hline
+    6 & longitude & Float & Not Null & Kinh độ nơi xảy ra sự cố \\ \hline
+    7 & status & String & Default & Trạng thái xử lý: PENDING, RECEIVED, RESPONDED, RESOLVED \\ \hline
+    8 & responseMessage & String & Nullable & Nội dung phản hồi từ cơ quan chức năng \\ \hline
+    9 & imageUrl & String & Nullable & Đường dẫn hình ảnh đính kèm minh chứng \\ \hline
+    10 & createdAt & DateTime & Not Null & Thời gian gửi phản ánh \\ \hline
+    11 & updatedAt & DateTime & Not Null & Thời gian cập nhật xử lý gần nhất \\
+\end{longtable}
+
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
     \caption{Chi tiết bảng Notification (Thông báo hệ thống)}
-    \label{tab:db_notification}
-\end{table}
+    \label{tab:db_notification} \\
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    \endfirsthead
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    \endhead
+    \hline
+    \endfoot
+    \hline
+    \endlastfoot
+    1 & id & String & PK & Mã định danh thông báo (cuid) \\ \hline
+    2 & userId & String & FK & Mã người dùng nhận thông báo \\ \hline
+    3 & title & String & Not Null & Tiêu đề thông báo \\ \hline
+    4 & message & String & Not Null & Nội dung thông báo \\ \hline
+    5 & type & String & Not Null & Loại thông báo, ví dụ REPORT\_NEW hoặc REPORT\_RESOLVED \\ \hline
+    6 & isRead & Boolean & Default false & Trạng thái đã đọc/chưa đọc \\ \hline
+    7 & createdAt & DateTime & Not Null & Thời điểm phát thông báo \\
+\end{longtable}
+\setlength{\tabcolsep}{6pt}
+\normalsize

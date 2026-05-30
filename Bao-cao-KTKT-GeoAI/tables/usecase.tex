@@ -1,40 +1,48 @@
 % Lưu ý: longtable không đặt trong môi trường \begin{table}
-\begin{longtable}{|c|p{4.5cm}|p{2.8cm}|c|c|p{2.8cm}|}
-    \caption{Danh sách Use Case và phân loại độ phức tạp}
+\begin{landscape}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.18}
+\begin{longtable}{|c|p{4.2cm}|p{2.6cm}|p{2.4cm}|p{6.8cm}|c|p{2.2cm}|}
+    \caption{Bảng chuyển đổi yêu cầu chức năng sang Use Case}
     \label{tab:use_cases} \\
-    
-    % --- Tiêu đề cho trang ĐẦU TIÊN ---
     \hline
-    \textbf{TT} & \textbf{Tên Use Case} & \textbf{Tên tác nhân} & \textbf{\parbox{1.2cm}{\centering Số\\giao\\dịch}} & \textbf{\parbox{1.2cm}{\centering Phân\\loại\\BMT}} & \textbf{Phân loại độ phức tạp} \\
+    \textbf{TT} & \textbf{Yêu cầu chức năng} & \textbf{Tác nhân chính} & \textbf{Tác nhân phụ} & \textbf{Giao dịch chính} & \textbf{B/M/T} & \textbf{Độ phức tạp} \\
     \hline
     \endfirsthead
-    
-    % --- Tiêu đề cho các trang SAU (Bỏ trống chữ để không lặp lại) ---
+    \hline
+    \textbf{TT} & \textbf{Yêu cầu chức năng} & \textbf{Tác nhân chính} & \textbf{Tác nhân phụ} & \textbf{Giao dịch chính} & \textbf{B/M/T} & \textbf{Độ phức tạp} \\
     \hline
     \endhead
-    
-    % --- Chân bảng cho các trang ---
     \hline
+    \multicolumn{7}{r}{{Tiếp theo trang sau}} \\
     \endfoot
-    
-    % --- Chân bảng cho trang CUỐI CÙNG ---
     \hline
     \endlastfoot
-    
-    % --- NỘI DUNG BẢNG ---
-    UC-01 & Quản lý người dùng và phân quyền & Admin & 6 & B & Trung bình \\ \hline
-    UC-02 & Quản lý danh mục loại tài sản & Admin & 5 & B & Trung bình \\ \hline
-    UC-03 & Đồng bộ dữ liệu Overture Maps & Admin & 5 & B & Trung bình \\ \hline
-    UC-04 & Cấu hình hệ thống và bản đồ & Admin & 3 & M & Đơn giản \\ \hline
-    UC-05 & Xem nhật ký và kiểm toán & Admin & 3 & B & Đơn giản \\ \hline
-    UC-06 & Quản lý tài sản trên bản đồ & Cán bộ quản lý & 5 & B & Trung bình \\ \hline
-    UC-07 & Tìm kiếm và lọc tài sản trên bản đồ & Tất cả & 3 & B & Đơn giản \\ \hline
-    UC-08 & Truy vấn không gian bằng ngôn ngữ tự nhiên (AI Chat) & Cán bộ quản lý & 6 & T & Phức tạp \\ \hline
-    UC-09 & Overlay bản đồ đánh giá rủi ro ngập lụt, sạt lở & Cán bộ quản lý & 4 & B & Trung bình \\ \hline
-    UC-10 & Chấm điểm tài sản (Asset Scoring) & Cán bộ quản lý & 5 & T & Trung bình \\ \hline
-    UC-11 & Gửi phản ánh sự cố hạ tầng & Công dân & 6 & B & Trung bình \\ \hline
-    UC-12 & Tiếp nhận và điều phối xử lý sự cố & Cán bộ quản lý & 5 & B & Trung bình \\ \hline
-    UC-13 & Xem Dashboard tổng quan & Cán bộ quản lý & 3 & B & Đơn giản \\ \hline
-    UC-14 & Xem báo cáo thống kê tài sản & Cán bộ quản lý & 3 & B & Đơn giản \\ \hline
-    UC-15 & Xuất báo cáo và dữ liệu & Cán bộ quản lý & 3 & B & Đơn giản \\
+
+    1 & Quản lý người dùng và phân quyền & Cán bộ CNTT (Admin) & Cán bộ quản lý & Xem danh sách người dùng; tìm kiếm; thêm/sửa trạng thái; gán vai trò; cập nhật quyền; ghi nhật ký thao tác & M & Trung bình \\ \hline
+    2 & Quản lý danh mục loại tài sản & Cán bộ CNTT (Admin) & Cán bộ quản lý & Xem danh mục; thêm loại tài sản; sửa tên/mô tả; kích hoạt/ngừng sử dụng; kiểm tra ràng buộc dữ liệu & M & Trung bình \\ \hline
+    3 & Quản lý danh mục khu vực địa lý & Cán bộ CNTT (Admin) & Cán bộ quản lý & Xem danh mục khu vực; thêm quận/phường; chỉnh sửa ranh giới; đồng bộ dữ liệu hành chính; kiểm tra trùng lặp & M & Trung bình \\ \hline
+    4 & Cấu hình hệ thống và bản đồ & Cán bộ CNTT (Admin) & Cán bộ quản lý & Cấu hình lớp bản đồ; cấu hình nguồn dữ liệu; lưu tùy chọn hiển thị; khôi phục cấu hình mặc định & B & Đơn giản \\ \hline
+    5 & Xem nhật ký và kiểm toán & Cán bộ CNTT (Admin) & -- & Xem log; lọc theo người dùng/thao tác/thời gian; xem chi tiết thay đổi; xuất nhật ký kiểm toán & B & Đơn giản \\ \hline
+    6 & Thêm tài sản mới trên bản đồ & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Chọn vị trí; nhập thông tin tài sản; kiểm tra tọa độ; lưu dữ liệu; cập nhật lớp bản đồ & M & Trung bình \\ \hline
+    7 & Chỉnh sửa thông tin tài sản & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Tìm tài sản; mở chi tiết; chỉnh sửa thuộc tính; cập nhật hình học/tọa độ; lưu lịch sử thay đổi & M & Trung bình \\ \hline
+    8 & Xóa tài sản & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Chọn tài sản; kiểm tra quyền; xác nhận xóa mềm; cập nhật trạng thái; ghi log & B & Đơn giản \\ \hline
+    9 & Tìm kiếm và lọc tài sản trên bản đồ & Cán bộ quản lý đô thị & Công dân & Nhập từ khóa; chọn bộ lọc; truy vấn không gian; hiển thị kết quả trên bản đồ; mở chi tiết tài sản & M & Trung bình \\ \hline
+    10 & Import dữ liệu tài sản hàng loạt & Cán bộ CNTT (Admin) & Cán bộ quản lý & Tải tệp dữ liệu; kiểm tra định dạng; ánh xạ trường; nhập hàng loạt; báo cáo lỗi nhập liệu & M & Trung bình \\ \hline
+    11 & Xuất dữ liệu tài sản & Cán bộ CNTT (Admin) & Cán bộ quản lý & Chọn phạm vi dữ liệu; chọn định dạng; sinh tệp xuất; tải xuống; ghi nhận lịch sử xuất dữ liệu & M & Trung bình \\ \hline
+    12 & \gls{ai} phân tích ảnh và phân loại tài sản & Cán bộ quản lý đô thị & Dịch vụ \gls{ai} & Tải ảnh; gửi mô hình nhận diện; nhận nhãn phân loại; kiểm tra kết quả; lưu thông tin tài sản & T & Phức tạp \\ \hline
+    13 & Tạo công việc bảo trì & Cán bộ quản lý đô thị & Đơn vị thực hiện & Chọn tài sản; tạo phiếu việc; gán đơn vị xử lý; đặt hạn hoàn thành; phát thông báo & M & Trung bình \\ \hline
+    14 & Cập nhật tiến độ bảo trì & Đơn vị thực hiện/Cán bộ quản lý & Cán bộ quản lý đô thị & Mở phiếu việc; cập nhật trạng thái; bổ sung minh chứng; gửi xác nhận; lưu lịch sử tiến độ & M & Trung bình \\ \hline
+    15 & Theo dõi tiến độ bảo trì & Cán bộ quản lý đô thị & Đơn vị thực hiện & Xem danh sách việc; lọc theo trạng thái/hạn; xem việc trễ hạn; nhắc xử lý; tổng hợp tiến độ & B & Đơn giản \\ \hline
+    16 & Tra cứu lịch sử bảo trì tài sản & Cán bộ quản lý đô thị & Công dân & Chọn tài sản; xem lịch sử bảo trì; lọc mốc thời gian; xem tài liệu/minh chứng liên quan & B & Đơn giản \\ \hline
+    17 & Xem bản đồ hạ tầng công khai & Công dân & Cán bộ quản lý & Mở bản đồ công khai; bật/tắt lớp dữ liệu; xem vị trí tài sản; xem thông tin cơ bản & B & Đơn giản \\ \hline
+    18 & Gửi phản ánh sự cố hạ tầng & Công dân & Cán bộ quản lý đô thị & Chọn vị trí; nhập nội dung phản ánh; đính kèm ảnh; gửi phản ánh; nhận thông báo tiếp nhận & M & Trung bình \\ \hline
+    19 & Tra cứu kết quả xử lý phản ánh & Công dân & Cán bộ quản lý đô thị & Xem danh sách phản ánh; lọc trạng thái; xem phản hồi; xác nhận hoàn tất hoặc tiếp tục theo dõi & M & Trung bình \\ \hline
+    20 & Xem Dashboard tổng quan & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Xem chỉ số tổng quan; lọc theo khu vực; xem biểu đồ tài sản/rủi ro; mở danh sách chi tiết & B & Đơn giản \\ \hline
+    21 & Xem báo cáo thống kê tài sản & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Chọn kỳ báo cáo; chọn nhóm tài sản; tổng hợp số liệu; xem biểu đồ; kiểm tra dữ liệu nguồn & B & Đơn giản \\ \hline
+    22 & Xuất báo cáo và dữ liệu & Cán bộ quản lý đô thị & Cán bộ CNTT (Admin) & Chọn mẫu báo cáo; cấu hình bộ lọc; sinh báo cáo; xuất PDF/Excel; lưu lịch sử xuất báo cáo & B & Đơn giản \\
 \end{longtable}
+\setlength{\tabcolsep}{6pt}
+\normalsize
+\end{landscape}

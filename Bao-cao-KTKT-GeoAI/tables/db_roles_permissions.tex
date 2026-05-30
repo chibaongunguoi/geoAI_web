@@ -1,81 +1,122 @@
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
-    \hline
-    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
-    \hline
-    1 & id & String & PK & Mã định danh người dùng \\
-    \hline
-    2 & username, email & String & Unique & Tên đăng nhập và địa chỉ email định danh \\
-    \hline
-    3 & name, passwordHash & String & Not Null & Họ tên hiển thị và mật khẩu đã băm \\
-    \hline
-    4 & status & String & Default 'ACTIVE' & Trạng thái tài khoản người dùng \\
-    \hline
-    5 & createdAt, updatedAt & DateTime & Not Null & Thời gian tạo và cập nhật tài khoản \\
-    \hline
-    \end{tabular}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
     \caption{Chi tiết bảng User}
-    \label{tab:db_user}
-\end{table}
-
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+    \label{tab:db_user} \\
     \hline
     \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    1 & id & String & PK & Mã định danh hệ thống \\
-    \hline
-    2 & code, key & String & Unique & Mã Role (bảng Role) / Từ khóa quyền (bảng Permission) \\
-    \hline
-    3 & name, description & String & Nullable & Tên hiển thị và mô tả chi tiết \\
-    \hline
-    4 & group & String & Not Null & Nhóm quyền (chỉ có ở bảng Permission) \\
-    \hline
-    \end{tabular}
-    \caption{Chi tiết các bảng phân quyền Role và Permission}
-    \label{tab:db_role_permission}
-\end{table}
-
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+    \endfirsthead
     \hline
     \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    1 & id & String & PK & Mã định danh (cuid) \\
+    \endhead
     \hline
-    2 & actorUserId & String & FK (Nullable) & Mã người dùng thực hiện hành động \\
+    \endfoot
     \hline
-    3 & action, entityType & String & Not Null & Loại hành động (CREATE, UPDATE) và loại đối tượng \\
+    \endlastfoot
+    1 & id & String & PK & Mã định danh người dùng \\ \hline
+    2 & username & String & Unique & Tên đăng nhập \\ \hline
+    3 & email & String & Unique & Địa chỉ email định danh \\ \hline
+    4 & name & String & Not Null & Họ tên hiển thị \\ \hline
+    5 & passwordHash & String & Not Null & Mật khẩu đã băm \\ \hline
+    6 & status & String & Default & Trạng thái tài khoản người dùng \\ \hline
+    7 & createdAt & DateTime & Not Null & Thời gian tạo tài khoản \\ \hline
+    8 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\
+\end{longtable}
+
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
+    \caption{Chi tiết bảng Role}
+    \label{tab:db_role} \\
     \hline
-    4 & entityId & String & Nullable & ID của đối tượng bị tác động \\
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    5 & metadata & Json & Nullable & Dữ liệu chi tiết về thay đổi \\
+    \endfirsthead
     \hline
-    6 & createdAt & DateTime & Not Null & Thời gian ghi nhận log \\
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    \end{tabular}
+    \endhead
+    \hline
+    \endfoot
+    \hline
+    \endlastfoot
+    1 & id & String & PK & Mã định danh vai trò \\ \hline
+    2 & code & String & Unique & Mã vai trò, ví dụ ADMIN hoặc MANAGER \\ \hline
+    3 & name & String & Not Null & Tên hiển thị của vai trò \\ \hline
+    4 & description & String & Nullable & Mô tả vai trò \\ \hline
+    5 & createdAt & DateTime & Not Null & Thời gian tạo vai trò \\ \hline
+    6 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\
+\end{longtable}
+
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
+    \caption{Chi tiết bảng Permission}
+    \label{tab:db_permission} \\
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    \endfirsthead
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    \endhead
+    \hline
+    \endfoot
+    \hline
+    \endlastfoot
+    1 & id & String & PK & Mã định danh quyền \\ \hline
+    2 & key & String & Unique & Khóa quyền sử dụng trong hệ thống \\ \hline
+    3 & group & String & Not Null & Nhóm chức năng của quyền \\ \hline
+    4 & name & String & Not Null & Tên hiển thị của quyền \\ \hline
+    5 & description & String & Nullable & Mô tả quyền \\ \hline
+    6 & createdAt & DateTime & Not Null & Thời gian tạo quyền \\ \hline
+    7 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\
+\end{longtable}
+
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
     \caption{Chi tiết bảng AuditLog (Lịch sử truy cập và thao tác)}
-    \label{tab:db_auditlog}
-\end{table}
-
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+    \label{tab:db_auditlog} \\
     \hline
     \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    1 & id & String & PK & Mã định danh phiên (Session ID) \\
+    \endfirsthead
     \hline
-    2 & userId & String & FK & Mã người dùng \\
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    3 & refreshToken & String & Unique & Token cấp lại quyền truy cập (JWT) \\
+    \endhead
     \hline
-    4 & expiresAt, revokedAt & DateTime & Nullable & Thời điểm hết hạn và thời điểm bị thu hồi token \\
+    \endfoot
     \hline
-    \end{tabular}
+    \endlastfoot
+    1 & id & String & PK & Mã định danh log \\ \hline
+    2 & actorUserId & String & FK, Nullable & Mã người dùng thực hiện hành động \\ \hline
+    3 & action & String & Not Null & Loại hành động, ví dụ CREATE hoặc UPDATE \\ \hline
+    4 & entityType & String & Not Null & Loại đối tượng bị tác động \\ \hline
+    5 & entityId & String & Nullable & ID của đối tượng bị tác động \\ \hline
+    6 & metadata & Json & Nullable & Dữ liệu chi tiết về thay đổi \\ \hline
+    7 & createdAt & DateTime & Not Null & Thời gian ghi nhận log \\
+\end{longtable}
+
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
     \caption{Chi tiết bảng Session (Phiên đăng nhập)}
-    \label{tab:db_session}
-\end{table}
+    \label{tab:db_session} \\
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    \endfirsthead
+    \hline
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
+    \hline
+    \endhead
+    \hline
+    \endfoot
+    \hline
+    \endlastfoot
+    1 & id & String & PK & Mã định danh phiên đăng nhập \\ \hline
+    2 & userId & String & FK & Mã người dùng sở hữu phiên \\ \hline
+    3 & refreshToken & String & Unique & Token cấp lại quyền truy cập \\ \hline
+    4 & expiresAt & DateTime & Not Null & Thời điểm hết hạn phiên \\ \hline
+    5 & revokedAt & DateTime & Nullable & Thời điểm thu hồi phiên nếu có \\ \hline
+    6 & createdAt & DateTime & Not Null & Thời gian tạo phiên \\
+\end{longtable}
+\setlength{\tabcolsep}{6pt}
+\normalsize

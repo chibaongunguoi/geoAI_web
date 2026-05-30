@@ -10,6 +10,14 @@
 \usepackage[fontsize=13pt]{scrextend}
 \usepackage[paperwidth=21cm,paperheight=29.7cm, right=2cm, left=3cm, top=2cm, bottom=2.5cm]{geometry}
 \usepackage{graphicx}
+\newcommand{\safeincludegraphics}[2][]{%
+    \IfFileExists{#2}{%
+        \includegraphics[#1]{#2}%
+    }{%
+        \fbox{\parbox[c][0.55\textwidth][c]{0.95\textwidth}{\centering
+            \textbf{Missing image}\\[0.5em]\texttt{\detokenize{#2}}}}%
+    }%
+}
 \usepackage{float}
 \usepackage{tikz}
 \usepackage{multirow}

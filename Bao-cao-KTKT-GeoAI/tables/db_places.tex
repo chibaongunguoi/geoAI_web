@@ -1,28 +1,40 @@
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
+    \caption{Chi tiết bảng Place}
+    \label{tab:db_place} \\
     \hline
     \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    1 & id & String & PK & Mã định danh hệ thống (cuid) \\
+    \endfirsthead
     \hline
-    2 & overtureId & String & Unique & Mã ID đồng bộ từ hệ thống Overture Maps \\
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    3 & name, category, subcategories & String, Json & Not Null & Tên và danh mục, danh mục con của địa điểm tiện ích \\
+    \endhead
     \hline
-    4 & address, street, ward, district, city & String & Nullable & Thông tin địa chỉ hành chính chi tiết \\
+    \endfoot
     \hline
-    5 & latitude, longitude & Float & Not Null & Tọa độ địa lý cơ bản của tiện ích \\
-    \hline
-    6 & geometry, \textbf{location} & Json, \textbf{Geometry} & Nullable & \textbf{Dữ liệu không gian định dạng GeoJSON và Point (PostGIS 4326)} \\
-    \hline
-    7 & confidence, source, sourceVersion & Float, String & Default & Mức độ tin cậy và thông tin nguồn dữ liệu \\
-    \hline
-    8 & riskFlags & Json & Nullable & Cờ cảnh báo các rủi ro liên quan đến địa điểm \\
-    \hline
-    9 & createdAt, updatedAt & DateTime & Not Null & Dấu thời gian tạo và cập nhật \\
-    \hline
-    \end{tabular}
-    \caption{Chi tiết bảng Place}
-    \label{tab:db_place}
-\end{table}
+    \endlastfoot
+    1 & id & String & PK & Mã định danh hệ thống (cuid) \\ \hline
+    2 & overtureId & String & Unique & Mã định danh đồng bộ từ Overture Maps \\ \hline
+    3 & name & String & Not Null & Tên địa điểm tiện ích \\ \hline
+    4 & category & String & Not Null & Danh mục chính của địa điểm \\ \hline
+    5 & subcategories & Json & Default & Danh mục con của địa điểm \\ \hline
+    6 & address & String & Nullable & Địa chỉ dạng văn bản \\ \hline
+    7 & street & String & Nullable & Tên đường \\ \hline
+    8 & ward & String & Nullable & Phường/xã \\ \hline
+    9 & district & String & Nullable & Quận/huyện \\ \hline
+    10 & city & String & Default & Thành phố, mặc định Đà Nẵng \\ \hline
+    11 & latitude & Float & Not Null & Vĩ độ địa điểm \\ \hline
+    12 & longitude & Float & Not Null & Kinh độ địa điểm \\ \hline
+    13 & geometry & Json & Not Null & Dữ liệu không gian định dạng GeoJSON \\ \hline
+    14 & \textbf{location} & \textbf{Geometry} & Nullable & \textbf{Điểm không gian Point trên PostGIS, SRID 4326} \\ \hline
+    15 & confidence & Float & Default & Mức độ tin cậy của nguồn dữ liệu \\ \hline
+    16 & source & String & Default & Nguồn dữ liệu \\ \hline
+    17 & sourceVersion & String & Nullable & Phiên bản nguồn dữ liệu \\ \hline
+    18 & riskFlags & Json & Default & Danh sách cờ cảnh báo rủi ro liên quan \\ \hline
+    19 & createdAt & DateTime & Not Null & Thời gian tạo bản ghi \\ \hline
+    20 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\
+\end{longtable}
+\setlength{\tabcolsep}{6pt}
+\normalsize

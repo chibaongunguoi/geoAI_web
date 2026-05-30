@@ -1,29 +1,32 @@
 \contentsline {table}{\numberline {1.1}{\ignorespaces Danh sách yêu cầu chức năng của hệ thống GeoAI}}{8}{table.1.1}%
 \contentsline {table}{\numberline {2.1}{\ignorespaces Khảo sát hiện trạng các hệ thống quản lý hạ tầng hiện có}}{11}{table.caption.4}%
 \contentsline {table}{\numberline {2.2}{\ignorespaces Hạ tầng CNTT hiện tại của nhóm}}{12}{table.caption.5}%
-\contentsline {table}{\numberline {3.1}{\ignorespaces Phân loại và tính toán số giao dịch của các yêu cầu chức năng}}{18}{table.3.1}%
-\contentsline {table}{\numberline {4.1}{\ignorespaces Danh sách tác nhân của hệ thống}}{24}{table.caption.14}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Danh sách Use Case và phân loại độ phức tạp}}{24}{table.4.2}%
-\contentsline {table}{\numberline {4.3}{\ignorespaces Danh sách các bảng cơ sở dữ liệu chính}}{27}{table.4.3}%
-\contentsline {table}{\numberline {4.4}{\ignorespaces Cấu trúc bảng assets}}{28}{table.4.4}%
-\contentsline {table}{\numberline {4.5}{\ignorespaces Cấu trúc bảng asset\_types}}{28}{table.4.5}%
-\contentsline {table}{\numberline {4.6}{\ignorespaces Cấu trúc bảng asset\_status\_history}}{29}{table.4.6}%
-\contentsline {table}{\numberline {4.7}{\ignorespaces Cấu trúc bảng maintenance\_orders}}{29}{table.4.7}%
-\contentsline {table}{\numberline {4.8}{\ignorespaces Cấu trúc bảng citizen\_reports}}{30}{table.4.8}%
-\contentsline {table}{\numberline {4.9}{\ignorespaces Cấu trúc bảng districts}}{30}{table.4.9}%
-\contentsline {table}{\numberline {4.10}{\ignorespaces Cấu trúc bảng users}}{31}{table.4.10}%
-\contentsline {table}{\numberline {4.11}{\ignorespaces Cấu trúc bảng roles\_permissions}}{32}{table.4.11}%
-\contentsline {table}{\numberline {5.1}{\ignorespaces Bảng tổng hợp chi phí phần mềm nội bộ }}{35}{table.5.1}%
-\contentsline {table}{\numberline {5.2}{\ignorespaces Bảng tổng hợp dự toán }}{35}{table.caption.19}%
-\contentsline {table}{\numberline {5.3}{\ignorespaces Danh sách các tác nhân }}{36}{table.5.3}%
-\contentsline {table}{\numberline {5.4}{\ignorespaces Bảng tính điểm tác nhân không hiệu chỉnh (TAW) }}{36}{table.5.4}%
-\contentsline {table}{\numberline {5.5}{\ignorespaces Bảng tính điểm các trường hợp sử dụng (use case) }}{37}{table.5.5}%
-\contentsline {table}{\numberline {5.6}{\ignorespaces Bảng hệ số phức tạp kỹ thuật – công nghệ (TCF) }}{38}{table.caption.20}%
-\contentsline {table}{\numberline {5.7}{\ignorespaces Bảng tính toán hệ số tác động môi trường, nhóm làm việc (ECF) }}{39}{table.caption.21}%
-\contentsline {table}{\numberline {5.8}{\ignorespaces Bảng tính lương nhân công }}{40}{table.caption.22}%
-\contentsline {table}{\numberline {5.9}{\ignorespaces Bảng tính toán chi phí trực tiếp xây dựng phần mềm nội bộ }}{41}{table.5.9}%
-\contentsline {table}{\numberline {5.10}{\ignorespaces Bảng tổng hợp chi phí phần mềm nội bộ }}{42}{table.5.10}%
-\contentsline {table}{\numberline {5.11}{\ignorespaces Bảng tổng hợp dự toán }}{42}{table.caption.23}%
-\contentsline {table}{\numberline {5.12}{\ignorespaces Tiến độ triển khai }}{43}{table.5.12}%
-\contentsline {table}{\numberline {5.13}{\ignorespaces Bảng thống kê dữ liệu tài sản đô thị }}{46}{table.5.13}%
-\contentsline {table}{\numberline {5.14}{\ignorespaces Yêu cầu hạ tầng triển khai }}{47}{table.5.14}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces Phân loại và tính toán số giao dịch của các yêu cầu chức năng}}{19}{table.3.1}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Danh sách tác nhân của hệ thống}}{25}{table.caption.14}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Bảng chuyển đổi yêu cầu chức năng sang Use Case}}{26}{table.4.2}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Định nghĩa các bảng dữ liệu chính}}{29}{table.caption.18}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces Chi tiết bảng BuildingProperty (Tích hợp PostGIS \& Elasticsearch)}}{30}{table.4.4}%
+\contentsline {table}{\numberline {4.5}{\ignorespaces Chi tiết bảng Place}}{31}{table.4.5}%
+\contentsline {table}{\numberline {4.6}{\ignorespaces Chi tiết bảng RiskZone}}{32}{table.4.6}%
+\contentsline {table}{\numberline {4.7}{\ignorespaces Chi tiết bảng RoadSegment}}{32}{table.4.7}%
+\contentsline {table}{\numberline {4.8}{\ignorespaces Chi tiết bảng Report (Phản ánh sự cố)}}{32}{table.4.8}%
+\contentsline {table}{\numberline {4.9}{\ignorespaces Chi tiết bảng Notification (Thông báo hệ thống)}}{33}{table.4.9}%
+\contentsline {table}{\numberline {4.10}{\ignorespaces Chi tiết bảng User}}{33}{table.4.10}%
+\contentsline {table}{\numberline {4.11}{\ignorespaces Chi tiết bảng Role}}{34}{table.4.11}%
+\contentsline {table}{\numberline {4.12}{\ignorespaces Chi tiết bảng Permission}}{34}{table.4.12}%
+\contentsline {table}{\numberline {4.13}{\ignorespaces Chi tiết bảng AuditLog (Lịch sử truy cập và thao tác)}}{34}{table.4.13}%
+\contentsline {table}{\numberline {4.14}{\ignorespaces Chi tiết bảng Session (Phiên đăng nhập)}}{35}{table.4.14}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Bảng tổng hợp chi phí phần mềm nội bộ }}{42}{table.5.1}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Bảng tổng hợp dự toán }}{42}{table.caption.28}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Danh sách các tác nhân }}{43}{table.5.3}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Bảng tính điểm tác nhân không hiệu chỉnh (TAW) }}{43}{table.5.4}%
+\contentsline {table}{\numberline {5.5}{\ignorespaces Bảng tính điểm các trường hợp sử dụng (use case) }}{43}{table.5.5}%
+\contentsline {table}{\numberline {5.6}{\ignorespaces Bảng hệ số phức tạp kỹ thuật – công nghệ (TCF) }}{45}{table.caption.29}%
+\contentsline {table}{\numberline {5.7}{\ignorespaces Bảng tính toán hệ số tác động môi trường, nhóm làm việc (ECF) }}{46}{table.caption.30}%
+\contentsline {table}{\numberline {5.8}{\ignorespaces Bảng tính lương nhân công }}{47}{table.caption.31}%
+\contentsline {table}{\numberline {5.9}{\ignorespaces Bảng tính toán chi phí trực tiếp xây dựng phần mềm nội bộ }}{48}{table.5.9}%
+\contentsline {table}{\numberline {5.10}{\ignorespaces Bảng tổng hợp chi phí phần mềm nội bộ }}{49}{table.5.10}%
+\contentsline {table}{\numberline {5.11}{\ignorespaces Bảng tổng hợp dự toán }}{49}{table.caption.32}%
+\contentsline {table}{\numberline {5.12}{\ignorespaces Tiến độ triển khai }}{50}{table.5.12}%
+\contentsline {table}{\numberline {5.13}{\ignorespaces Bảng thống kê dữ liệu tài sản đô thị }}{53}{table.5.13}%
+\contentsline {table}{\numberline {5.14}{\ignorespaces Yêu cầu hạ tầng triển khai }}{54}{table.5.14}%

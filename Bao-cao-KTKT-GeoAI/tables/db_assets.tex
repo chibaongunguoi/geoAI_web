@@ -1,36 +1,51 @@
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|p{0.8cm}|p{4.2cm}|p{2cm}|p{2.2cm}|p{5.5cm}|}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
+    \caption{Chi tiết bảng BuildingProperty (Tích hợp PostGIS \& Elasticsearch)}
+    \label{tab:db_building_property} \\
     \hline
     \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    1 & id & String & PK & Mã định danh tự động (cuid) \\
+    \endfirsthead
     \hline
-    2 & code, overtureId & String & Unique & Mã tài sản nội bộ và mã định danh từ Overture Maps \\
+    \textbf{STT} & \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Ý nghĩa} \\
     \hline
-    3 & name, addressLine, street, ward, district, city & String & Nullable & Thông tin định danh và địa chỉ chi tiết của tài sản \\
+    \endhead
     \hline
-    4 & propertyType, status, source & String & Not Null & Loại tài sản (mặc định 'building'), trạng thái và nguồn dữ liệu \\
+    \endfoot
     \hline
-    5 & level, height, floors, areaSqm & Float/Int & Nullable & Các thông số kỹ thuật công trình (độ cao, số tầng, diện tích) \\
-    \hline
-    6 & centroidLat, centroidLng & Float & Nullable & Tọa độ điểm tâm của tài sản trên bản đồ \\
-    \hline
-    7 & bbox, geometry & Json & Nullable & Hình hộp bao (bounding box) và dữ liệu không gian định dạng GeoJSON \\
-    \hline
-    8 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu không gian thực lưu trên PostGIS (Geometry, SRID 4326)} \\
-    \hline
-    9 & \textbf{searchText, searchTextNormalized} & \textbf{String} & Not Null & \textbf{Cột nội dung hỗ trợ đồng bộ Elasticsearch phục vụ Full-text search} \\
-    \hline
-    10 & \textbf{embedding} & \textbf{Json} & Nullable & \textbf{Vector nhúng hỗ trợ tìm kiếm không gian/ngữ nghĩa bằng mô hình AI} \\
-    \hline
-    11 & riskFlags, compositeScore & Json, Float & Nullable & Mảng cờ cảnh báo rủi ro (ngập lụt, sạt lở) và điểm tổng hợp rủi ro \\
-    \hline
-    12 & attributes & Json & Nullable & Dữ liệu thuộc tính mở rộng linh hoạt theo chuẩn GeoJSON \\
-    \hline
-    13 & createdAt, updatedAt, deletedAt & DateTime & - & Thời gian tạo, cập nhật và dấu thời gian phục vụ xóa mềm \\
-    \hline
-    \end{tabular}
-    \caption{Chi tiết bảng BuildingProperty (Tích hợp PostGIS \& Elasticsearch)}
-    \label{tab:db_building_property}
-\end{table}
+    \endlastfoot
+    1 & id & String & PK & Mã định danh tự động (cuid) \\ \hline
+    2 & code & String & Unique & Mã tài sản nội bộ \\ \hline
+    3 & overtureId & String & Unique, Nullable & Mã định danh đồng bộ từ Overture Maps \\ \hline
+    4 & name & String & Nullable & Tên tài sản hoặc công trình \\ \hline
+    5 & addressLine & String & Nullable & Địa chỉ đầy đủ dạng văn bản \\ \hline
+    6 & street & String & Nullable & Tên đường \\ \hline
+    7 & ward & String & Nullable & Phường/xã \\ \hline
+    8 & district & String & Nullable & Quận/huyện \\ \hline
+    9 & city & String & Default & Thành phố, mặc định Đà Nẵng \\ \hline
+    10 & propertyType & String & Default & Loại tài sản, mặc định là building \\ \hline
+    11 & status & String & Default & Trạng thái tài sản \\ \hline
+    12 & source & String & Default & Nguồn tạo dữ liệu \\ \hline
+    13 & sourceVersion & String & Nullable & Phiên bản nguồn dữ liệu đồng bộ \\ \hline
+    14 & level & Float & Nullable & Cấp/hạng của tài sản nếu có \\ \hline
+    15 & height & Float & Nullable & Chiều cao công trình \\ \hline
+    16 & floors & Int & Nullable & Số tầng \\ \hline
+    17 & areaSqm & Float & Nullable & Diện tích tính theo mét vuông \\ \hline
+    18 & centroidLat & Float & Nullable & Vĩ độ điểm tâm tài sản \\ \hline
+    19 & centroidLng & Float & Nullable & Kinh độ điểm tâm tài sản \\ \hline
+    20 & bbox & Json & Nullable & Hình hộp bao (bounding box) \\ \hline
+    21 & geometry & Json & Nullable & Dữ liệu không gian định dạng GeoJSON \\ \hline
+    22 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu không gian thực lưu trên PostGIS, SRID 4326} \\ \hline
+    23 & attributes & Json & Nullable & Thuộc tính mở rộng linh hoạt theo chuẩn GeoJSON \\ \hline
+    24 & \textbf{searchText} & \textbf{String} & Not Null & \textbf{Nội dung tìm kiếm toàn văn} \\ \hline
+    25 & \textbf{searchTextNormalized} & \textbf{String} & Not Null & \textbf{Nội dung đã chuẩn hóa phục vụ tìm kiếm} \\ \hline
+    26 & \textbf{embedding} & \textbf{Json} & Nullable & \textbf{Vector nhúng hỗ trợ tìm kiếm ngữ nghĩa bằng AI} \\ \hline
+    27 & riskFlags & Json & Default & Danh sách cờ cảnh báo rủi ro \\ \hline
+    28 & compositeScore & Float & Nullable & Điểm tổng hợp phục vụ xếp hạng/đánh giá tài sản \\ \hline
+    29 & createdAt & DateTime & Not Null & Thời gian tạo bản ghi \\ \hline
+    30 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\ \hline
+    31 & deletedAt & DateTime & Nullable & Thời điểm xóa mềm nếu có \\
+\end{longtable}
+\setlength{\tabcolsep}{6pt}
+\normalsize

@@ -1,5 +1,6 @@
+\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
-  scale=0.85,
+    scale=0.68,
     transform shape,
     table/.style={
         draw,
@@ -7,135 +8,181 @@
         rectangle split parts=2,
         rectangle split part fill={gray!10, white},
         every text node part/.style={align=center, font=\bfseries},
-        every two node part/.style={align=left},
-        minimum width=4.5cm,
-        text width=4.5cm,
+        every two node part/.style={align=left, font=\scriptsize},
+        minimum width=3.8cm,
+        text width=3.8cm,
         rounded corners=2pt
     },
-    % Cấu hình chung cho mũi tên
-    >=Stealth,
-    ->,
-    thick,
-    rounded corners=2pt
+    rel/.style={-Stealth, thick},
+    spatial/.style={Stealth-Stealth, thick, dashed},
+    note/.style={font=\scriptsize, align=center, fill=white, inner sep=1pt}
 ]
 
-% ================= Các Nút (Bảng) =================
-
-% --- Cột 1: Người dùng, Phân quyền & Bảo mật (x = -7) ---
-\node[table] (session) at (-7, 7) {
-    Session
-    \nodepart{two}
-    \underline{\textbf{id}} \\
-    userId (FK) \\
-    refreshToken \\
-    expiresAt
-};
-
-\node[table] (user) at (-7, 2.5) {
+% ================= Người dùng, phân quyền, phiên =================
+\node[table] (user) at (-8, 4.5) {
     User
     \nodepart{two}
-    \underline{\textbf{id}} \\
-    username, email \\
-    passwordHash \\
+    \underline{\textbf{id}}\\
+    username\\
+    email\\
+    passwordHash\\
     status
 };
 
-\node[table] (role) at (-7, -2) {
-    Role \& Permission
+\node[table] (session) at (-13, 7.5) {
+    Session
     \nodepart{two}
-    \underline{\textbf{id}} \\
-    code / key \\
-    UserRole (Pivot) \\
-    RolePermission
+    \underline{\textbf{id}}\\
+    userId (FK)\\
+    refreshToken\\
+    expiresAt\\
+    revokedAt
 };
 
-\node[table] (audit) at (-7, -6.5) {
+\node[table] (layerconfig) at (-13, 1.5) {
+    LayerUserConfig
+    \nodepart{two}
+    \underline{\textbf{userId}}\\
+    state\\
+    createdAt\\
+    updatedAt
+};
+
+\node[table] (displayconfig) at (-13, -3.5) {
+    AssetDisplayUserConfig
+    \nodepart{two}
+    \underline{\textbf{userId}}\\
+    state\\
+    createdAt\\
+    updatedAt
+};
+
+\node[table] (userrole) at (-4, 7.5) {
+    UserRole
+    \nodepart{two}
+    \underline{\textbf{userId}} (FK)\\
+    \underline{\textbf{roleId}} (FK)
+};
+
+\node[table] (role) at (0, 7.5) {
+    Role
+    \nodepart{two}
+    \underline{\textbf{id}}\\
+    code\\
+    name\\
+    description
+};
+
+\node[table] (rolepermission) at (4, 7.5) {
+    RolePermission
+    \nodepart{two}
+    \underline{\textbf{roleId}} (FK)\\
+    \underline{\textbf{permissionId}} (FK)
+};
+
+\node[table] (permission) at (8, 7.5) {
+    Permission
+    \nodepart{two}
+    \underline{\textbf{id}}\\
+    key\\
+    group\\
+    name
+};
+
+\node[table] (audit) at (-4, 2.8) {
     AuditLog
     \nodepart{two}
-    \underline{\textbf{id}} \\
-    actorUserId (FK) \\
-    action, entityType \\
+    \underline{\textbf{id}}\\
+    actorUserId (FK)\\
+    action\\
+    entityType\\
     metadata
 };
 
-% --- Cột 2: Tương tác & Tài sản cốt lõi (x = 0) ---
-\node[table] (report) at (0, 7.5) {
-    Report (Phản ánh)
-    \nodepart{two}
-    \underline{\textbf{id}} \\
-    userId (FK) \\
-    reason, message \\
-    latitude, longitude \\
-    status
-};
-
-\node[table] (building) at (0, 2.5) {
+% ================= Tài sản, tiện ích, phản ánh =================
+\node[table] (building) at (0, 1.0) {
     BuildingProperty
     \nodepart{two}
-    \underline{\textbf{id}} \\
-    code, overtureId \\
-    geom (PostGIS) \\
-    searchText (Elastic) \\
-    embedding (Vector) \\
+    \underline{\textbf{id}}\\
+    code, overtureId\\
+    geom (Geometry)\\
+    searchTextNormalized\\
+    embedding\\
     riskFlags
 };
 
-\node[table] (place) at (0, -2) {
-    Place (POI)
+\node[table] (place) at (6, 1.0) {
+    Place
     \nodepart{two}
-    \underline{\textbf{id}} \\
-    overtureId \\
-    category, name \\
-    location (Point) \\
-    confidence
+    \underline{\textbf{id}}\\
+    overtureId\\
+    category, name\\
+    location (Point)\\
+    confidence\\
+    riskFlags
 };
 
-\node[table] (notification) at (0, -6.5) {
+\node[table] (report) at (-4, -3.8) {
+    Report
+    \nodepart{two}
+    \underline{\textbf{id}}\\
+    userId (FK)\\
+    reason\\
+    message\\
+    latitude, longitude\\
+    status
+};
+
+\node[table] (notification) at (2, -3.8) {
     Notification
     \nodepart{two}
-    \underline{\textbf{id}} \\
-    userId (FK) \\
-    title, type \\
+    \underline{\textbf{id}}\\
+    userId (FK)\\
+    title\\
+    message\\
+    type\\
     isRead
 };
 
-% --- Cột 3: Không gian & Rủi ro (x = 7) ---
-\node[table] (riskzone) at (7, 5) {
+% ================= Không gian và rủi ro =================
+\node[table] (riskzone) at (12, 3.8) {
     RiskZone
     \nodepart{two}
-    \underline{\textbf{id}} \\
-    zoneType (flood...) \\
-    riskLevel \\
+    \underline{\textbf{id}}\\
+    zoneType\\
+    riskLevel\\
+    source\\
     geom (Polygon)
 };
 
-\node[table] (road) at (7, 0) {
+\node[table] (road) at (12, -1.8) {
     RoadSegment
     \nodepart{two}
-    \underline{\textbf{id}} \\
-    osmId, highway \\
+    \underline{\textbf{id}}\\
+    osmId\\
+    name\\
+    highway\\
     geom (LineString)
 };
 
-% ================= Các Mối Quan Hệ (Mũi tên) =================
+% ================= Quan hệ khóa ngoại =================
+\draw[rel] (session.east) -- (user.north west);
+\draw[rel] (layerconfig.east) -- (user.west);
+\draw[rel] (displayconfig.east) -- (user.south west);
+\draw[rel] (user.north east) -- (userrole.west);
+\draw[rel] (userrole.east) -- (role.west);
+\draw[rel] (role.east) -- (rolepermission.west);
+\draw[rel] (rolepermission.east) -- (permission.west);
+\draw[rel] (audit.west) -- ++(-1.2,0) |- (user.south east);
+\draw[rel] (report.west) -- ++(-1.2,0) |- (user.south);
+\draw[rel] (notification.west) -- ++(-1.0,0) |- (user.south east);
 
-% Quan hệ với User
-\draw (user.north) -- (session.south);
-\draw (user.south) -- (role.north);
+% ================= Quan hệ logic không gian =================
+\draw[spatial] (building.east) -- (place.west) node[note, midway, above] {ST\_DWithin};
+\draw[spatial] (building.east) -- ++(2.0,0) |- (riskzone.west) node[note, near end, above] {ST\_Intersects};
+\draw[spatial] (building.east) -- ++(2.0,0) |- (road.west) node[note, near end, below] {ST\_Distance};
+\draw[spatial] (place.east) -- ++(1.0,0) |- (riskzone.west) node[note, near start, above] {risk overlay};
+\draw[spatial] (place.east) -- ++(1.0,0) |- (road.west) node[note, near start, below] {proximity};
 
-% Route User to AuditLog bằng cách đi vòng ra ngoài (bên trái)
-\draw (user.west) -- ++(-0.8,0) |- (audit.west);
-
-% Route User to Report
-\draw (user.north east) |- (report.west);
-
-% Route User to Notification
-\draw (user.south east) |- (notification.west);
-
-% Không gian tương đối: BuildingProperty - RiskZone - RoadSegment - Place
-% Những bảng này kết nối nhau về mặt logic không gian (Spatial Join) chứ không phải khóa ngoại cứng
-\draw[dashed, <->] (building.east) -- ++(1,0) |- (riskzone.west) node[near end, above, font=\scriptsize] {ST\_Intersects};
-\draw[dashed, <->] (building.east) -- ++(1,0) |- (road.west) node[near end, above, font=\scriptsize] {ST\_Distance};
-\draw[dashed, <->] (building.south) -- (place.north) node[midway, right, font=\scriptsize] {ST\_DWithin};
-
-\end{tikzpicture}
+\end{tikzpicture}%
+}
