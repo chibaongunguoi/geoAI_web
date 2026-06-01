@@ -1,5 +1,3 @@
-\footnotesize
-\setlength{\tabcolsep}{3pt}
 \begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
     \caption{Chi tiết bảng RiskZone}
     \label{tab:db_riskzone} \\
@@ -20,7 +18,7 @@
     3 & riskLevel & String & Not Null & Mức độ rủi ro high, medium hoặc low \\ \hline
     4 & source & String & Not Null & Nguồn cung cấp dữ liệu vùng rủi ro \\ \hline
     5 & description & String & Nullable & Mô tả chi tiết vùng rủi ro \\ \hline
-    6 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu vùng không gian dạng Polygon, SRID 4326} \\ \hline
+    6 & geom & Geometry & Nullable & Dữ liệu vùng không gian dạng Polygon, SRID 4326 \\ \hline
     7 & createdAt & DateTime & Not Null & Thời gian tạo bản ghi \\ \hline
     8 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\
 \end{longtable}
@@ -44,9 +42,7 @@
     2 & osmId & String & Unique, Nullable & Mã ID liên kết OpenStreetMap \\ \hline
     3 & name & String & Nullable & Tên đường \\ \hline
     4 & highway & String & Not Null & Cấp đường như primary, secondary hoặc residential \\ \hline
-    5 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu không gian dạng LineString, SRID 4326} \\ \hline
+    5 & geom & Geometry & Nullable & Dữ liệu không gian dạng LineString, SRID 4326 \\ \hline
     6 & createdAt & DateTime & Not Null & Thời gian tạo bản ghi \\ \hline
     7 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\
 \end{longtable}
-\setlength{\tabcolsep}{6pt}
-\normalsize

@@ -1,20 +1,20 @@
-\contentsline {figure}{\numberline {3.1}{\ignorespaces Sơ đồ quy trình cập nhật thông tin tài sản}}{14}{figure.caption.6}%
-\contentsline {figure}{\numberline {3.2}{\ignorespaces Quy trình nghiệp vụ Thống kê và phân tích dữ liệu}}{15}{figure.caption.7}%
-\contentsline {figure}{\numberline {3.3}{\ignorespaces Quy trình tin học hóa Quản lý tài sản đô thị}}{16}{figure.caption.8}%
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Quy trình tin học hóa Người dân phản ánh sự cố}}{17}{figure.caption.9}%
-\contentsline {figure}{\numberline {3.5}{\ignorespaces Quy trình tin học hóa Thống kê và phân tích dữ liệu}}{18}{figure.caption.10}%
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Mô hình tổng thể hệ thống}}{23}{figure.caption.11}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Mô hình logic chi tiết của hệ thống GeoAI}}{23}{figure.caption.12}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Mô hình kiến trúc tổng thể hệ thống GIS và Local AI}}{24}{figure.caption.13}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Biểu đồ Use Case cho tác nhân Cán bộ CNTT (Admin)}}{27}{figure.caption.15}%
-\contentsline {figure}{\numberline {4.5}{\ignorespaces Biểu đồ Use Case cho tác nhân Cán bộ quản lý đô thị}}{28}{figure.caption.16}%
-\contentsline {figure}{\numberline {4.6}{\ignorespaces Biểu đồ Use Case cho tác nhân Công dân}}{28}{figure.caption.17}%
-\contentsline {figure}{\numberline {4.7}{\ignorespaces Sơ đồ Thực thể Kết hợp (ERD) mô tả cấu trúc cơ sở dữ liệu hệ thống.}}{36}{figure.caption.19}%
-\contentsline {figure}{\numberline {4.8}{\ignorespaces Giao diện Đăng nhập hệ thống}}{37}{figure.caption.20}%
-\contentsline {figure}{\numberline {4.9}{\ignorespaces Giao diện Bản đồ trung tâm (WebGIS) với các lớp dữ liệu}}{38}{figure.caption.21}%
-\contentsline {figure}{\numberline {4.10}{\ignorespaces Giao diện Danh sách và Quản lý Tài sản}}{38}{figure.caption.22}%
-\contentsline {figure}{\numberline {4.11}{\ignorespaces Giao diện Chi tiết Tài sản và Đánh giá Rủi ro (Scoring)}}{39}{figure.caption.23}%
-\contentsline {figure}{\numberline {4.12}{\ignorespaces Giao diện Truy vấn Không gian bằng Ngôn ngữ Tự nhiên (AI Chat)}}{39}{figure.caption.24}%
-\contentsline {figure}{\numberline {4.13}{\ignorespaces Kết quả truy vấn không gian trên bản đồ}}{40}{figure.caption.25}%
-\contentsline {figure}{\numberline {4.14}{\ignorespaces Bản đồ nhiệt (Heatmap) thể hiện mật độ tài sản}}{40}{figure.caption.26}%
-\contentsline {figure}{\numberline {4.15}{\ignorespaces Giao diện Dashboard Thống kê và Báo cáo}}{40}{figure.caption.27}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Sơ đồ quy trình cập nhật thông tin tài sản}}{14}{figure.caption.5}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Quy trình nghiệp vụ Thống kê và phân tích dữ liệu}}{15}{figure.caption.6}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Quy trình tin học hóa Quản lý tài sản đô thị}}{16}{figure.caption.7}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Quy trình tin học hóa Người dân phản ánh sự cố}}{17}{figure.caption.8}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Quy trình tin học hóa Thống kê và phân tích dữ liệu}}{18}{figure.caption.9}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Mô hình tổng thể hệ thống}}{23}{figure.caption.10}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Mô hình logic chi tiết của hệ thống GeoAI}}{23}{figure.caption.11}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Mô hình kiến trúc tổng thể hệ thống GIS và Local AI}}{24}{figure.caption.12}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Biểu đồ Use Case cho tác nhân Cán bộ CNTT (Admin)}}{27}{figure.caption.14}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Biểu đồ Use Case cho tác nhân Cán bộ quản lý đô thị}}{28}{figure.caption.15}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Biểu đồ Use Case cho tác nhân Công dân}}{28}{figure.caption.16}%
+\contentsline {figure}{\numberline {4.7}{\ignorespaces Sơ đồ Thực thể Kết hợp (ERD) mô tả cấu trúc cơ sở dữ liệu hệ thống.}}{36}{figure.caption.18}%
+\contentsline {figure}{\numberline {4.8}{\ignorespaces Giao diện Đăng nhập hệ thống}}{37}{figure.caption.19}%
+\contentsline {figure}{\numberline {4.9}{\ignorespaces Giao diện Bản đồ trung tâm (WebGIS) với các lớp dữ liệu}}{38}{figure.caption.20}%
+\contentsline {figure}{\numberline {4.10}{\ignorespaces Giao diện Danh sách và Quản lý Tài sản}}{38}{figure.caption.21}%
+\contentsline {figure}{\numberline {4.11}{\ignorespaces Giao diện Chi tiết Tài sản và Đánh giá Rủi ro (Scoring)}}{39}{figure.caption.22}%
+\contentsline {figure}{\numberline {4.12}{\ignorespaces Giao diện Truy vấn Không gian bằng Ngôn ngữ Tự nhiên (AI Chat)}}{39}{figure.caption.23}%
+\contentsline {figure}{\numberline {4.13}{\ignorespaces Kết quả truy vấn không gian trên bản đồ}}{40}{figure.caption.24}%
+\contentsline {figure}{\numberline {4.14}{\ignorespaces Bản đồ nhiệt (Heatmap) thể hiện mật độ tài sản}}{40}{figure.caption.25}%
+\contentsline {figure}{\numberline {4.15}{\ignorespaces Giao diện Dashboard Thống kê và Báo cáo}}{40}{figure.caption.26}%

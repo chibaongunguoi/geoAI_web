@@ -1,26 +1,3 @@
 {
-  "deletedAt": null,
-  "AND": [
-    {
-      "ward": "Hải Châu I"
-    },
-    {
-      "district": "Hải Châu"
-    },
-    {
-      "searchTextNormalized": {
-        "contains": "truong"
-      }
-    },
-    {
-      "searchTextNormalized": {
-        "contains": "dai"
-      }
-    },
-    {
-      "searchTextNormalized": {
-        "contains": "hoc"
-      }
-    }
-  ]
+  "deletedAt": null
 }

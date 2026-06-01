@@ -4,13 +4,13 @@
     \hline
     \textbf{STT} & \textbf{Tên bảng} & \textbf{Mô tả} & \textbf{Ghi chú} \\
     \hline
-    1 & BuildingProperty & Lưu thông tin tài sản đô thị, tòa nhà & Chứa \texttt{geom} (PostGIS), \texttt{embedding} (Vector AI) \\
+    1 & BuildingProperty & Lưu thông tin tài sản đô thị, tòa nhà & Chứa geom (PostGIS), embedding (Vector AI) \\
     \hline
-    2 & Place & Lưu địa điểm tiện ích (POI) từ Overture Maps & Chứa cột \texttt{location} (PostGIS Point) \\
+    2 & Place & Lưu địa điểm tiện ích (POI) từ Overture Maps & Chứa cột location (PostGIS Point) \\
     \hline
-    3 & RiskZone & Lưu vùng ngập lụt, sạt lở & Chứa cột \texttt{geom} (PostGIS Polygon) \\
+    3 & RiskZone & Lưu vùng ngập lụt, sạt lở & Chứa cột geom (PostGIS Polygon) \\
     \hline
-    4 & RoadSegment & Lưu các đoạn đường giao thông & Chứa cột \texttt{geom} (PostGIS LineString) \\
+    4 & RoadSegment & Lưu các đoạn đường giao thông & Chứa cột geom (PostGIS LineString) \\
     \hline
     5 & Report, Notification & Quản lý phản ánh kiến nghị công dân và thông báo & Tích hợp \gls{api} ứng dụng \\
     \hline
@@ -18,7 +18,7 @@
     \hline
     7 & Session, AuditLog & Quản lý phiên đăng nhập và lịch sử truy cập & Theo dõi bảo mật hệ thống \\
     \hline
-    8 & LayerUserConfig, AssetDisplayUserConfig & Lưu cấu hình hiển thị bản đồ của từng user & Lưu trữ dạng dữ liệu \texttt{Json} linh hoạt \\
+    8 & LayerUserConfig, AssetDisplayUserConfig & Lưu cấu hình hiển thị bản đồ của từng user & Lưu trữ dạng dữ liệu Json linh hoạt \\
     \hline
     \end{tabular}
     \caption{Định nghĩa các bảng dữ liệu chính}

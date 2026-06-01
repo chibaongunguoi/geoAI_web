@@ -1,5 +1,3 @@
-\footnotesize
-\setlength{\tabcolsep}{3pt}
 \begin{longtable}{|p{0.7cm}|p{3.3cm}|p{1.9cm}|p{2.1cm}|p{5.4cm}|}
     \caption{Chi tiết bảng BuildingProperty (Tích hợp PostGIS \& Elasticsearch)}
     \label{tab:db_building_property} \\
@@ -36,16 +34,14 @@
     19 & centroidLng & Float & Nullable & Kinh độ điểm tâm tài sản \\ \hline
     20 & bbox & Json & Nullable & Hình hộp bao (bounding box) \\ \hline
     21 & geometry & Json & Nullable & Dữ liệu không gian định dạng GeoJSON \\ \hline
-    22 & \textbf{geom} & \textbf{Geometry} & Nullable & \textbf{Dữ liệu không gian thực lưu trên PostGIS, SRID 4326} \\ \hline
+    22 & geom & Geometry & Nullable & Dữ liệu không gian thực lưu trên PostGIS, SRID 4326 \\ \hline
     23 & attributes & Json & Nullable & Thuộc tính mở rộng linh hoạt theo chuẩn GeoJSON \\ \hline
-    24 & \textbf{searchText} & \textbf{String} & Not Null & \textbf{Nội dung tìm kiếm toàn văn} \\ \hline
-    25 & \textbf{searchTextNormalized} & \textbf{String} & Not Null & \textbf{Nội dung đã chuẩn hóa phục vụ tìm kiếm} \\ \hline
-    26 & \textbf{embedding} & \textbf{Json} & Nullable & \textbf{Vector nhúng hỗ trợ tìm kiếm ngữ nghĩa bằng AI} \\ \hline
+    24 & searchText & String & Not Null & Nội dung tìm kiếm toàn văn \\ \hline
+    25 & search\-Text\-Normalized & String & Not Null & Nội dung đã chuẩn hóa phục vụ tìm kiếm \\ \hline
+    26 & embedding & Json & Nullable & Vector nhúng hỗ trợ tìm kiếm ngữ nghĩa bằng AI \\ \hline
     27 & riskFlags & Json & Default & Danh sách cờ cảnh báo rủi ro \\ \hline
     28 & compositeScore & Float & Nullable & Điểm tổng hợp phục vụ xếp hạng/đánh giá tài sản \\ \hline
     29 & createdAt & DateTime & Not Null & Thời gian tạo bản ghi \\ \hline
     30 & updatedAt & DateTime & Not Null & Thời gian cập nhật gần nhất \\ \hline
     31 & deletedAt & DateTime & Nullable & Thời điểm xóa mềm nếu có \\
 \end{longtable}
-\setlength{\tabcolsep}{6pt}
-\normalsize
